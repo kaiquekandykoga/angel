@@ -1,7 +1,7 @@
 [project]
 name = "nishikihebi"
 version = "0.1.0"
-description = "Add your description here"
+description = "Multi-Agent System using Python"
 readme = "README.md"
 authors = [
     { name = "Kaíque Kandy Koga", email = "kaiquekandykoga@gmail.com" }
