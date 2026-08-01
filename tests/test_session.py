@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from langchain_core.messages import SystemMessage
+
 from nishikihebi.session import start_session
 
 
@@ -21,6 +23,16 @@ def test_session_keeps_history_across_asks(fake_model):
     last_call_contents = [m.content for m in fake_model.calls[-1]]
     assert "first" in last_call_contents
     assert "second" in last_call_contents
+
+
+def test_system_prompt_is_not_accumulated_across_asks(fake_model):
+    session = start_session(fake_model)
+
+    session.ask("first")
+    session.ask("second")
+
+    system_messages = [m for m in fake_model.calls[-1] if isinstance(m, SystemMessage)]
+    assert len(system_messages) == 1
 
 
 def test_two_sessions_have_independent_history(fake_model):

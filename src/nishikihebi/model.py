@@ -3,14 +3,16 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Protocol
 
-from langchain_core.messages import BaseMessage
+from langchain_core.messages import AIMessage, BaseMessage
 
 
 class Model(Protocol):
-    def complete(self, messages: Sequence[BaseMessage]) -> str: ...
+    def complete(self, messages: Sequence[BaseMessage]) -> AIMessage: ...
 
 
 NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"
+
+_ROLES = {"human": "user", "ai": "assistant", "system": "system"}
 
 
 class NvidiaModel:
@@ -18,9 +20,9 @@ class NvidiaModel:
         self.client = client
         self.model = model
 
-    def complete(self, messages: Sequence[BaseMessage]) -> str:
+    def complete(self, messages: Sequence[BaseMessage]) -> AIMessage:
         nvidia_messages = [
-            {"role": "assistant" if message.type == "ai" else "user", "content": message.content}
+            {"role": _ROLES[message.type], "content": message.content}
             for message in messages
         ]
         response = self.client.chat.completions.create(
@@ -28,4 +30,4 @@ class NvidiaModel:
             max_tokens=1024,
             messages=nvidia_messages,
         )
-        return response.choices[0].message.content
+        return AIMessage(content=response.choices[0].message.content)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from nishikihebi.model import NvidiaModel
 
@@ -40,13 +40,14 @@ class FakeClient:
         self.chat = FakeChat(reply)
 
 
-def test_complete_sends_expected_request_and_extracts_text():
+def test_complete_sends_expected_request_and_returns_ai_message():
     client = FakeClient(reply="hi there")
     model = NvidiaModel(client, model="nvidia/nemotron-3-super-120b-a12b")
 
     result = model.complete([HumanMessage(content="hello"), AIMessage(content="hey")])
 
-    assert result == "hi there"
+    assert isinstance(result, AIMessage)
+    assert result.content == "hi there"
     assert client.chat.completions.create_kwargs == {
         "model": "nvidia/nemotron-3-super-120b-a12b",
         "max_tokens": 1024,
@@ -55,3 +56,22 @@ def test_complete_sends_expected_request_and_extracts_text():
             {"role": "assistant", "content": "hey"},
         ],
     }
+
+
+def test_complete_maps_system_messages_to_system_role():
+    client = FakeClient(reply="hi there")
+    model = NvidiaModel(client, model="nvidia/nemotron-3-super-120b-a12b")
+
+    model.complete(
+        [
+            SystemMessage(content="be nice"),
+            HumanMessage(content="hello"),
+            AIMessage(content="hey"),
+        ]
+    )
+
+    assert client.chat.completions.create_kwargs["messages"] == [
+        {"role": "system", "content": "be nice"},
+        {"role": "user", "content": "hello"},
+        {"role": "assistant", "content": "hey"},
+    ]

@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from langchain_core.messages import HumanMessage
 
-from nishikihebi.agent import build_agent
+from nishikihebi.graph import build_graph
 from nishikihebi.model import Model
 
 
@@ -22,4 +22,4 @@ class ChatSession:
 
 
 def start_session(model: Model) -> ChatSession:
-    return ChatSession(build_agent(model), thread_id=str(uuid4()))
+    return ChatSession(build_graph(model), thread_id=str(uuid4()))

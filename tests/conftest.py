@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 import pytest
-from langchain_core.messages import BaseMessage
+from langchain_core.messages import AIMessage, BaseMessage
 
 
 class FakeModel:
@@ -11,9 +11,9 @@ class FakeModel:
         self.reply = reply
         self.calls: list[Sequence[BaseMessage]] = []
 
-    def complete(self, messages: Sequence[BaseMessage]) -> str:
+    def complete(self, messages: Sequence[BaseMessage]) -> AIMessage:
         self.calls.append(list(messages))
-        return self.reply
+        return AIMessage(content=self.reply)
 
 
 @pytest.fixture
