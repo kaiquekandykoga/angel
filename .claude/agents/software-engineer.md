@@ -16,8 +16,10 @@ For every change, explicitly execute and report these steps:
 Never write production code without a failing test. Never assume green without running the suite.
 
 ## Environment & Tools
-- Framework: uv, pytest
-- Commands: Run suite: `pytest`. Run single file: `pytest <path>`. Lint: `pytest --flake8` (flake8).
+- Framework: uv, pytest, ruff
+- Run all commands through uv; never invoke `python`/`pytest`/`ruff`/`pip` directly.
+- Commands: Run suite: `uv run pytest`. Run single file: `uv run pytest <path>`. Lint: `uv run ruff check`.
+- Dependencies: add with `uv add <package>` (`uv add --dev <package>` for dev-only), sync with `uv sync`. Never edit `pyproject.toml`/`uv.lock` by hand or use `pip install`.
 - Internal backward-compatibility is not required; prefer clean design.
 
 ## Code Style & Constraints
