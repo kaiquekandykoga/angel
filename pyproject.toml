@@ -24,3 +24,6 @@ dev = [
     "pytest>=8.4.2",
     "ruff>=0.16.1",
 ]
+
+[tool.basedpyright]
+typeCheckingMode = "standard"

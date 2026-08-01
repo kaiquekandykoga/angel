@@ -1,7 +1,15 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 
-def run(session, input_fn=input, output=print) -> None:
+from nishikihebi.session import Session
+
+
+def run(
+    session: Session,
+    input_fn: Callable[[str], str] = input,
+    output: Callable[[str], None] = print,
+) -> None:
     while True:
         try:
             line = input_fn("> ")

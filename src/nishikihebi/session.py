@@ -1,15 +1,21 @@
 from __future__ import annotations
 
+from typing import Protocol
 from uuid import uuid4
 
 from langchain_core.messages import HumanMessage
+from langgraph.graph.state import CompiledStateGraph
 
 from nishikihebi.graph import build_graph
 from nishikihebi.model import Model
 
 
+class Session(Protocol):
+    def ask(self, question: str) -> str: ...
+
+
 class ChatSession:
-    def __init__(self, agent, thread_id: str) -> None:
+    def __init__(self, agent: CompiledStateGraph, thread_id: str) -> None:
         self.agent = agent
         self.thread_id = thread_id
 

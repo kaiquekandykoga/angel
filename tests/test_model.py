@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from typing import Any, cast
+
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from openai import OpenAI
 
 from nishikihebi.model import NvidiaModel
 
@@ -23,9 +26,9 @@ class FakeResponse:
 class FakeCompletions:
     def __init__(self, reply: str) -> None:
         self.reply = reply
-        self.create_kwargs = None
+        self.create_kwargs: dict[str, Any] = {}
 
-    def create(self, **kwargs):
+    def create(self, **kwargs: Any) -> FakeResponse:
         self.create_kwargs = kwargs
         return FakeResponse(self.reply)
 
@@ -42,7 +45,7 @@ class FakeClient:
 
 def test_complete_sends_expected_request_and_returns_ai_message():
     client = FakeClient(reply="hi there")
-    model = NvidiaModel(client, model="nvidia/nemotron-3-super-120b-a12b")
+    model = NvidiaModel(cast(OpenAI, client), model="nvidia/nemotron-3-super-120b-a12b")
 
     result = model.complete([HumanMessage(content="hello"), AIMessage(content="hey")])
 
@@ -60,7 +63,7 @@ def test_complete_sends_expected_request_and_returns_ai_message():
 
 def test_complete_maps_system_messages_to_system_role():
     client = FakeClient(reply="hi there")
-    model = NvidiaModel(client, model="nvidia/nemotron-3-super-120b-a12b")
+    model = NvidiaModel(cast(OpenAI, client), model="nvidia/nemotron-3-super-120b-a12b")
 
     model.complete(
         [
