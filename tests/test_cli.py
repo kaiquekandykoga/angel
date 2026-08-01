@@ -29,15 +29,31 @@ def test_run_answers_a_line_then_exits_on_eof():
     assert outputs == ["answer to hello"]
 
 
-def test_run_exits_on_quit_word():
+def test_run_exits_on_slash_exit_command():
     session = FakeSession()
-    inputs = iter(["exit", "should not be reached"])
+    inputs = iter(["/exit", "should not be reached"])
     outputs = []
 
     run(session, input_fn=lambda _="": next(inputs), output=outputs.append)
 
     assert session.questions == []
     assert outputs == []
+
+
+def test_run_forwards_bare_exit_and_quit_words():
+    session = FakeSession()
+    inputs = iter(["exit", "quit"])
+
+    def input_fn(_=""):
+        try:
+            return next(inputs)
+        except StopIteration:
+            raise EOFError
+
+    outputs = []
+    run(session, input_fn=input_fn, output=outputs.append)
+
+    assert session.questions == ["exit", "quit"]
 
 
 def test_run_skips_blank_lines():

@@ -11,7 +11,7 @@ def run(session, input_fn=input, output=print) -> None:
         question = line.strip()
         if not question:
             continue
-        if question in ("exit", "quit"):
+        if question == "/exit":
             return
 
         output(session.ask(question))
