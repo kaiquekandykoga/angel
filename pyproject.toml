@@ -7,7 +7,9 @@ authors = [
     { name = "Kaíque Kandy Koga", email = "kaiquekandykoga@gmail.com" }
 ]
 requires-python = ">=3.9"
-dependencies = []
+dependencies = [
+    "langgraph>=0.6.11",
+]
 
 [project.scripts]
 nishikihebi = "nishikihebi:main"
