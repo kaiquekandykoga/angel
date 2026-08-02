@@ -1,80 +1,45 @@
 from __future__ import annotations
 
-from typing import Any, cast
+from collections.abc import Sequence
+from typing import cast
 
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
-from openai import OpenAI
+from langchain_core.language_models import BaseChatModel
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 
 from nishikihebi.model import NvidiaModel
 
 
-class FakeMessage:
-    def __init__(self, content: str) -> None:
-        self.content = content
-
-
-class FakeChoice:
-    def __init__(self, content: str) -> None:
-        self.message = FakeMessage(content)
-
-
-class FakeResponse:
-    def __init__(self, content: str) -> None:
-        self.choices = [FakeChoice(content)]
-
-
-class FakeCompletions:
+class FakeChatModel:
     def __init__(self, reply: str) -> None:
         self.reply = reply
-        self.create_kwargs: dict[str, Any] = {}
+        self.invoked_messages: Sequence[BaseMessage] | None = None
 
-    def create(self, **kwargs: Any) -> FakeResponse:
-        self.create_kwargs = kwargs
-        return FakeResponse(self.reply)
-
-
-class FakeChat:
-    def __init__(self, reply: str) -> None:
-        self.completions = FakeCompletions(reply)
+    def invoke(self, messages: Sequence[BaseMessage]) -> AIMessage:
+        self.invoked_messages = messages
+        return AIMessage(content=self.reply)
 
 
-class FakeClient:
-    def __init__(self, reply: str) -> None:
-        self.chat = FakeChat(reply)
+def test_complete_forwards_messages_and_returns_ai_message():
+    client = FakeChatModel(reply="hi there")
+    model = NvidiaModel(cast(BaseChatModel, client))
 
-
-def test_complete_sends_expected_request_and_returns_ai_message():
-    client = FakeClient(reply="hi there")
-    model = NvidiaModel(cast(OpenAI, client), model="nvidia/nemotron-3-super-120b-a12b")
-
-    result = model.complete([HumanMessage(content="hello"), AIMessage(content="hey")])
+    messages = [HumanMessage(content="hello"), AIMessage(content="hey")]
+    result = model.complete(messages)
 
     assert isinstance(result, AIMessage)
     assert result.content == "hi there"
-    assert client.chat.completions.create_kwargs == {
-        "model": "nvidia/nemotron-3-super-120b-a12b",
-        "max_tokens": 1024,
-        "messages": [
-            {"role": "user", "content": "hello"},
-            {"role": "assistant", "content": "hey"},
-        ],
-    }
+    assert client.invoked_messages == messages
 
 
-def test_complete_maps_system_messages_to_system_role():
-    client = FakeClient(reply="hi there")
-    model = NvidiaModel(cast(OpenAI, client), model="nvidia/nemotron-3-super-120b-a12b")
+def test_complete_forwards_system_messages():
+    client = FakeChatModel(reply="hi there")
+    model = NvidiaModel(cast(BaseChatModel, client))
 
-    model.complete(
-        [
-            SystemMessage(content="be nice"),
-            HumanMessage(content="hello"),
-            AIMessage(content="hey"),
-        ]
-    )
-
-    assert client.chat.completions.create_kwargs["messages"] == [
-        {"role": "system", "content": "be nice"},
-        {"role": "user", "content": "hello"},
-        {"role": "assistant", "content": "hey"},
+    messages = [
+        SystemMessage(content="be nice"),
+        HumanMessage(content="hello"),
+        AIMessage(content="hey"),
     ]
+    model.complete(messages)
+
+    assert client.invoked_messages == messages
