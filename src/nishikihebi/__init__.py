@@ -5,9 +5,9 @@ import sys
 
 from openai import OpenAI
 
-from nishikihebi import cli
+from nishikihebi.chat import cli
+from nishikihebi.chat.session import start_session
 from nishikihebi.model import NVIDIA_BASE_URL, NvidiaModel
-from nishikihebi.session import start_session
 
 
 def main() -> None:

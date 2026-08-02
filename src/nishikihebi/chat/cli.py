@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from nishikihebi.session import Session
+from nishikihebi.chat.session import Session
 
 
 def run(

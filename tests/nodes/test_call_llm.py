@@ -2,22 +2,22 @@ from __future__ import annotations
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
-from nishikihebi.agents.chat import SYSTEM_PROMPT, build_chat_agent
+from nishikihebi.nodes.call_llm import SYSTEM_PROMPT, call_llm
 
 
-def test_respond_node_appends_ai_message(fake_model):
-    agent = build_chat_agent(fake_model)
+def test_call_llm_appends_ai_message(fake_model):
+    node = call_llm(fake_model)
 
-    result = agent.invoke({"messages": [HumanMessage(content="hi")]})
+    result = node({"messages": [HumanMessage(content="hi")]})
 
     assert isinstance(result["messages"][-1], AIMessage)
     assert result["messages"][-1].content == fake_model.reply
 
 
-def test_respond_prepends_system_prompt_without_persisting_it(fake_model):
-    agent = build_chat_agent(fake_model)
+def test_call_llm_prepends_system_prompt_without_persisting_it(fake_model):
+    node = call_llm(fake_model)
 
-    result = agent.invoke({"messages": [HumanMessage(content="hi")]})
+    result = node({"messages": [HumanMessage(content="hi")]})
 
     sent = fake_model.calls[-1]
     assert isinstance(sent[0], SystemMessage)

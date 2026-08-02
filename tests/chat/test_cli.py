@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from nishikihebi.cli import run
+from nishikihebi.chat.cli import run
 
 
 class FakeSession:

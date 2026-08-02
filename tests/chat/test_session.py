@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from langchain_core.messages import SystemMessage
 
-from nishikihebi.session import start_session
+from nishikihebi.chat.session import start_session
 
 
 def test_ask_returns_model_reply(fake_model):
