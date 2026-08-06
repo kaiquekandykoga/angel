@@ -1,12 +1,12 @@
 from langchain_core.messages import SystemMessage
 
 from nishikihebi.chat.session import start_session
-from nishikihebi.graph import build_graph
+from nishikihebi.graph import build_graphs
 
 
 def test_ask_returns_client_reply(fake_client):
     fake_client.reply = "hello there"
-    session = start_session(build_graph(fake_client))
+    session = start_session(build_graphs(fake_client).chat)
 
     answer = session.ask("hi")
 
@@ -14,7 +14,7 @@ def test_ask_returns_client_reply(fake_client):
 
 
 def test_session_keeps_history_across_asks(fake_client):
-    session = start_session(build_graph(fake_client))
+    session = start_session(build_graphs(fake_client).chat)
 
     session.ask("first")
     session.ask("second")
@@ -25,7 +25,7 @@ def test_session_keeps_history_across_asks(fake_client):
 
 
 def test_system_prompt_is_not_accumulated_across_asks(fake_client):
-    session = start_session(build_graph(fake_client))
+    session = start_session(build_graphs(fake_client).chat)
 
     session.ask("first")
     session.ask("second")
@@ -35,8 +35,8 @@ def test_system_prompt_is_not_accumulated_across_asks(fake_client):
 
 
 def test_two_sessions_have_independent_history(fake_client):
-    session_a = start_session(build_graph(fake_client))
-    session_b = start_session(build_graph(fake_client))
+    session_a = start_session(build_graphs(fake_client).chat)
+    session_b = start_session(build_graphs(fake_client).chat)
 
     session_a.ask("from a")
     session_b.ask("from b")

@@ -1,18 +1,17 @@
+from typing import NamedTuple
+
 from langgraph.checkpoint.base import BaseCheckpointSaver
-from langgraph.checkpoint.memory import MemorySaver
-from langgraph.graph import StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
-from nishikihebi.edges.graph import add_call_llm_edges
+from nishikihebi.graphs.chat import build_chat_graph
 from nishikihebi.llm_client import LlmClient
-from nishikihebi.nodes.call_llm import call_llm
-from nishikihebi.state import State
 
 
-def build_graph(
+class Graphs(NamedTuple):
+    chat: CompiledStateGraph
+
+
+def build_graphs(
     client: LlmClient, checkpointer: BaseCheckpointSaver | None = None
-) -> CompiledStateGraph:
-    graph = StateGraph(State)
-    graph.add_node("call_llm", call_llm(client))
-    add_call_llm_edges(graph)
-    return graph.compile(checkpointer=checkpointer or MemorySaver())
+) -> Graphs:
+    return Graphs(chat=build_chat_graph(client, checkpointer))

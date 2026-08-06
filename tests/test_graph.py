@@ -1,14 +1,10 @@
-from langchain_core.messages import AIMessage, HumanMessage
-from langchain_core.runnables import RunnableConfig
+from langgraph.graph.state import CompiledStateGraph
 
-from nishikihebi.graph import build_graph
+from nishikihebi.graph import Graphs, build_graphs
 
 
-def test_graph_routes_through_chat_node(fake_client):
-    graph = build_graph(fake_client)
-    config: RunnableConfig = {"configurable": {"thread_id": "t1"}}
+def test_build_graphs_exposes_the_chat_graph(fake_client):
+    graphs = build_graphs(fake_client)
 
-    result = graph.invoke({"messages": [HumanMessage(content="hi")]}, config=config)
-
-    assert isinstance(result["messages"][-1], AIMessage)
-    assert result["messages"][-1].content == fake_client.reply
+    assert isinstance(graphs, Graphs)
+    assert isinstance(graphs.chat, CompiledStateGraph)
