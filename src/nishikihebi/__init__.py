@@ -1,17 +1,17 @@
 from __future__ import annotations
 
-import os
 import sys
 
 from langchain_nvidia_ai_endpoints import ChatNVIDIA
 
 from nishikihebi.chat import cli
 from nishikihebi.chat.session import start_session
+from nishikihebi.env import load_api_key
 from nishikihebi.model import NVIDIA_BASE_URL, NvidiaModel
 
 
 def main() -> None:
-    api_key = os.environ.get("NVIDIA_API_KEY")
+    api_key = load_api_key()
     if not api_key:
         sys.exit("NVIDIA_API_KEY environment variable is not set.")
 

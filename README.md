@@ -4,7 +4,7 @@ The idea is to build a Multi-Agent System using Python reflected by [kirinn](htt
 
 ## Run app
 
-Requires the `NVIDIA_API_KEY` environment variable to be set (see `.env.example`).
+Copy `.env.example` to `.env` and fill in your `NVIDIA_API_KEY`. The app loads `.env` automatically; an already-exported shell variable still takes precedence.
 
 ```bash
 uv sync
