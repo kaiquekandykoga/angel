@@ -60,6 +60,22 @@ def test_main_runs_pr_review_flow_and_prints_one_line_per_pr(
     assert "1" in out
 
 
+def test_main_reports_when_no_pull_requests_are_labeled(
+    monkeypatch, capsys, fake_client, fake_github
+):
+    fake_github.pull_requests = {}
+    monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
+    monkeypatch.setattr(
+        nishikihebi.__main__, "build_github_client", lambda: fake_github
+    )
+
+    nishikihebi.__main__.main(["pr_review"])
+
+    out = capsys.readouterr().out
+    assert "No pull requests labeled 'nishikihebi'" in out
+    assert fake_github.posted_comments == []
+
+
 def test_main_exits_when_github_token_missing_for_pr_review(monkeypatch, fake_client):
     message = "NISHIKIHEBI_GITHUB_TOKEN environment variable is not set."
     monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)

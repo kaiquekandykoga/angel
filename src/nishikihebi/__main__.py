@@ -10,7 +10,11 @@ from nishikihebi.clients.github import (
 )
 from nishikihebi.clients.llm import LlmClient, MissingApiKeyError, build_llm_client
 from nishikihebi.graphs.chat import build_chat_graph
-from nishikihebi.graphs.pr_review import build_pr_review_graph
+from nishikihebi.graphs.pr_review import (
+    REPOSITORIES,
+    REVIEW_LABEL,
+    build_pr_review_graph,
+)
 
 COMMANDS = ("chat", "pr_review")
 
@@ -24,6 +28,10 @@ def run_chat(client: LlmClient) -> None:
 def run_pr_review(client: LlmClient, github: GitHubClient) -> None:
     graph = build_pr_review_graph(client, github)
     result = graph.invoke({"pull_requests": [], "reviews": []})
+    if not result["reviews"]:
+        repositories = ", ".join(REPOSITORIES)
+        print(f"No pull requests labeled '{REVIEW_LABEL}' in {repositories}")
+        return
     for review in result["reviews"]:
         pull_request = review.pull_request
         print(f"Commented on {pull_request.repository}#{pull_request.number}")

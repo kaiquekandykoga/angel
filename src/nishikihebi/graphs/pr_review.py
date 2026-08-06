@@ -10,7 +10,10 @@ from nishikihebi.nodes.post_review_comments import post_review_comments
 from nishikihebi.nodes.review_pull_requests import review_pull_requests
 from nishikihebi.state import PrReviewState
 
-REPOSITORIES = ("kaiquekandykoga/nishikihebi",)
+REPOSITORIES = (
+    "kaiquekandykoga/nishikihebi",
+    "kaiquekandykoga/a",
+)
 REVIEW_LABEL = "nishikihebi"
 
 

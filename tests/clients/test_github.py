@@ -76,8 +76,9 @@ def test_post_comment_sends_body_to_issue_comments_endpoint():
     assert json.loads(request.content) == {"body": "great work"}
 
 
-def test_build_github_client_raises_when_token_missing(monkeypatch):
+def test_build_github_client_raises_when_token_missing(monkeypatch, tmp_path):
     monkeypatch.delenv("NISHIKIHEBI_GITHUB_TOKEN", raising=False)
+    monkeypatch.chdir(tmp_path)
 
     with pytest.raises(MissingGitHubTokenError, match="NISHIKIHEBI_GITHUB_TOKEN"):
         build_github_client()
