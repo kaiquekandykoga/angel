@@ -18,3 +18,7 @@ uv sync
 uv run nishikihebi chat
 uv run nishikihebi pr_review
 ```
+
+## Development
+
+Run `uv run ci` to lint, type-check, and test locally — this is the CI signal for this repo.
