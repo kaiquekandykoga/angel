@@ -5,10 +5,17 @@ from typing import Protocol, cast
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage
+from langchain_nvidia_ai_endpoints import ChatNVIDIA
+
+from nishikihebi.env import load_api_key
 
 
 class Model(Protocol):
     def complete(self, messages: Sequence[BaseMessage]) -> AIMessage: ...
+
+
+class MissingApiKeyError(RuntimeError):
+    pass
 
 
 NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"
@@ -22,3 +29,17 @@ class NvidiaModel:
 
     def complete(self, messages: Sequence[BaseMessage]) -> AIMessage:
         return cast(AIMessage, self.client.invoke(list(messages)))
+
+
+def build_model() -> Model:
+    api_key = load_api_key()
+    if not api_key:
+        raise MissingApiKeyError("NVIDIA_API_KEY environment variable is not set.")
+
+    client = ChatNVIDIA(
+        base_url=NVIDIA_BASE_URL,
+        api_key=api_key,
+        model=NVIDIA_MODEL,
+        max_tokens=NVIDIA_MAX_TOKENS,
+    )
+    return NvidiaModel(client)

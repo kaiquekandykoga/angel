@@ -3,10 +3,11 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import cast
 
+import pytest
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 
-from nishikihebi.model import NvidiaModel
+from nishikihebi.model import MissingApiKeyError, NvidiaModel, build_model
 
 
 class FakeChatModel:
@@ -43,3 +44,32 @@ def test_complete_forwards_system_messages():
     model.complete(messages)
 
     assert client.invoked_messages == messages
+
+
+def test_build_model_constructs_chat_nvidia_with_expected_kwargs(monkeypatch):
+    captured_kwargs = {}
+
+    class FakeChatNVIDIA:
+        def __init__(self, **kwargs):
+            captured_kwargs.update(kwargs)
+
+    monkeypatch.setattr("nishikihebi.model.ChatNVIDIA", FakeChatNVIDIA)
+    monkeypatch.setattr("nishikihebi.model.load_api_key", lambda: "test-key")
+
+    model = build_model()
+
+    assert isinstance(model, NvidiaModel)
+    assert isinstance(model.client, FakeChatNVIDIA)
+    assert captured_kwargs == {
+        "base_url": "https://integrate.api.nvidia.com/v1",
+        "api_key": "test-key",
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "max_tokens": 1024,
+    }
+
+
+def test_build_model_raises_when_api_key_missing(monkeypatch):
+    monkeypatch.setattr("nishikihebi.model.load_api_key", lambda: None)
+
+    with pytest.raises(MissingApiKeyError, match="NVIDIA_API_KEY"):
+        build_model()
