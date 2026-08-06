@@ -5,7 +5,7 @@ from nishikihebi.chat import cli
 from nishikihebi.chat.session import start_session
 from nishikihebi.clients.github import (
     GitHubClient,
-    MissingGitHubTokenError,
+    MissingGitHubCredentialsError,
     build_github_client,
 )
 from nishikihebi.clients.llm import LlmClient, MissingApiKeyError, build_llm_client
@@ -46,7 +46,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     try:
         client = build_llm_client()
         github = build_github_client() if argv[0] == "pr_review" else None
-    except (MissingApiKeyError, MissingGitHubTokenError) as error:
+    except (MissingApiKeyError, MissingGitHubCredentialsError) as error:
         sys.exit(str(error))
 
     if github is None:

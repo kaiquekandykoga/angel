@@ -3,7 +3,7 @@ import re
 import pytest
 
 import nishikihebi.__main__
-from nishikihebi.clients.github import MissingGitHubTokenError, PullRequest
+from nishikihebi.clients.github import MissingGitHubCredentialsError, PullRequest
 from nishikihebi.clients.llm import MissingApiKeyError
 
 
@@ -21,8 +21,8 @@ def test_main_exits_when_api_key_missing(monkeypatch):
 
 def test_main_runs_chat_flow_without_needing_a_github_token(monkeypatch, fake_client):
     def raise_missing_github_token():
-        raise MissingGitHubTokenError(
-            "NISHIKIHEBI_GITHUB_TOKEN environment variable is not set."
+        raise MissingGitHubCredentialsError(
+            "NISHIKIHEBI_GITHUB_APP_ID environment variable is not set."
         )
 
     monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
@@ -77,11 +77,11 @@ def test_main_reports_when_no_pull_requests_are_labeled(
 
 
 def test_main_exits_when_github_token_missing_for_pr_review(monkeypatch, fake_client):
-    message = "NISHIKIHEBI_GITHUB_TOKEN environment variable is not set."
+    message = "NISHIKIHEBI_GITHUB_APP_ID environment variable is not set."
     monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
 
     def raise_missing_github_token():
-        raise MissingGitHubTokenError(message)
+        raise MissingGitHubCredentialsError(message)
 
     monkeypatch.setattr(
         nishikihebi.__main__, "build_github_client", raise_missing_github_token
