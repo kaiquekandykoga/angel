@@ -1,20 +1,20 @@
 from langchain_core.messages import SystemMessage
 
 from nishikihebi.chat.session import start_session
-from nishikihebi.graph import build_graphs
+from nishikihebi.graphs.chat import build_chat_graph
 
 
-def test_ask_returns_client_reply(fake_client, fake_github):
+def test_ask_returns_client_reply(fake_client):
     fake_client.reply = "hello there"
-    session = start_session(build_graphs(fake_client, fake_github).chat)
+    session = start_session(build_chat_graph(fake_client))
 
     answer = session.ask("hi")
 
     assert answer == "hello there"
 
 
-def test_session_keeps_history_across_asks(fake_client, fake_github):
-    session = start_session(build_graphs(fake_client, fake_github).chat)
+def test_session_keeps_history_across_asks(fake_client):
+    session = start_session(build_chat_graph(fake_client))
 
     session.ask("first")
     session.ask("second")
@@ -24,8 +24,8 @@ def test_session_keeps_history_across_asks(fake_client, fake_github):
     assert "second" in last_call_contents
 
 
-def test_system_prompt_is_not_accumulated_across_asks(fake_client, fake_github):
-    session = start_session(build_graphs(fake_client, fake_github).chat)
+def test_system_prompt_is_not_accumulated_across_asks(fake_client):
+    session = start_session(build_chat_graph(fake_client))
 
     session.ask("first")
     session.ask("second")
@@ -34,9 +34,9 @@ def test_system_prompt_is_not_accumulated_across_asks(fake_client, fake_github):
     assert len(system_messages) == 1
 
 
-def test_two_sessions_have_independent_history(fake_client, fake_github):
-    session_a = start_session(build_graphs(fake_client, fake_github).chat)
-    session_b = start_session(build_graphs(fake_client, fake_github).chat)
+def test_two_sessions_have_independent_history(fake_client):
+    session_a = start_session(build_chat_graph(fake_client))
+    session_b = start_session(build_chat_graph(fake_client))
 
     session_a.ask("from a")
     session_b.ask("from b")

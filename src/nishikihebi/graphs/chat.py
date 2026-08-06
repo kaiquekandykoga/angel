@@ -3,7 +3,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
-from nishikihebi.llm_client import LlmClient
+from nishikihebi.clients.llm import LlmClient
 from nishikihebi.nodes.call_llm import call_llm
 from nishikihebi.state import ChatState
 

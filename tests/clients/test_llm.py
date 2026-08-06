@@ -5,7 +5,7 @@ import pytest
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 
-from nishikihebi.llm_client import MissingApiKeyError, NvidiaClient, build_llm_client
+from nishikihebi.clients.llm import MissingApiKeyError, NvidiaClient, build_llm_client
 
 
 class FakeChatModel:
@@ -51,8 +51,8 @@ def test_build_llm_client_constructs_chat_nvidia_with_expected_kwargs(monkeypatc
         def __init__(self, **kwargs):
             captured_kwargs.update(kwargs)
 
-    monkeypatch.setattr("nishikihebi.llm_client.ChatNVIDIA", FakeChatNVIDIA)
-    monkeypatch.setattr("nishikihebi.llm_client.load_env_var", lambda name: "test-key")
+    monkeypatch.setattr("nishikihebi.clients.llm.ChatNVIDIA", FakeChatNVIDIA)
+    monkeypatch.setattr("nishikihebi.clients.llm.load_env_var", lambda name: "test-key")
 
     client = build_llm_client()
 
@@ -67,7 +67,7 @@ def test_build_llm_client_constructs_chat_nvidia_with_expected_kwargs(monkeypatc
 
 
 def test_build_llm_client_raises_when_api_key_missing(monkeypatch):
-    monkeypatch.setattr("nishikihebi.llm_client.load_env_var", lambda name: None)
+    monkeypatch.setattr("nishikihebi.clients.llm.load_env_var", lambda name: None)
 
-    with pytest.raises(MissingApiKeyError, match="NVIDIA_API_KEY"):
+    with pytest.raises(MissingApiKeyError, match="NISHIKIHEBI_NVIDIA_API_KEY"):
         build_llm_client()

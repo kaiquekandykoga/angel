@@ -2,8 +2,8 @@ from typing import cast
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from nishikihebi.github_client import GitHubClient
-from nishikihebi.llm_client import LlmClient
+from nishikihebi.clients.github import GitHubClient
+from nishikihebi.clients.llm import LlmClient
 from nishikihebi.state import PrReviewState, Review
 
 REVIEW_SYSTEM_PROMPT = (

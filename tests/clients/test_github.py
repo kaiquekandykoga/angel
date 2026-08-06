@@ -3,7 +3,7 @@ import json
 import httpx
 import pytest
 
-from nishikihebi.github_client import (
+from nishikihebi.clients.github import (
     HttpGitHubClient,
     MissingGitHubTokenError,
     PullRequest,
@@ -77,14 +77,14 @@ def test_post_comment_sends_body_to_issue_comments_endpoint():
 
 
 def test_build_github_client_raises_when_token_missing(monkeypatch):
-    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("NISHIKIHEBI_GITHUB_TOKEN", raising=False)
 
-    with pytest.raises(MissingGitHubTokenError, match="GITHUB_TOKEN"):
+    with pytest.raises(MissingGitHubTokenError, match="NISHIKIHEBI_GITHUB_TOKEN"):
         build_github_client()
 
 
 def test_build_github_client_constructs_http_client_with_auth_header(monkeypatch):
-    monkeypatch.setenv("GITHUB_TOKEN", "test-token")
+    monkeypatch.setenv("NISHIKIHEBI_GITHUB_TOKEN", "test-token")
 
     client = build_github_client()
 

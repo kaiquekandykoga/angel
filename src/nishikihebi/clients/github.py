@@ -61,9 +61,11 @@ class HttpGitHubClient:
 
 
 def build_github_client() -> GitHubClient:
-    token = load_env_var("GITHUB_TOKEN")
+    token = load_env_var("NISHIKIHEBI_GITHUB_TOKEN")
     if not token:
-        raise MissingGitHubTokenError("GITHUB_TOKEN environment variable is not set.")
+        raise MissingGitHubTokenError(
+            "NISHIKIHEBI_GITHUB_TOKEN environment variable is not set."
+        )
 
     http_client = httpx.Client(
         base_url=GITHUB_BASE_URL,

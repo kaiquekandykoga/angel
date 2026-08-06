@@ -1,6 +1,6 @@
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from nishikihebi.github_client import PullRequest
+from nishikihebi.clients.github import PullRequest
 from nishikihebi.nodes.review_pull_requests import (
     REVIEW_SYSTEM_PROMPT,
     review_pull_requests,

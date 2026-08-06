@@ -1,4 +1,4 @@
-from nishikihebi.github_client import GitHubClient
+from nishikihebi.clients.github import GitHubClient
 from nishikihebi.state import PrReviewState
 
 

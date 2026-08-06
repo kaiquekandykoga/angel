@@ -3,14 +3,14 @@ from collections.abc import Sequence
 
 from nishikihebi.chat import cli
 from nishikihebi.chat.session import start_session
-from nishikihebi.github_client import (
+from nishikihebi.clients.github import (
     GitHubClient,
     MissingGitHubTokenError,
     build_github_client,
 )
-from nishikihebi.graph import build_graphs
+from nishikihebi.clients.llm import LlmClient, MissingApiKeyError, build_llm_client
 from nishikihebi.graphs.chat import build_chat_graph
-from nishikihebi.llm_client import LlmClient, MissingApiKeyError, build_llm_client
+from nishikihebi.graphs.pr_review import build_pr_review_graph
 
 COMMANDS = ("chat", "pr_review")
 
@@ -22,7 +22,7 @@ def run_chat(client: LlmClient) -> None:
 
 
 def run_pr_review(client: LlmClient, github: GitHubClient) -> None:
-    graph = build_graphs(client, github).pr_review
+    graph = build_pr_review_graph(client, github)
     result = graph.invoke({"pull_requests": [], "reviews": []})
     for review in result["reviews"]:
         pull_request = review.pull_request

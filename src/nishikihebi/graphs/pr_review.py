@@ -3,8 +3,8 @@ from collections.abc import Sequence
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
-from nishikihebi.github_client import GitHubClient
-from nishikihebi.llm_client import LlmClient
+from nishikihebi.clients.github import GitHubClient
+from nishikihebi.clients.llm import LlmClient
 from nishikihebi.nodes.fetch_pull_requests import fetch_pull_requests
 from nishikihebi.nodes.post_review_comments import post_review_comments
 from nishikihebi.nodes.review_pull_requests import review_pull_requests

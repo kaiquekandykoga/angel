@@ -1,4 +1,4 @@
-from nishikihebi.github_client import PullRequest
+from nishikihebi.clients.github import PullRequest
 from nishikihebi.graphs.pr_review import build_pr_review_graph
 from nishikihebi.state import Review
 

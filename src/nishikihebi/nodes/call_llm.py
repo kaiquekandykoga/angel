@@ -1,6 +1,6 @@
 from langchain_core.messages import AnyMessage, SystemMessage
 
-from nishikihebi.llm_client import LlmClient
+from nishikihebi.clients.llm import LlmClient
 from nishikihebi.state import ChatState
 
 SYSTEM_PROMPT = "You are a helpful assistant. Answer clearly and concisely."

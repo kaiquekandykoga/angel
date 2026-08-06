@@ -1,4 +1,4 @@
-from nishikihebi.github_client import PullRequest
+from nishikihebi.clients.github import PullRequest
 from nishikihebi.nodes.fetch_pull_requests import fetch_pull_requests
 
 

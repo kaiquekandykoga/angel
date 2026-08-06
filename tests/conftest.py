@@ -3,7 +3,7 @@ from collections.abc import Sequence
 import pytest
 from langchain_core.messages import AIMessage, BaseMessage
 
-from nishikihebi.github_client import PullRequest
+from nishikihebi.clients.github import PullRequest
 
 
 class FakeClient:

@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 
-from nishikihebi.github_client import GitHubClient, PullRequest
+from nishikihebi.clients.github import GitHubClient, PullRequest
 from nishikihebi.state import PrReviewState
 
 

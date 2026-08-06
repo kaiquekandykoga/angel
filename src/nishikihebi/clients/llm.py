@@ -30,9 +30,11 @@ class NvidiaClient:
 
 
 def build_llm_client() -> LlmClient:
-    api_key = load_env_var("NVIDIA_API_KEY")
+    api_key = load_env_var("NISHIKIHEBI_NVIDIA_API_KEY")
     if not api_key:
-        raise MissingApiKeyError("NVIDIA_API_KEY environment variable is not set.")
+        raise MissingApiKeyError(
+            "NISHIKIHEBI_NVIDIA_API_KEY environment variable is not set."
+        )
 
     chat_model = ChatNVIDIA(
         base_url=NVIDIA_BASE_URL,

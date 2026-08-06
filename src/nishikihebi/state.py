@@ -3,7 +3,7 @@ from typing import Annotated, NamedTuple, TypedDict
 from langchain_core.messages import AnyMessage
 from langgraph.graph.message import add_messages
 
-from nishikihebi.github_client import PullRequest
+from nishikihebi.clients.github import PullRequest
 
 
 class ChatState(TypedDict):
