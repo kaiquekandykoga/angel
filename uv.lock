@@ -482,6 +482,7 @@ name = "nishikihebi"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "httpx" },
     { name = "langchain-nvidia-ai-endpoints" },
     { name = "langgraph" },
     { name = "python-dotenv" },
@@ -496,6 +497,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "langchain-nvidia-ai-endpoints", specifier = ">=1.4.3" },
     { name = "langgraph", specifier = ">=1.2.10" },
     { name = "python-dotenv", specifier = ">=1.2.1" },

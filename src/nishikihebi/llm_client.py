@@ -5,7 +5,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage
 from langchain_nvidia_ai_endpoints import ChatNVIDIA
 
-from nishikihebi.env import load_api_key
+from nishikihebi.env import load_env_var
 
 
 class LlmClient(Protocol):
@@ -30,7 +30,7 @@ class NvidiaClient:
 
 
 def build_llm_client() -> LlmClient:
-    api_key = load_api_key()
+    api_key = load_env_var("NVIDIA_API_KEY")
     if not api_key:
         raise MissingApiKeyError("NVIDIA_API_KEY environment variable is not set.")
 

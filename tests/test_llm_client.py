@@ -52,7 +52,7 @@ def test_build_llm_client_constructs_chat_nvidia_with_expected_kwargs(monkeypatc
             captured_kwargs.update(kwargs)
 
     monkeypatch.setattr("nishikihebi.llm_client.ChatNVIDIA", FakeChatNVIDIA)
-    monkeypatch.setattr("nishikihebi.llm_client.load_api_key", lambda: "test-key")
+    monkeypatch.setattr("nishikihebi.llm_client.load_env_var", lambda name: "test-key")
 
     client = build_llm_client()
 
@@ -67,7 +67,7 @@ def test_build_llm_client_constructs_chat_nvidia_with_expected_kwargs(monkeypatc
 
 
 def test_build_llm_client_raises_when_api_key_missing(monkeypatch):
-    monkeypatch.setattr("nishikihebi.llm_client.load_api_key", lambda: None)
+    monkeypatch.setattr("nishikihebi.llm_client.load_env_var", lambda name: None)
 
     with pytest.raises(MissingApiKeyError, match="NVIDIA_API_KEY"):
         build_llm_client()
