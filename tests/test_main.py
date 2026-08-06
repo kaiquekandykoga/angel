@@ -3,7 +3,7 @@ import re
 import pytest
 
 import nishikihebi.__main__
-from nishikihebi.model import MissingApiKeyError
+from nishikihebi.llm_client import MissingApiKeyError
 
 
 def test_main_exits_when_api_key_missing(monkeypatch):
@@ -12,7 +12,7 @@ def test_main_exits_when_api_key_missing(monkeypatch):
     def raise_missing_api_key():
         raise MissingApiKeyError(message)
 
-    monkeypatch.setattr(nishikihebi.__main__, "build_model", raise_missing_api_key)
+    monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", raise_missing_api_key)
 
     with pytest.raises(SystemExit, match=re.escape(message)):
         nishikihebi.__main__.main()

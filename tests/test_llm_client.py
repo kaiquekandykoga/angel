@@ -5,7 +5,7 @@ import pytest
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 
-from nishikihebi.model import MissingApiKeyError, NvidiaModel, build_model
+from nishikihebi.llm_client import MissingApiKeyError, NvidiaClient, build_llm_client
 
 
 class FakeChatModel:
@@ -19,45 +19,45 @@ class FakeChatModel:
 
 
 def test_complete_forwards_messages_and_returns_ai_message():
-    client = FakeChatModel(reply="hi there")
-    model = NvidiaModel(cast("BaseChatModel", client))
+    chat_model = FakeChatModel(reply="hi there")
+    client = NvidiaClient(cast("BaseChatModel", chat_model))
 
     messages = [HumanMessage(content="hello"), AIMessage(content="hey")]
-    result = model.complete(messages)
+    result = client.complete(messages)
 
     assert isinstance(result, AIMessage)
     assert result.content == "hi there"
-    assert client.invoked_messages == messages
+    assert chat_model.invoked_messages == messages
 
 
 def test_complete_forwards_system_messages():
-    client = FakeChatModel(reply="hi there")
-    model = NvidiaModel(cast("BaseChatModel", client))
+    chat_model = FakeChatModel(reply="hi there")
+    client = NvidiaClient(cast("BaseChatModel", chat_model))
 
     messages = [
         SystemMessage(content="be nice"),
         HumanMessage(content="hello"),
         AIMessage(content="hey"),
     ]
-    model.complete(messages)
+    client.complete(messages)
 
-    assert client.invoked_messages == messages
+    assert chat_model.invoked_messages == messages
 
 
-def test_build_model_constructs_chat_nvidia_with_expected_kwargs(monkeypatch):
+def test_build_llm_client_constructs_chat_nvidia_with_expected_kwargs(monkeypatch):
     captured_kwargs = {}
 
     class FakeChatNVIDIA:
         def __init__(self, **kwargs):
             captured_kwargs.update(kwargs)
 
-    monkeypatch.setattr("nishikihebi.model.ChatNVIDIA", FakeChatNVIDIA)
-    monkeypatch.setattr("nishikihebi.model.load_api_key", lambda: "test-key")
+    monkeypatch.setattr("nishikihebi.llm_client.ChatNVIDIA", FakeChatNVIDIA)
+    monkeypatch.setattr("nishikihebi.llm_client.load_api_key", lambda: "test-key")
 
-    model = build_model()
+    client = build_llm_client()
 
-    assert isinstance(model, NvidiaModel)
-    assert isinstance(model.client, FakeChatNVIDIA)
+    assert isinstance(client, NvidiaClient)
+    assert isinstance(client.chat_model, FakeChatNVIDIA)
     assert captured_kwargs == {
         "base_url": "https://integrate.api.nvidia.com/v1",
         "api_key": "test-key",
@@ -66,8 +66,8 @@ def test_build_model_constructs_chat_nvidia_with_expected_kwargs(monkeypatch):
     }
 
 
-def test_build_model_raises_when_api_key_missing(monkeypatch):
-    monkeypatch.setattr("nishikihebi.model.load_api_key", lambda: None)
+def test_build_llm_client_raises_when_api_key_missing(monkeypatch):
+    monkeypatch.setattr("nishikihebi.llm_client.load_api_key", lambda: None)
 
     with pytest.raises(MissingApiKeyError, match="NVIDIA_API_KEY"):
-        build_model()
+        build_llm_client()

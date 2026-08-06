@@ -4,7 +4,7 @@ import pytest
 from langchain_core.messages import AIMessage, BaseMessage
 
 
-class FakeModel:
+class FakeClient:
     def __init__(self, reply: str = "fake reply") -> None:
         self.reply = reply
         self.calls: list[Sequence[BaseMessage]] = []
@@ -15,8 +15,8 @@ class FakeModel:
 
 
 @pytest.fixture
-def fake_model() -> FakeModel:
-    return FakeModel()
+def fake_client() -> FakeClient:
+    return FakeClient()
 
 
 @pytest.fixture

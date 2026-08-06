@@ -4,15 +4,15 @@ from langgraph.graph import StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
 from nishikihebi.edges.graph import add_call_llm_edges
-from nishikihebi.model import Model
+from nishikihebi.llm_client import LlmClient
 from nishikihebi.nodes.call_llm import call_llm
 from nishikihebi.state import State
 
 
 def build_graph(
-    model: Model, checkpointer: BaseCheckpointSaver | None = None
+    client: LlmClient, checkpointer: BaseCheckpointSaver | None = None
 ) -> CompiledStateGraph:
     graph = StateGraph(State)
-    graph.add_node("call_llm", call_llm(model))
+    graph.add_node("call_llm", call_llm(client))
     add_call_llm_edges(graph)
     return graph.compile(checkpointer=checkpointer or MemorySaver())
