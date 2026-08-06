@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from langchain_core.messages import SystemMessage
 
 from nishikihebi.chat.session import start_session

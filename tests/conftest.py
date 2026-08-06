@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import Sequence
 
 import pytest
@@ -19,3 +17,19 @@ class FakeModel:
 @pytest.fixture
 def fake_model() -> FakeModel:
     return FakeModel()
+
+
+@pytest.fixture
+def scripted_input():
+    def factory(*lines: str):
+        inputs = iter(lines)
+
+        def input_fn(_prompt: str = "") -> str:
+            try:
+                return next(inputs)
+            except StopIteration:
+                raise EOFError from None
+
+        return input_fn
+
+    return factory

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from nishikihebi.nodes.call_llm import SYSTEM_PROMPT, call_llm

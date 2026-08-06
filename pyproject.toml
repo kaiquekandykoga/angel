@@ -6,15 +6,15 @@ readme = "README.md"
 authors = [
     { name = "Kaíque Kandy Koga", email = "kaiquekandykoga@gmail.com" }
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.14"
 dependencies = [
-    "langchain-nvidia-ai-endpoints>=0.3.19",
-    "langgraph>=0.6.11",
+    "langchain-nvidia-ai-endpoints>=1.4.3",
+    "langgraph>=1.2.10",
     "python-dotenv>=1.2.1",
 ]
 
 [project.scripts]
-nishikihebi = "nishikihebi:main"
+nishikihebi = "nishikihebi.__main__:main"
 
 [build-system]
 requires = ["uv_build>=0.12.1,<0.13.0"]
@@ -22,9 +22,17 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
-    "pytest>=8.4.2",
+    "basedpyright>=1.39.9",
+    "pytest>=9.1.1",
     "ruff>=0.16.1",
 ]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "PT", "C4", "N"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config"
 
 [tool.basedpyright]
 typeCheckingMode = "standard"

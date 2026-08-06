@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import Sequence
 from typing import cast
 
@@ -22,7 +20,7 @@ class FakeChatModel:
 
 def test_complete_forwards_messages_and_returns_ai_message():
     client = FakeChatModel(reply="hi there")
-    model = NvidiaModel(cast(BaseChatModel, client))
+    model = NvidiaModel(cast("BaseChatModel", client))
 
     messages = [HumanMessage(content="hello"), AIMessage(content="hey")]
     result = model.complete(messages)
@@ -34,7 +32,7 @@ def test_complete_forwards_messages_and_returns_ai_message():
 
 def test_complete_forwards_system_messages():
     client = FakeChatModel(reply="hi there")
-    model = NvidiaModel(cast(BaseChatModel, client))
+    model = NvidiaModel(cast("BaseChatModel", client))
 
     messages = [
         SystemMessage(content="be nice"),
@@ -64,7 +62,7 @@ def test_build_model_constructs_chat_nvidia_with_expected_kwargs(monkeypatch):
         "base_url": "https://integrate.api.nvidia.com/v1",
         "api_key": "test-key",
         "model": "nvidia/nemotron-3-super-120b-a12b",
-        "max_tokens": 1024,
+        "max_completion_tokens": 1024,
     }
 
 

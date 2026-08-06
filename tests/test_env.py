@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from nishikihebi.env import load_api_key
 
 
