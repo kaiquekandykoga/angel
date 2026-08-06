@@ -12,6 +12,8 @@ class Model(Protocol):
 
 
 NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"
+NVIDIA_MODEL = "nvidia/nemotron-3-super-120b-a12b"
+NVIDIA_MAX_TOKENS = 1024
 
 
 class NvidiaModel:

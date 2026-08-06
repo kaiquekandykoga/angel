@@ -7,7 +7,13 @@ from langchain_nvidia_ai_endpoints import ChatNVIDIA
 from nishikihebi.chat import cli
 from nishikihebi.chat.session import start_session
 from nishikihebi.env import load_api_key
-from nishikihebi.model import NVIDIA_BASE_URL, NvidiaModel
+from nishikihebi.graph import build_graph
+from nishikihebi.model import (
+    NVIDIA_BASE_URL,
+    NVIDIA_MAX_TOKENS,
+    NVIDIA_MODEL,
+    NvidiaModel,
+)
 
 
 def main() -> None:
@@ -18,9 +24,9 @@ def main() -> None:
     client = ChatNVIDIA(
         base_url=NVIDIA_BASE_URL,
         api_key=api_key,
-        model="nvidia/nemotron-3-super-120b-a12b",
-        max_tokens=1024,
+        model=NVIDIA_MODEL,
+        max_tokens=NVIDIA_MAX_TOKENS,
     )
     model = NvidiaModel(client)
-    session = start_session(model)
+    session = start_session(build_graph(model))
     cli.run(session)
