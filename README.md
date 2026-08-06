@@ -2,7 +2,7 @@
 
 The idea is to build a Multi-Agent System using Python reflected by [kirinn](https://github.com/kaiquekandykoga/kirinn)
 
-## Run app
+## Usage
 
 Copy `.env.example` to `.env` and fill in the variables below.
 
@@ -18,8 +18,5 @@ The app loads `.env` automatically; an already-exported shell variable still tak
 uv sync
 uv run nishikihebi chat
 uv run nishikihebi pr_review
+uv run ci
 ```
-
-## Development
-
-Run `uv run ci` to lint, type-check, and test locally — this is the CI signal for this repo.
