@@ -1,5 +1,5 @@
 from nishikihebi.clients.github import PullRequest
-from nishikihebi.state import Review
+from nishikihebi.states.github import Review
 
 
 def test_review_pairs_target_with_body():

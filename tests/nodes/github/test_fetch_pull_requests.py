@@ -1,5 +1,5 @@
 from nishikihebi.clients.github import PullRequest
-from nishikihebi.nodes.fetch_pull_requests import fetch_pull_requests
+from nishikihebi.nodes.github.fetch_pull_requests import fetch_pull_requests
 
 
 def test_fetch_pull_requests_concatenates_across_repositories(fake_github):

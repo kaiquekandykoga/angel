@@ -5,11 +5,11 @@ from langgraph.graph.state import CompiledStateGraph
 
 from nishikihebi.clients.github import GitHubClient
 from nishikihebi.clients.llm import LlmClient
-from nishikihebi.graphs import REPOSITORIES, REVIEW_LABEL
-from nishikihebi.nodes.fetch_issues import fetch_issues
-from nishikihebi.nodes.post_review_comments import post_review_comments
-from nishikihebi.nodes.review_issues import review_issues
-from nishikihebi.state import IssueReviewState
+from nishikihebi.graphs.github import REPOSITORIES, REVIEW_LABEL
+from nishikihebi.nodes.github.fetch_issues import fetch_issues
+from nishikihebi.nodes.github.post_review_comments import post_review_comments
+from nishikihebi.nodes.github.review_issues import review_issues
+from nishikihebi.states.github import IssueReviewState
 
 
 def build_issue_review_graph(

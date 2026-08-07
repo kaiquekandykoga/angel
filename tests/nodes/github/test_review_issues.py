@@ -1,8 +1,8 @@
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from nishikihebi.clients.github import Issue
-from nishikihebi.nodes.review_issues import REVIEW_SYSTEM_PROMPT, review_issues
-from nishikihebi.state import Review
+from nishikihebi.nodes.github.review_issues import REVIEW_SYSTEM_PROMPT, review_issues
+from nishikihebi.states.github import Review
 
 
 def test_review_issues_returns_one_review_per_issue(fake_client):

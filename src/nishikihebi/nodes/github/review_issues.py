@@ -3,7 +3,7 @@ from typing import cast
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from nishikihebi.clients.llm import LlmClient
-from nishikihebi.state import IssueReviewState, Review
+from nishikihebi.states.github import IssueReviewState, Review
 
 REVIEW_SYSTEM_PROMPT = (
     "You are a meticulous reviewer. Review the given GitHub issue and produce a "

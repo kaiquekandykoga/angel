@@ -9,10 +9,10 @@ from nishikihebi.clients.github import (
     build_github_client,
 )
 from nishikihebi.clients.llm import LlmClient, MissingApiKeyError, build_llm_client
-from nishikihebi.graphs import REPOSITORIES, REVIEW_LABEL
 from nishikihebi.graphs.chat import build_chat_graph
-from nishikihebi.graphs.issue_review import build_issue_review_graph
-from nishikihebi.graphs.pr_review import build_pr_review_graph
+from nishikihebi.graphs.github import REPOSITORIES, REVIEW_LABEL
+from nishikihebi.graphs.github.issue_review import build_issue_review_graph
+from nishikihebi.graphs.github.pr_review import build_pr_review_graph
 
 COMMANDS = ("chat", "pr_review", "issue_review")
 

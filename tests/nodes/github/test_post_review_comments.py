@@ -1,6 +1,6 @@
 from nishikihebi.clients.github import Issue, PullRequest
-from nishikihebi.nodes.post_review_comments import post_review_comments
-from nishikihebi.state import Review
+from nishikihebi.nodes.github.post_review_comments import post_review_comments
+from nishikihebi.states.github import Review
 
 
 def test_post_review_comments_posts_one_comment_per_review(fake_github):

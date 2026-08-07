@@ -1,6 +1,6 @@
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
-from nishikihebi.nodes.call_llm import SYSTEM_PROMPT, call_llm
+from nishikihebi.nodes.chat.call_llm import SYSTEM_PROMPT, call_llm
 
 
 def test_call_llm_appends_ai_message(fake_client):

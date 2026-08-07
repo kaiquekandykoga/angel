@@ -1,5 +1,5 @@
 from nishikihebi.clients.github import Issue
-from nishikihebi.nodes.fetch_issues import fetch_issues
+from nishikihebi.nodes.github.fetch_issues import fetch_issues
 
 
 def test_fetch_issues_concatenates_across_repositories(fake_github):

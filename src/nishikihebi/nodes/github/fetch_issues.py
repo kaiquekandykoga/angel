@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 
 from nishikihebi.clients.github import GitHubClient, Issue
-from nishikihebi.state import IssueReviewState
+from nishikihebi.states.github import IssueReviewState
 
 
 def fetch_issues(github: GitHubClient, repositories: Sequence[str], label: str):

@@ -1,6 +1,6 @@
 from nishikihebi.clients.github import Issue
-from nishikihebi.graphs.issue_review import build_issue_review_graph
-from nishikihebi.state import Review
+from nishikihebi.graphs.github.issue_review import build_issue_review_graph
+from nishikihebi.states.github import Review
 
 
 def test_graph_posts_one_comment_per_labeled_issue(fake_client, fake_github):

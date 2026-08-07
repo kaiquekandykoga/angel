@@ -1,6 +1,6 @@
 from nishikihebi.clients.github import PullRequest
-from nishikihebi.graphs.pr_review import build_pr_review_graph
-from nishikihebi.state import Review
+from nishikihebi.graphs.github.pr_review import build_pr_review_graph
+from nishikihebi.states.github import Review
 
 
 def test_graph_posts_one_comment_per_labeled_pull_request(fake_client, fake_github):

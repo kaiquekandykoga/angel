@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 
 from nishikihebi.clients.github import GitHubClient, PullRequest
-from nishikihebi.state import PrReviewState
+from nishikihebi.states.github import PrReviewState
 
 
 def fetch_pull_requests(github: GitHubClient, repositories: Sequence[str], label: str):

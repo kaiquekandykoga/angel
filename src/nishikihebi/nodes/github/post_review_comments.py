@@ -1,5 +1,5 @@
 from nishikihebi.clients.github import GitHubClient
-from nishikihebi.state import IssueReviewState, PrReviewState
+from nishikihebi.states.github import IssueReviewState, PrReviewState
 
 
 def post_review_comments(github: GitHubClient):

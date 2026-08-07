@@ -1,11 +1,11 @@
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from nishikihebi.clients.github import PullRequest
-from nishikihebi.nodes.review_pull_requests import (
+from nishikihebi.nodes.github.review_pull_requests import (
     REVIEW_SYSTEM_PROMPT,
     review_pull_requests,
 )
-from nishikihebi.state import Review
+from nishikihebi.states.github import Review
 
 
 def test_review_pull_requests_returns_one_review_per_pull_request(

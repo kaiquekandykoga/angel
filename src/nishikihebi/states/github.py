@@ -1,13 +1,6 @@
-from typing import Annotated, NamedTuple, TypedDict
-
-from langchain_core.messages import AnyMessage
-from langgraph.graph.message import add_messages
+from typing import NamedTuple, TypedDict
 
 from nishikihebi.clients.github import Issue, PullRequest
-
-
-class ChatState(TypedDict):
-    messages: Annotated[list[AnyMessage], add_messages]
 
 
 class Review(NamedTuple):

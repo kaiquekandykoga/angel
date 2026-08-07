@@ -4,7 +4,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from nishikihebi.clients.github import GitHubClient
 from nishikihebi.clients.llm import LlmClient
-from nishikihebi.state import PrReviewState, Review
+from nishikihebi.states.github import PrReviewState, Review
 
 REVIEW_SYSTEM_PROMPT = (
     "You are a meticulous code reviewer. Review the given pull request diff and "
