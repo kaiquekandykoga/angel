@@ -1,3 +1,4 @@
+import logging
 import sys
 from collections.abc import Sequence
 
@@ -12,8 +13,11 @@ from nishikihebi.clients.llm import LlmClient, MissingApiKeyError, build_llm_cli
 from nishikihebi.graphs.chat import build_chat_graph
 from nishikihebi.graphs.github.issue_review import build_issue_review_graph
 from nishikihebi.graphs.github.pr_review import build_pr_review_graph
+from nishikihebi.logs import configure_logging
 
 COMMANDS = ("chat", "pr_review", "issue_review")
+
+logger = logging.getLogger(__name__)
 
 
 def run_chat(client: LlmClient) -> None:
@@ -51,6 +55,12 @@ def main(argv: Sequence[str] | None = None) -> None:
         sys.exit(f"Unknown command: {given}. Valid commands: {', '.join(COMMANDS)}")
 
     command = argv[0]
+    log_path = configure_logging()
+    logger.info(
+        f"running {command}",
+        extra={"context": {"command": command, "log_path": str(log_path)}},
+    )
+
     try:
         client = build_llm_client()
         github = None if command == "chat" else build_github_client()

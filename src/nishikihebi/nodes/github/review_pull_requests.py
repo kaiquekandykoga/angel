@@ -1,3 +1,4 @@
+import logging
 from typing import cast
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -15,11 +16,15 @@ REVIEW_SYSTEM_PROMPT = (
     "existing comments."
 )
 
+logger = logging.getLogger(__name__)
+
 
 def review_pull_requests(github: GitHubClient, client: LlmClient):
     def node(state: PrReviewState) -> dict[str, list[Review]]:
+        pull_requests = state["pull_requests"]
+        logger.info(f"reviewing {len(pull_requests)} pull requests")
         reviews = []
-        for context in state["pull_requests"]:
+        for context in pull_requests:
             pull_request = context.pull_request
             diff = github.fetch_diff(pull_request)
             messages = [
@@ -34,8 +39,42 @@ def review_pull_requests(github: GitHubClient, client: LlmClient):
                     )
                 ),
             ]
+            logger.debug(
+                "reviewing pull request",
+                extra={
+                    "context": {
+                        "repository": pull_request.repository,
+                        "number": pull_request.number,
+                        "diff_size": len(diff),
+                        "prompt_message_count": len(messages),
+                    }
+                },
+            )
             ai_message = client.complete(messages)
-            reviews.append(Review(pull_request, cast("str", ai_message.content)))
+            review_body = cast("str", ai_message.content)
+            logger.debug(
+                "review produced",
+                extra={
+                    "context": {
+                        "repository": pull_request.repository,
+                        "number": pull_request.number,
+                        "review": review_body,
+                    }
+                },
+            )
+            logger.info(
+                f"reviewed {pull_request.repository}#{pull_request.number}",
+                extra={
+                    "context": {
+                        "repository": pull_request.repository,
+                        "number": pull_request.number,
+                    }
+                },
+            )
+            reviews.append(Review(pull_request, review_body))
+        logger.info(
+            "pull requests reviewed", extra={"context": {"count": len(reviews)}}
+        )
         return {"reviews": reviews}
 
     return node

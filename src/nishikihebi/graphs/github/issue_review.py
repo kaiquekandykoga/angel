@@ -1,3 +1,5 @@
+import logging
+
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
@@ -9,6 +11,8 @@ from nishikihebi.nodes.github.post_review_comments import post_review_comments
 from nishikihebi.nodes.github.review_issues import review_issues
 from nishikihebi.states.github import IssueReviewState
 
+logger = logging.getLogger(__name__)
+
 
 def build_issue_review_graph(
     client: LlmClient,
@@ -17,6 +21,10 @@ def build_issue_review_graph(
     label: str = LABEL,
     label_color: str = LABEL_COLOR,
 ) -> CompiledStateGraph:
+    logger.debug(
+        "wiring issue_review graph nodes",
+        extra={"context": {"reviewer_login": reviewer_login, "label": label}},
+    )
     graph = StateGraph(IssueReviewState)
     graph.add_node(
         "fetch_issues", fetch_issues(github, reviewer_login, label, label_color)
@@ -27,4 +35,6 @@ def build_issue_review_graph(
     graph.add_edge("fetch_issues", "review_issues")
     graph.add_edge("review_issues", "post_review_comments")
     graph.add_edge("post_review_comments", END)
-    return graph.compile()
+    compiled = graph.compile()
+    logger.info("issue_review graph ready")
+    return compiled

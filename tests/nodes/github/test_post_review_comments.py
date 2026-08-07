@@ -1,6 +1,32 @@
+import logging
+
 from nishikihebi.clients.github import Issue, PullRequest
 from nishikihebi.nodes.github.post_review_comments import post_review_comments
 from nishikihebi.states.github import IssueContext, PullRequestContext, Review
+
+
+def test_post_review_comments_logs_count_per_comment_and_posted(fake_github, caplog):
+    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+    pr_a = PullRequest("org/a", 1, "pr a", "body a", "sha-a")
+    node = post_review_comments(fake_github)
+
+    node(
+        {
+            "pull_requests": [PullRequestContext(pr_a, [])],
+            "reviews": [Review(pr_a, "review a")],
+        }
+    )
+
+    info_records = [r for r in caplog.records if r.levelname == "INFO"]
+    debug_records = [r for r in caplog.records if r.levelname == "DEBUG"]
+    assert any("posting 1" in r.message for r in info_records)
+    assert any(
+        getattr(r, "context", {}).get("repository") == "org/a"
+        and getattr(r, "context", {}).get("number") == 1
+        and "body_length" in r.context
+        for r in debug_records
+    )
+    assert any("posted org/a#1" in r.message for r in info_records)
 
 
 def test_post_review_comments_posts_one_comment_per_review(fake_github):

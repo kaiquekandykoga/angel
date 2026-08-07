@@ -1,8 +1,29 @@
+import logging
+
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from nishikihebi.clients.github import Comment, Issue
 from nishikihebi.nodes.github.review_issues import REVIEW_SYSTEM_PROMPT, review_issues
 from nishikihebi.states.github import IssueContext, Review
+
+
+def test_review_issues_logs_start_per_item_and_end(fake_client, caplog):
+    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+    issue_a = Issue("org/a", 1, "issue a", "body a", "2026-08-01T00:00:00Z")
+    node = review_issues(fake_client)
+
+    node({"issues": [IssueContext(issue_a, [])], "reviews": []})
+
+    info_records = [r for r in caplog.records if r.levelname == "INFO"]
+    debug_records = [r for r in caplog.records if r.levelname == "DEBUG"]
+    assert any("reviewing 1" in r.message for r in info_records)
+    assert any(
+        getattr(r, "context", {}).get("repository") == "org/a"
+        and getattr(r, "context", {}).get("number") == 1
+        for r in info_records
+    )
+    assert any("review" in getattr(r, "context", {}) for r in debug_records)
+    assert info_records[-1].context["count"] == 1
 
 
 def test_review_issues_returns_one_review_per_issue(fake_client):

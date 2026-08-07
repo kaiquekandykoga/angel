@@ -1,3 +1,5 @@
+import logging
+
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
@@ -9,6 +11,8 @@ from nishikihebi.nodes.github.post_review_comments import post_review_comments
 from nishikihebi.nodes.github.review_pull_requests import review_pull_requests
 from nishikihebi.states.github import PrReviewState
 
+logger = logging.getLogger(__name__)
+
 
 def build_pr_review_graph(
     client: LlmClient,
@@ -17,6 +21,10 @@ def build_pr_review_graph(
     label: str = LABEL,
     label_color: str = LABEL_COLOR,
 ) -> CompiledStateGraph:
+    logger.debug(
+        "wiring pr_review graph nodes",
+        extra={"context": {"reviewer_login": reviewer_login, "label": label}},
+    )
     graph = StateGraph(PrReviewState)
     graph.add_node(
         "fetch_pull_requests",
@@ -28,4 +36,6 @@ def build_pr_review_graph(
     graph.add_edge("fetch_pull_requests", "review_pull_requests")
     graph.add_edge("review_pull_requests", "post_review_comments")
     graph.add_edge("post_review_comments", END)
-    return graph.compile()
+    compiled = graph.compile()
+    logger.info("pr_review graph ready")
+    return compiled

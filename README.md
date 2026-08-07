@@ -22,6 +22,13 @@ uv run nishikihebi issue_review
 uv run ci
 ```
 
+## Logs
+
+High-level progress is printed to the console. Every run also writes a detailed log to
+`log/nishikihebi-<timestamp>.jsonl` — one JSON object per line, carrying the structured
+fields each node attaches (repository, PR/issue number, counts, and so on). `log/` is
+gitignored.
+
 ## Graphs
 
 Each command is a [LangGraph](https://langchain-ai.github.io/langgraph/) state graph

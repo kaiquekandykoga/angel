@@ -1,3 +1,5 @@
+import logging
+
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from nishikihebi.clients.github import Comment, PullRequest
@@ -6,6 +8,32 @@ from nishikihebi.nodes.github.review_pull_requests import (
     review_pull_requests,
 )
 from nishikihebi.states.github import PullRequestContext, Review
+
+
+def test_review_pull_requests_logs_start_per_item_and_end(
+    fake_client, fake_github, caplog
+):
+    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+    pr_a = PullRequest("org/a", 1, "pr a", "body a", "sha-a")
+    fake_github.diffs = {pr_a: "diff a"}
+    node = review_pull_requests(fake_github, fake_client)
+
+    node({"pull_requests": [PullRequestContext(pr_a, [])], "reviews": []})
+
+    info_records = [r for r in caplog.records if r.levelname == "INFO"]
+    debug_records = [r for r in caplog.records if r.levelname == "DEBUG"]
+    assert any("reviewing 1" in r.message for r in info_records)
+    assert any(
+        getattr(r, "context", {}).get("repository") == "org/a"
+        and getattr(r, "context", {}).get("number") == 1
+        for r in info_records
+    )
+    assert any(
+        "diff_size" in getattr(r, "context", {})
+        and "prompt_message_count" in getattr(r, "context", {})
+        for r in debug_records
+    )
+    assert info_records[-1].context["count"] == 1
 
 
 def test_review_pull_requests_returns_one_review_per_pull_request(

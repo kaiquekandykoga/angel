@@ -1,9 +1,29 @@
+import logging
+
 from nishikihebi.clients.github import Comment, Issue
 from nishikihebi.graphs.github.issue_review import build_issue_review_graph
 from nishikihebi.states.github import Review
 
 REVIEWER_LOGIN = "kandy-nishikihebi[bot]"
 LABEL = "nishikihebi"
+
+
+def test_build_issue_review_graph_logs_wiring_and_ready(
+    fake_client, fake_github, caplog
+):
+    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+
+    build_issue_review_graph(
+        fake_client, fake_github, reviewer_login=REVIEWER_LOGIN, label=LABEL
+    )
+
+    debug_records = [r for r in caplog.records if r.levelname == "DEBUG"]
+    assert any(
+        getattr(r, "context", {}).get("reviewer_login") == REVIEWER_LOGIN
+        and getattr(r, "context", {}).get("label") == LABEL
+        for r in debug_records
+    )
+    assert any(r.levelname == "INFO" for r in caplog.records)
 
 
 def test_graph_posts_comment_for_never_reviewed_issue(fake_client, fake_github):

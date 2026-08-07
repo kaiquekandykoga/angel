@@ -1,3 +1,4 @@
+import logging
 import re
 
 import pytest
@@ -17,6 +18,22 @@ def test_main_exits_when_api_key_missing(monkeypatch):
 
     with pytest.raises(SystemExit, match=re.escape(message)):
         nishikihebi.__main__.main(["chat"])
+
+
+def test_main_logs_the_command_being_run(monkeypatch, caplog, fake_client):
+    caplog.set_level(logging.INFO, logger="nishikihebi")
+    ran = {}
+
+    def fake_run(session):
+        ran["session"] = session
+
+    monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
+    monkeypatch.setattr(nishikihebi.__main__.cli, "run", fake_run)
+
+    nishikihebi.__main__.main(["chat"])
+
+    messages = [record.message for record in caplog.records]
+    assert any("chat" in message for message in messages)
 
 
 def test_main_runs_chat_flow_without_needing_a_github_token(monkeypatch, fake_client):

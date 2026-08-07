@@ -1,3 +1,6 @@
+# Runtime logs
+log/
+
 # Claude Code (per-machine local settings)
 .claude/settings.local.json
 

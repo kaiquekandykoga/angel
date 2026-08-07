@@ -1,3 +1,5 @@
+import logging
+
 from nishikihebi.clients.github import Comment, PullRequest
 from nishikihebi.nodes.github.fetch_pull_requests import fetch_pull_requests
 from nishikihebi.states.github import PullRequestContext
@@ -5,6 +7,32 @@ from nishikihebi.states.github import PullRequestContext
 REVIEWER_LOGIN = "kandy-nishikihebi[bot]"
 LABEL = "nishikihebi"
 LABEL_COLOR = "f709c2"
+
+
+def test_fetch_pull_requests_logs_start_per_repository_and_summary(
+    fake_github, caplog
+):
+    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+    pr = PullRequest("org/a", 1, "pr a", "body", "sha-a")
+    fake_github.pull_requests = {"org/a": [pr]}
+    fake_github.label(pr, LABEL)
+    node = fetch_pull_requests(fake_github, REVIEWER_LOGIN, LABEL, LABEL_COLOR)
+
+    node({"pull_requests": [], "reviews": []})
+
+    info_records = [r for r in caplog.records if r.levelname == "INFO"]
+    debug_records = [r for r in caplog.records if r.levelname == "DEBUG"]
+    assert any("fetch" in r.message.lower() for r in info_records)
+    summary = info_records[-1]
+    assert summary.context["repositories_scanned"] == 1
+    assert summary.context["items_scanned"] == 1
+    assert summary.context["items_due_for_review"] == 1
+    assert any(r.context.get("repository") == "org/a" for r in debug_records)
+    assert any(
+        r.context.get("selected") is True
+        and r.context.get("reason") == "never reviewed"
+        for r in debug_records
+    )
 
 
 def test_fetch_pull_requests_includes_pr_with_no_comments(fake_github):

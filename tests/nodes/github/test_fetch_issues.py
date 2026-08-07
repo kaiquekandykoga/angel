@@ -1,3 +1,5 @@
+import logging
+
 from nishikihebi.clients.github import Comment, Issue
 from nishikihebi.nodes.github.fetch_issues import fetch_issues
 from nishikihebi.states.github import IssueContext
@@ -5,6 +7,30 @@ from nishikihebi.states.github import IssueContext
 REVIEWER_LOGIN = "kandy-nishikihebi[bot]"
 LABEL = "nishikihebi"
 LABEL_COLOR = "f709c2"
+
+
+def test_fetch_issues_logs_start_per_repository_and_summary(fake_github, caplog):
+    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+    issue = Issue("org/a", 1, "issue a", "body a", "2026-08-01T00:00:00Z")
+    fake_github.issues = {"org/a": [issue]}
+    fake_github.label(issue, LABEL)
+    node = fetch_issues(fake_github, REVIEWER_LOGIN, LABEL, LABEL_COLOR)
+
+    node({"issues": [], "reviews": []})
+
+    info_records = [r for r in caplog.records if r.levelname == "INFO"]
+    debug_records = [r for r in caplog.records if r.levelname == "DEBUG"]
+    assert any("fetch" in r.message.lower() for r in info_records)
+    summary = info_records[-1]
+    assert summary.context["repositories_scanned"] == 1
+    assert summary.context["items_scanned"] == 1
+    assert summary.context["items_due_for_review"] == 1
+    assert any(r.context.get("repository") == "org/a" for r in debug_records)
+    assert any(
+        r.context.get("selected") is True
+        and r.context.get("reason") == "never reviewed"
+        for r in debug_records
+    )
 
 
 def test_fetch_issues_includes_issue_with_no_reviewer_comment(fake_github):

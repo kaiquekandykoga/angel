@@ -6,6 +6,11 @@ from langchain_core.messages import AIMessage, BaseMessage
 from nishikihebi.clients.github import Comment, Issue, PullRequest
 
 
+@pytest.fixture(autouse=True)
+def _run_in_tmp_path(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+
 class FakeClient:
     def __init__(self, reply: str = "fake reply") -> None:
         self.reply = reply

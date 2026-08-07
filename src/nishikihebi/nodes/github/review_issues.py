@@ -1,3 +1,4 @@
+import logging
 from typing import cast
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -14,11 +15,15 @@ REVIEW_SYSTEM_PROMPT = (
     "repeating points already made in the existing comments."
 )
 
+logger = logging.getLogger(__name__)
+
 
 def review_issues(client: LlmClient):
     def node(state: IssueReviewState) -> dict[str, list[Review]]:
+        issues = state["issues"]
+        logger.info(f"reviewing {len(issues)} issues")
         reviews = []
-        for context in state["issues"]:
+        for context in issues:
             issue = context.issue
             messages = [
                 SystemMessage(content=REVIEW_SYSTEM_PROMPT),
@@ -31,8 +36,36 @@ def review_issues(client: LlmClient):
                     )
                 ),
             ]
+            logger.debug(
+                "reviewing issue",
+                extra={
+                    "context": {
+                        "repository": issue.repository,
+                        "number": issue.number,
+                        "prompt_message_count": len(messages),
+                    }
+                },
+            )
             ai_message = client.complete(messages)
-            reviews.append(Review(issue, cast("str", ai_message.content)))
+            review_body = cast("str", ai_message.content)
+            logger.debug(
+                "review produced",
+                extra={
+                    "context": {
+                        "repository": issue.repository,
+                        "number": issue.number,
+                        "review": review_body,
+                    }
+                },
+            )
+            logger.info(
+                f"reviewed {issue.repository}#{issue.number}",
+                extra={
+                    "context": {"repository": issue.repository, "number": issue.number}
+                },
+            )
+            reviews.append(Review(issue, review_body))
+        logger.info("issues reviewed", extra={"context": {"count": len(reviews)}})
         return {"reviews": reviews}
 
     return node
