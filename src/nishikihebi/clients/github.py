@@ -15,12 +15,20 @@ class PullRequest(NamedTuple):
     title: str
 
 
+class Issue(NamedTuple):
+    repository: str
+    number: int
+    title: str
+    body: str
+
+
 class GitHubClient(Protocol):
     def list_labeled_pull_requests(
         self, repository: str, label: str
     ) -> list[PullRequest]: ...
     def fetch_diff(self, pull_request: PullRequest) -> str: ...
-    def post_comment(self, pull_request: PullRequest, body: str) -> None: ...
+    def list_labeled_issues(self, repository: str, label: str) -> list[Issue]: ...
+    def post_comment(self, target: PullRequest | Issue, body: str) -> None: ...
 
 
 class MissingGitHubCredentialsError(RuntimeError):
@@ -108,11 +116,24 @@ class HttpGitHubClient:
         response.raise_for_status()
         return response.text
 
-    def post_comment(self, pull_request: PullRequest, body: str) -> None:
+    def list_labeled_issues(self, repository: str, label: str) -> list[Issue]:
+        response = self.http_client.get(
+            f"/repos/{repository}/issues",
+            params={"state": "open", "labels": label},
+            headers=self._auth_header(repository),
+        )
+        response.raise_for_status()
+        return [
+            Issue(repository, item["number"], item["title"], item["body"])
+            for item in response.json()
+            if "pull_request" not in item
+        ]
+
+    def post_comment(self, target: PullRequest | Issue, body: str) -> None:
         response = self.http_client.post(
-            f"/repos/{pull_request.repository}/issues/{pull_request.number}/comments",
+            f"/repos/{target.repository}/issues/{target.number}/comments",
             json={"body": body},
-            headers=self._auth_header(pull_request.repository),
+            headers=self._auth_header(target.repository),
         )
         response.raise_for_status()
 

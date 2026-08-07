@@ -32,5 +32,5 @@ def test_graph_covers_multiple_repositories(fake_client, fake_github):
 
     result = graph.invoke({"pull_requests": [], "reviews": []})
 
-    assert {review.pull_request for review in result["reviews"]} == {pr_a, pr_b}
+    assert {review.target for review in result["reviews"]} == {pr_a, pr_b}
     assert {pr for pr, _ in fake_github.posted_comments} == {pr_a, pr_b}

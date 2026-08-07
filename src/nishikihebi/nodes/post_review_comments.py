@@ -1,11 +1,11 @@
 from nishikihebi.clients.github import GitHubClient
-from nishikihebi.state import PrReviewState
+from nishikihebi.state import IssueReviewState, PrReviewState
 
 
 def post_review_comments(github: GitHubClient):
-    def node(state: PrReviewState) -> dict:
+    def node(state: PrReviewState | IssueReviewState) -> dict:
         for review in state["reviews"]:
-            github.post_comment(review.pull_request, review.body)
+            github.post_comment(review.target, review.body)
         return {}
 
     return node

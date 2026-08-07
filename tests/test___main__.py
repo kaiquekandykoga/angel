@@ -3,7 +3,7 @@ import re
 import pytest
 
 import nishikihebi.__main__
-from nishikihebi.clients.github import MissingGitHubCredentialsError, PullRequest
+from nishikihebi.clients.github import Issue, MissingGitHubCredentialsError, PullRequest
 from nishikihebi.clients.llm import MissingApiKeyError
 
 
@@ -91,13 +91,66 @@ def test_main_exits_when_github_token_missing_for_pr_review(monkeypatch, fake_cl
         nishikihebi.__main__.main(["pr_review"])
 
 
+def test_main_runs_issue_review_flow_and_prints_one_line_per_issue(
+    monkeypatch, capsys, fake_client, fake_github
+):
+    issue_a = Issue("kaiquekandykoga/nishikihebi", 1, "issue a", "body a")
+    fake_github.issues = {"kaiquekandykoga/nishikihebi": [issue_a]}
+    monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
+    monkeypatch.setattr(
+        nishikihebi.__main__, "build_github_client", lambda: fake_github
+    )
+
+    nishikihebi.__main__.main(["issue_review"])
+
+    out = capsys.readouterr().out
+    assert out.count("\n") == 1
+    assert "kaiquekandykoga/nishikihebi" in out
+    assert "1" in out
+
+
+def test_main_reports_when_no_issues_are_labeled(
+    monkeypatch, capsys, fake_client, fake_github
+):
+    fake_github.issues = {}
+    monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
+    monkeypatch.setattr(
+        nishikihebi.__main__, "build_github_client", lambda: fake_github
+    )
+
+    nishikihebi.__main__.main(["issue_review"])
+
+    out = capsys.readouterr().out
+    assert "No issues labeled 'nishikihebi'" in out
+    assert fake_github.posted_comments == []
+
+
+def test_main_exits_when_github_token_missing_for_issue_review(
+    monkeypatch, fake_client
+):
+    message = "NISHIKIHEBI_GITHUB_APP_ID environment variable is not set."
+    monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
+
+    def raise_missing_github_token():
+        raise MissingGitHubCredentialsError(message)
+
+    monkeypatch.setattr(
+        nishikihebi.__main__, "build_github_client", raise_missing_github_token
+    )
+
+    with pytest.raises(SystemExit, match=re.escape(message)):
+        nishikihebi.__main__.main(["issue_review"])
+
+
 def test_main_exits_on_unknown_command():
     with pytest.raises(SystemExit, match="Unknown command: bogus"):
         nishikihebi.__main__.main(["bogus"])
 
 
 def test_main_exits_when_no_command_given():
-    with pytest.raises(SystemExit, match="Valid commands: chat, pr_review"):
+    with pytest.raises(
+        SystemExit, match="Valid commands: chat, pr_review, issue_review"
+    ):
         nishikihebi.__main__.main([])
 
 

@@ -5,6 +5,7 @@ import pytest
 
 from nishikihebi.clients.github import (
     HttpGitHubClient,
+    Issue,
     MissingGitHubCredentialsError,
     PullRequest,
     build_github_client,
@@ -39,6 +40,39 @@ def test_list_labeled_pull_requests_filters_by_label_and_excludes_non_prs():
     )
 
     assert pull_requests == [PullRequest("kaiquekandykoga/nishikihebi", 1, "a pr")]
+    assert captured["url"].path == "/repos/kaiquekandykoga/nishikihebi/issues"
+    assert captured["url"].params["state"] == "open"
+    assert captured["url"].params["labels"] == "nishikihebi"
+    assert (
+        captured["request"].headers["authorization"]
+        == "Bearer token-for-kaiquekandykoga/nishikihebi"
+    )
+
+
+def test_list_labeled_issues_filters_by_label_and_excludes_pull_requests():
+    captured = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["url"] = request.url
+        captured["request"] = request
+        return httpx.Response(
+            200,
+            json=[
+                {"number": 1, "title": "a pr", "body": "pr body", "pull_request": {}},
+                {"number": 2, "title": "an issue", "body": "issue body"},
+            ],
+        )
+
+    client = HttpGitHubClient(
+        httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com"),
+        token_for,
+    )
+
+    issues = client.list_labeled_issues("kaiquekandykoga/nishikihebi", "nishikihebi")
+
+    assert issues == [
+        Issue("kaiquekandykoga/nishikihebi", 2, "an issue", "issue body")
+    ]
     assert captured["url"].path == "/repos/kaiquekandykoga/nishikihebi/issues"
     assert captured["url"].params["state"] == "open"
     assert captured["url"].params["labels"] == "nishikihebi"

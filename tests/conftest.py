@@ -3,7 +3,7 @@ from collections.abc import Sequence
 import pytest
 from langchain_core.messages import AIMessage, BaseMessage
 
-from nishikihebi.clients.github import PullRequest
+from nishikihebi.clients.github import Issue, PullRequest
 
 
 class FakeClient:
@@ -25,7 +25,8 @@ class FakeGitHubClient:
     def __init__(self) -> None:
         self.pull_requests: dict[str, list[PullRequest]] = {}
         self.diffs: dict[PullRequest, str] = {}
-        self.posted_comments: list[tuple[PullRequest, str]] = []
+        self.issues: dict[str, list[Issue]] = {}
+        self.posted_comments: list[tuple[PullRequest | Issue, str]] = []
 
     def list_labeled_pull_requests(
         self, repository: str, label: str
@@ -35,8 +36,11 @@ class FakeGitHubClient:
     def fetch_diff(self, pull_request: PullRequest) -> str:
         return self.diffs.get(pull_request, "")
 
-    def post_comment(self, pull_request: PullRequest, body: str) -> None:
-        self.posted_comments.append((pull_request, body))
+    def list_labeled_issues(self, repository: str, label: str) -> list[Issue]:
+        return self.issues.get(repository, [])
+
+    def post_comment(self, target: PullRequest | Issue, body: str) -> None:
+        self.posted_comments.append((target, body))
 
 
 @pytest.fixture

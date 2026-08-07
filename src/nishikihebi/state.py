@@ -3,7 +3,7 @@ from typing import Annotated, NamedTuple, TypedDict
 from langchain_core.messages import AnyMessage
 from langgraph.graph.message import add_messages
 
-from nishikihebi.clients.github import PullRequest
+from nishikihebi.clients.github import Issue, PullRequest
 
 
 class ChatState(TypedDict):
@@ -11,10 +11,15 @@ class ChatState(TypedDict):
 
 
 class Review(NamedTuple):
-    pull_request: PullRequest
+    target: PullRequest | Issue
     body: str
 
 
 class PrReviewState(TypedDict):
     pull_requests: list[PullRequest]
+    reviews: list[Review]
+
+
+class IssueReviewState(TypedDict):
+    issues: list[Issue]
     reviews: list[Review]
