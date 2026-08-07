@@ -39,6 +39,79 @@ def test_returns_installation_access_token_for_repository(rsa_key_pair):
         assert claims["exp"] - claims["iat"] <= 600
 
 
+def test_list_repositories_spans_every_installation(rsa_key_pair):
+    private_key, _public_key = rsa_key_pair
+    repositories_by_token = {
+        "token-1": ["kaiquekandykoga/nishikihebi", "kaiquekandykoga/a"],
+        "token-2": ["someone-else/b"],
+    }
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/app/installations":
+            return httpx.Response(200, json=[{"id": 1}, {"id": 2}])
+        if request.url.path == "/app/installations/1/access_tokens":
+            return httpx.Response(201, json={"token": "token-1"})
+        if request.url.path == "/app/installations/2/access_tokens":
+            return httpx.Response(201, json={"token": "token-2"})
+        if request.url.path == "/installation/repositories":
+            token = request.headers["authorization"].removeprefix("Bearer ")
+            return httpx.Response(
+                200,
+                json={
+                    "repositories": [
+                        {"full_name": full_name}
+                        for full_name in repositories_by_token[token]
+                    ]
+                },
+            )
+        raise AssertionError(f"unexpected request: {request.url.path}")
+
+    http_client = httpx.Client(
+        transport=httpx.MockTransport(handler), base_url="https://api.github.com"
+    )
+    provider = InstallationTokenProvider(
+        http_client, app_id="app-1", private_key=private_key
+    )
+
+    repositories = provider.list_repositories()
+
+    assert repositories == [
+        "kaiquekandykoga/nishikihebi",
+        "kaiquekandykoga/a",
+        "someone-else/b",
+    ]
+
+
+def test_list_repositories_caches_the_token_of_each_repository(rsa_key_pair):
+    private_key, _public_key = rsa_key_pair
+    requests = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if request.url.path == "/app/installations":
+            return httpx.Response(200, json=[{"id": 1}])
+        if request.url.path == "/app/installations/1/access_tokens":
+            return httpx.Response(201, json={"token": "token-1"})
+        if request.url.path == "/installation/repositories":
+            return httpx.Response(
+                200, json={"repositories": [{"full_name": "kaiquekandykoga/a"}]}
+            )
+        raise AssertionError(f"unexpected request: {request.url.path}")
+
+    http_client = httpx.Client(
+        transport=httpx.MockTransport(handler), base_url="https://api.github.com"
+    )
+    provider = InstallationTokenProvider(
+        http_client, app_id="app-1", private_key=private_key
+    )
+
+    provider.list_repositories()
+    request_count_after_listing = len(requests)
+
+    assert provider("kaiquekandykoga/a") == "token-1"
+    assert len(requests) == request_count_after_listing
+
+
 def test_caches_installation_token_per_repository(rsa_key_pair):
     private_key, _public_key = rsa_key_pair
     requests = []

@@ -1,11 +1,9 @@
-from collections.abc import Sequence
-
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
 from nishikihebi.clients.github import GitHubClient
 from nishikihebi.clients.llm import LlmClient
-from nishikihebi.graphs.github import REPOSITORIES, REVIEW_LABEL
+from nishikihebi.graphs.github import REVIEWER_LOGIN
 from nishikihebi.nodes.github.fetch_issues import fetch_issues
 from nishikihebi.nodes.github.post_review_comments import post_review_comments
 from nishikihebi.nodes.github.review_issues import review_issues
@@ -15,11 +13,10 @@ from nishikihebi.states.github import IssueReviewState
 def build_issue_review_graph(
     client: LlmClient,
     github: GitHubClient,
-    repositories: Sequence[str] = REPOSITORIES,
-    label: str = REVIEW_LABEL,
+    reviewer_login: str = REVIEWER_LOGIN,
 ) -> CompiledStateGraph:
     graph = StateGraph(IssueReviewState)
-    graph.add_node("fetch_issues", fetch_issues(github, repositories, label))
+    graph.add_node("fetch_issues", fetch_issues(github, reviewer_login))
     graph.add_node("review_issues", review_issues(client))
     graph.add_node("post_review_comments", post_review_comments(github))
     graph.add_edge(START, "fetch_issues")

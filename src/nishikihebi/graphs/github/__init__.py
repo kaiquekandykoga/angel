@@ -1,5 +1,1 @@
-REPOSITORIES = (
-    "kaiquekandykoga/nishikihebi",
-    "kaiquekandykoga/a",
-)
-REVIEW_LABEL = "nishikihebi"
+REVIEWER_LOGIN = "kandy-nishikihebi[bot]"

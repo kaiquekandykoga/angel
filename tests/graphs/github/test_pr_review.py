@@ -1,17 +1,18 @@
-from nishikihebi.clients.github import PullRequest
+from nishikihebi.clients.github import Comment, PullRequest
 from nishikihebi.graphs.github.pr_review import build_pr_review_graph
 from nishikihebi.states.github import Review
 
+REVIEWER_LOGIN = "kandy-nishikihebi[bot]"
 
-def test_graph_posts_one_comment_per_labeled_pull_request(fake_client, fake_github):
-    pr_a = PullRequest("kaiquekandykoga/nishikihebi", 1, "pr a")
+
+def test_graph_posts_comment_for_never_reviewed_pull_request(fake_client, fake_github):
+    pr_a = PullRequest("kaiquekandykoga/nishikihebi", 1, "pr a", "body a", "sha-a")
     fake_github.pull_requests = {"kaiquekandykoga/nishikihebi": [pr_a]}
     fake_github.diffs = {pr_a: "diff a"}
     graph = build_pr_review_graph(
         fake_client,
         fake_github,
-        repositories=("kaiquekandykoga/nishikihebi",),
-        label="nishikihebi",
+        reviewer_login=REVIEWER_LOGIN,
     )
 
     result = graph.invoke({"pull_requests": [], "reviews": []})
@@ -21,13 +22,37 @@ def test_graph_posts_one_comment_per_labeled_pull_request(fake_client, fake_gith
     assert "diff a" in fake_client.calls[-1][-1].content
 
 
-def test_graph_covers_multiple_repositories(fake_client, fake_github):
-    pr_a = PullRequest("org/a", 1, "pr a")
-    pr_b = PullRequest("org/b", 2, "pr b")
+def test_graph_posts_no_comment_for_already_reviewed_unchanged_pull_request(
+    fake_client, fake_github
+):
+    pr_a = PullRequest("kaiquekandykoga/nishikihebi", 1, "pr a", "body a", "sha-a")
+    review_comment_created_at = "2026-08-02T00:00:00Z"
+    fake_github.pull_requests = {"kaiquekandykoga/nishikihebi": [pr_a]}
+    fake_github.comments = {
+        pr_a: [Comment(REVIEWER_LOGIN, "reviewed", review_comment_created_at)]
+    }
+    fake_github.commit_dates = {"sha-a": "2026-08-01T00:00:00Z"}
+    graph = build_pr_review_graph(
+        fake_client,
+        fake_github,
+        reviewer_login=REVIEWER_LOGIN,
+    )
+
+    result = graph.invoke({"pull_requests": [], "reviews": []})
+
+    assert result["reviews"] == []
+    assert fake_github.posted_comments == []
+
+
+def test_graph_covers_every_repository_of_the_installation(fake_client, fake_github):
+    pr_a = PullRequest("org/a", 1, "pr a", "body a", "sha-a")
+    pr_b = PullRequest("org/b", 2, "pr b", "body b", "sha-b")
     fake_github.pull_requests = {"org/a": [pr_a], "org/b": [pr_b]}
     fake_github.diffs = {pr_a: "diff a", pr_b: "diff b"}
     graph = build_pr_review_graph(
-        fake_client, fake_github, repositories=("org/a", "org/b"), label="nishikihebi"
+        fake_client,
+        fake_github,
+        reviewer_login=REVIEWER_LOGIN,
     )
 
     result = graph.invoke({"pull_requests": [], "reviews": []})

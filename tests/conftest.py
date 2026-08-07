@@ -3,7 +3,7 @@ from collections.abc import Sequence
 import pytest
 from langchain_core.messages import AIMessage, BaseMessage
 
-from nishikihebi.clients.github import Issue, PullRequest
+from nishikihebi.clients.github import Comment, Issue, PullRequest
 
 
 class FakeClient:
@@ -26,18 +26,27 @@ class FakeGitHubClient:
         self.pull_requests: dict[str, list[PullRequest]] = {}
         self.diffs: dict[PullRequest, str] = {}
         self.issues: dict[str, list[Issue]] = {}
+        self.comments: dict[PullRequest | Issue, list[Comment]] = {}
+        self.commit_dates: dict[str, str] = {}
         self.posted_comments: list[tuple[PullRequest | Issue, str]] = []
 
-    def list_labeled_pull_requests(
-        self, repository: str, label: str
-    ) -> list[PullRequest]:
+    def list_repositories(self) -> list[str]:
+        return sorted({*self.pull_requests, *self.issues})
+
+    def list_open_pull_requests(self, repository: str) -> list[PullRequest]:
         return self.pull_requests.get(repository, [])
 
     def fetch_diff(self, pull_request: PullRequest) -> str:
         return self.diffs.get(pull_request, "")
 
-    def list_labeled_issues(self, repository: str, label: str) -> list[Issue]:
+    def fetch_commit_date(self, repository: str, sha: str) -> str:
+        return self.commit_dates[sha]
+
+    def list_open_issues(self, repository: str) -> list[Issue]:
         return self.issues.get(repository, [])
+
+    def list_comments(self, target: PullRequest | Issue) -> list[Comment]:
+        return self.comments.get(target, [])
 
     def post_comment(self, target: PullRequest | Issue, body: str) -> None:
         self.posted_comments.append((target, body))

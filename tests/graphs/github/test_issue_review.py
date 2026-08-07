@@ -1,16 +1,19 @@
-from nishikihebi.clients.github import Issue
+from nishikihebi.clients.github import Comment, Issue
 from nishikihebi.graphs.github.issue_review import build_issue_review_graph
 from nishikihebi.states.github import Review
 
+REVIEWER_LOGIN = "kandy-nishikihebi[bot]"
 
-def test_graph_posts_one_comment_per_labeled_issue(fake_client, fake_github):
-    issue_a = Issue("kaiquekandykoga/nishikihebi", 1, "issue a", "body a")
+
+def test_graph_posts_comment_for_never_reviewed_issue(fake_client, fake_github):
+    issue_a = Issue(
+        "kaiquekandykoga/nishikihebi", 1, "issue a", "body a", "2026-08-01T00:00:00Z"
+    )
     fake_github.issues = {"kaiquekandykoga/nishikihebi": [issue_a]}
     graph = build_issue_review_graph(
         fake_client,
         fake_github,
-        repositories=("kaiquekandykoga/nishikihebi",),
-        label="nishikihebi",
+        reviewer_login=REVIEWER_LOGIN,
     )
 
     result = graph.invoke({"issues": [], "reviews": []})
@@ -20,12 +23,36 @@ def test_graph_posts_one_comment_per_labeled_issue(fake_client, fake_github):
     assert "body a" in fake_client.calls[-1][-1].content
 
 
-def test_graph_covers_multiple_repositories(fake_client, fake_github):
-    issue_a = Issue("org/a", 1, "issue a", "body a")
-    issue_b = Issue("org/b", 2, "issue b", "body b")
+def test_graph_posts_no_comment_for_already_reviewed_unchanged_issue(
+    fake_client, fake_github
+):
+    issue_a = Issue(
+        "kaiquekandykoga/nishikihebi", 1, "issue a", "body a", "2026-08-01T00:00:00Z"
+    )
+    fake_github.issues = {"kaiquekandykoga/nishikihebi": [issue_a]}
+    fake_github.comments = {
+        issue_a: [Comment(REVIEWER_LOGIN, "reviewed", "2026-08-01T00:00:00Z")]
+    }
+    graph = build_issue_review_graph(
+        fake_client,
+        fake_github,
+        reviewer_login=REVIEWER_LOGIN,
+    )
+
+    result = graph.invoke({"issues": [], "reviews": []})
+
+    assert result["reviews"] == []
+    assert fake_github.posted_comments == []
+
+
+def test_graph_covers_every_repository_of_the_installation(fake_client, fake_github):
+    issue_a = Issue("org/a", 1, "issue a", "body a", "2026-08-01T00:00:00Z")
+    issue_b = Issue("org/b", 2, "issue b", "body b", "2026-08-01T00:00:00Z")
     fake_github.issues = {"org/a": [issue_a], "org/b": [issue_b]}
     graph = build_issue_review_graph(
-        fake_client, fake_github, repositories=("org/a", "org/b"), label="nishikihebi"
+        fake_client,
+        fake_github,
+        reviewer_login=REVIEWER_LOGIN,
     )
 
     result = graph.invoke({"issues": [], "reviews": []})

@@ -44,7 +44,7 @@ def test_main_runs_chat_flow_without_needing_a_github_token(monkeypatch, fake_cl
 def test_main_runs_pr_review_flow_and_prints_one_line_per_pr(
     monkeypatch, capsys, fake_client, fake_github
 ):
-    pr_a = PullRequest("kaiquekandykoga/nishikihebi", 1, "pr a")
+    pr_a = PullRequest("kaiquekandykoga/nishikihebi", 1, "pr a", "body a", "sha-a")
     fake_github.pull_requests = {"kaiquekandykoga/nishikihebi": [pr_a]}
     fake_github.diffs = {pr_a: "diff a"}
     monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
@@ -60,7 +60,7 @@ def test_main_runs_pr_review_flow_and_prints_one_line_per_pr(
     assert "1" in out
 
 
-def test_main_reports_when_no_pull_requests_are_labeled(
+def test_main_reports_when_there_is_nothing_to_review_for_pr_review(
     monkeypatch, capsys, fake_client, fake_github
 ):
     fake_github.pull_requests = {}
@@ -72,7 +72,7 @@ def test_main_reports_when_no_pull_requests_are_labeled(
     nishikihebi.__main__.main(["pr_review"])
 
     out = capsys.readouterr().out
-    assert "No pull requests labeled 'nishikihebi'" in out
+    assert "No pull requests to review" in out
     assert fake_github.posted_comments == []
 
 
@@ -94,7 +94,9 @@ def test_main_exits_when_github_token_missing_for_pr_review(monkeypatch, fake_cl
 def test_main_runs_issue_review_flow_and_prints_one_line_per_issue(
     monkeypatch, capsys, fake_client, fake_github
 ):
-    issue_a = Issue("kaiquekandykoga/nishikihebi", 1, "issue a", "body a")
+    issue_a = Issue(
+        "kaiquekandykoga/nishikihebi", 1, "issue a", "body a", "2026-08-01T00:00:00Z"
+    )
     fake_github.issues = {"kaiquekandykoga/nishikihebi": [issue_a]}
     monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
     monkeypatch.setattr(
@@ -109,7 +111,7 @@ def test_main_runs_issue_review_flow_and_prints_one_line_per_issue(
     assert "1" in out
 
 
-def test_main_reports_when_no_issues_are_labeled(
+def test_main_reports_when_there_is_nothing_to_review_for_issue_review(
     monkeypatch, capsys, fake_client, fake_github
 ):
     fake_github.issues = {}
@@ -121,7 +123,7 @@ def test_main_reports_when_no_issues_are_labeled(
     nishikihebi.__main__.main(["issue_review"])
 
     out = capsys.readouterr().out
-    assert "No issues labeled 'nishikihebi'" in out
+    assert "No issues to review" in out
     assert fake_github.posted_comments == []
 
 

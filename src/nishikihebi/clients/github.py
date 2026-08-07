@@ -13,6 +13,8 @@ class PullRequest(NamedTuple):
     repository: str
     number: int
     title: str
+    body: str
+    head_sha: str
 
 
 class Issue(NamedTuple):
@@ -20,15 +22,28 @@ class Issue(NamedTuple):
     number: int
     title: str
     body: str
+    updated_at: str
+
+
+class Comment(NamedTuple):
+    author: str
+    body: str
+    created_at: str
 
 
 class GitHubClient(Protocol):
-    def list_labeled_pull_requests(
-        self, repository: str, label: str
-    ) -> list[PullRequest]: ...
+    def list_repositories(self) -> list[str]: ...
+    def list_open_pull_requests(self, repository: str) -> list[PullRequest]: ...
     def fetch_diff(self, pull_request: PullRequest) -> str: ...
-    def list_labeled_issues(self, repository: str, label: str) -> list[Issue]: ...
+    def fetch_commit_date(self, repository: str, sha: str) -> str: ...
+    def list_open_issues(self, repository: str) -> list[Issue]: ...
+    def list_comments(self, target: PullRequest | Issue) -> list[Comment]: ...
     def post_comment(self, target: PullRequest | Issue, body: str) -> None: ...
+
+
+class TokenProvider(Protocol):
+    def __call__(self, repository: str) -> str: ...
+    def list_repositories(self) -> list[str]: ...
 
 
 class MissingGitHubCredentialsError(RuntimeError):
@@ -52,17 +67,27 @@ class InstallationTokenProvider:
         self.now = now
         self.tokens: dict[str, str] = {}
 
-    def __call__(self, repository: str) -> str:
-        if repository in self.tokens:
-            return self.tokens[repository]
-
+    def _jwt_header(self) -> dict[str, str]:
         now = self.now()
         jwt_token = jwt.encode(
             {"iat": now - 60, "exp": now + 540, "iss": self.app_id},
             self.private_key,
             algorithm="RS256",
         )
-        headers = {"Authorization": f"Bearer {jwt_token}"}
+        return {"Authorization": f"Bearer {jwt_token}"}
+
+    def _create_token(self, installation_id: int, headers: dict[str, str]) -> str:
+        response = self.http_client.post(
+            f"/app/installations/{installation_id}/access_tokens", headers=headers
+        )
+        response.raise_for_status()
+        return response.json()["token"]
+
+    def __call__(self, repository: str) -> str:
+        if repository in self.tokens:
+            return self.tokens[repository]
+
+        headers = self._jwt_header()
 
         installation_response = self.http_client.get(
             f"/repos/{repository}/installation", headers=headers
@@ -70,39 +95,61 @@ class InstallationTokenProvider:
         installation_response.raise_for_status()
         installation_id = installation_response.json()["id"]
 
-        token_response = self.http_client.post(
-            f"/app/installations/{installation_id}/access_tokens", headers=headers
-        )
-        token_response.raise_for_status()
-        token = token_response.json()["token"]
-
+        token = self._create_token(installation_id, headers)
         self.tokens[repository] = token
         return token
+
+    def list_repositories(self) -> list[str]:
+        headers = self._jwt_header()
+        installations_response = self.http_client.get(
+            "/app/installations", params={"per_page": 100}, headers=headers
+        )
+        installations_response.raise_for_status()
+
+        repositories = []
+        for installation in installations_response.json():
+            token = self._create_token(installation["id"], headers)
+            response = self.http_client.get(
+                "/installation/repositories",
+                params={"per_page": 100},
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            response.raise_for_status()
+            for repository in response.json()["repositories"]:
+                self.tokens[repository["full_name"]] = token
+                repositories.append(repository["full_name"])
+        return repositories
 
 
 class HttpGitHubClient:
     def __init__(
-        self, http_client: httpx.Client, token_for: Callable[[str], str]
+        self, http_client: httpx.Client, token_provider: TokenProvider
     ) -> None:
         self.http_client = http_client
-        self.token_for = token_for
+        self.token_provider = token_provider
 
     def _auth_header(self, repository: str) -> dict[str, str]:
-        return {"Authorization": f"Bearer {self.token_for(repository)}"}
+        return {"Authorization": f"Bearer {self.token_provider(repository)}"}
 
-    def list_labeled_pull_requests(
-        self, repository: str, label: str
-    ) -> list[PullRequest]:
+    def list_repositories(self) -> list[str]:
+        return self.token_provider.list_repositories()
+
+    def list_open_pull_requests(self, repository: str) -> list[PullRequest]:
         response = self.http_client.get(
-            f"/repos/{repository}/issues",
-            params={"state": "open", "labels": label},
+            f"/repos/{repository}/pulls",
+            params={"state": "open", "per_page": 100},
             headers=self._auth_header(repository),
         )
         response.raise_for_status()
         return [
-            PullRequest(repository, item["number"], item["title"])
+            PullRequest(
+                repository,
+                item["number"],
+                item["title"],
+                item["body"] or "",
+                item["head"]["sha"],
+            )
             for item in response.json()
-            if "pull_request" in item
         ]
 
     def fetch_diff(self, pull_request: PullRequest) -> str:
@@ -116,17 +163,43 @@ class HttpGitHubClient:
         response.raise_for_status()
         return response.text
 
-    def list_labeled_issues(self, repository: str, label: str) -> list[Issue]:
+    def fetch_commit_date(self, repository: str, sha: str) -> str:
+        response = self.http_client.get(
+            f"/repos/{repository}/commits/{sha}",
+            headers=self._auth_header(repository),
+        )
+        response.raise_for_status()
+        return response.json()["commit"]["committer"]["date"]
+
+    def list_open_issues(self, repository: str) -> list[Issue]:
         response = self.http_client.get(
             f"/repos/{repository}/issues",
-            params={"state": "open", "labels": label},
+            params={"state": "open", "per_page": 100},
             headers=self._auth_header(repository),
         )
         response.raise_for_status()
         return [
-            Issue(repository, item["number"], item["title"], item["body"])
+            Issue(
+                repository,
+                item["number"],
+                item["title"],
+                item["body"] or "",
+                item["updated_at"],
+            )
             for item in response.json()
             if "pull_request" not in item
+        ]
+
+    def list_comments(self, target: PullRequest | Issue) -> list[Comment]:
+        response = self.http_client.get(
+            f"/repos/{target.repository}/issues/{target.number}/comments",
+            params={"per_page": 100},
+            headers=self._auth_header(target.repository),
+        )
+        response.raise_for_status()
+        return [
+            Comment(item["user"]["login"], item["body"] or "", item["created_at"])
+            for item in response.json()
         ]
 
     def post_comment(self, target: PullRequest | Issue, body: str) -> None:
