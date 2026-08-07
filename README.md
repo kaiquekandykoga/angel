@@ -56,9 +56,11 @@ returns the reply for the reducer to append.
 
 Reviews open pull requests across every repository the App installation can reach — the
 set is discovered at run time from GitHub, so granting or revoking the App's access to a
-repository is all it takes to add or drop it. A pull request is picked up when
-`kandy-nishikihebi[bot]` has never commented on it, or when its head commit is newer than
-that last comment — so a PR is re-reviewed only after new commits land.
+repository is all it takes to add or drop it. Only PRs labeled `nishikihebi` are
+considered; the label is created on each repository if it doesn't already exist. A
+labeled pull request is picked up when `kandy-nishikihebi[bot]` has never commented on
+it, or when its head commit is newer than that last comment — so a PR is re-reviewed only
+after new commits land.
 
 ```
   START
@@ -66,7 +68,8 @@ that last comment — so a PR is re-reviewed only after new commits land.
     v
   +---------------------+
   | fetch_pull_requests |  <--- GitHub: installation repositories,
-  +---------------------+       then their open PRs + comments
+  +---------------------+       ensures the `nishikihebi` label exists,
+    |                           then their open PRs labeled `nishikihebi` + comments
     |  PullRequestContext (pull request + comments), only the ones due for review
     v
   +----------------------+
@@ -84,16 +87,17 @@ that last comment — so a PR is re-reviewed only after new commits land.
 
 | Node | Does |
 |---|---|
-| `fetch_pull_requests` | Lists open PRs and their comments, keeps the ones due for review, and emits `PullRequestContext` (the PR plus its comments) |
+| `fetch_pull_requests` | Ensures each repository has the `nishikihebi` label, lists PRs carrying it and their comments, keeps the ones due for review, and emits `PullRequestContext` (the PR plus its comments) |
 | `review_pull_requests` | Fetches the diff and asks the model for one review comment, given the title, description, existing comments, and diff |
 | `post_review_comments` | Posts each review as an issue comment on its PR |
 
 ### `issue_review`
 
-Same shape as `pr_review`, over the open issues of the same discovered repositories. An
-issue is picked up when `kandy-nishikihebi[bot]` has never commented on it, or when the
-issue's `updated_at` is newer than that last comment — which covers both an edited
-description and new comments.
+Same shape as `pr_review`, over the open issues of the same discovered repositories. Only
+issues labeled `nishikihebi` are considered; the label is created on each repository if
+it doesn't already exist. A labeled issue is picked up when `kandy-nishikihebi[bot]` has
+never commented on it, or when the issue's `updated_at` is newer than that last comment —
+which covers both an edited description and new comments.
 
 ```
   START
@@ -101,7 +105,8 @@ description and new comments.
     v
   +--------------+
   | fetch_issues |  <--- GitHub: installation repositories,
-  +--------------+       then their open issues + comments
+  +--------------+       ensures the `nishikihebi` label exists,
+    |                    then their open issues labeled `nishikihebi` + comments
     |  IssueContext (issue + comments), only the ones due for review
     v
   +---------------+
@@ -119,6 +124,6 @@ description and new comments.
 
 | Node | Does |
 |---|---|
-| `fetch_issues` | Lists open issues and their comments, keeps the ones due for review, and emits `IssueContext` (the issue plus its comments) |
+| `fetch_issues` | Ensures each repository has the `nishikihebi` label, lists issues carrying it and their comments, keeps the ones due for review, and emits `IssueContext` (the issue plus its comments) |
 | `review_issues` | Asks the model for one review comment, given the title, description, and existing comments |
 | `post_review_comments` | Shared with `pr_review` — posts each review as an issue comment |

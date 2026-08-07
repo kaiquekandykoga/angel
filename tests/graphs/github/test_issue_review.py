@@ -3,6 +3,7 @@ from nishikihebi.graphs.github.issue_review import build_issue_review_graph
 from nishikihebi.states.github import Review
 
 REVIEWER_LOGIN = "kandy-nishikihebi[bot]"
+LABEL = "nishikihebi"
 
 
 def test_graph_posts_comment_for_never_reviewed_issue(fake_client, fake_github):
@@ -10,6 +11,7 @@ def test_graph_posts_comment_for_never_reviewed_issue(fake_client, fake_github):
         "kaiquekandykoga/nishikihebi", 1, "issue a", "body a", "2026-08-01T00:00:00Z"
     )
     fake_github.issues = {"kaiquekandykoga/nishikihebi": [issue_a]}
+    fake_github.label(issue_a, LABEL)
     graph = build_issue_review_graph(
         fake_client,
         fake_github,
@@ -33,6 +35,7 @@ def test_graph_posts_no_comment_for_already_reviewed_unchanged_issue(
     fake_github.comments = {
         issue_a: [Comment(REVIEWER_LOGIN, "reviewed", "2026-08-01T00:00:00Z")]
     }
+    fake_github.label(issue_a, LABEL)
     graph = build_issue_review_graph(
         fake_client,
         fake_github,
@@ -49,6 +52,8 @@ def test_graph_covers_every_repository_of_the_installation(fake_client, fake_git
     issue_a = Issue("org/a", 1, "issue a", "body a", "2026-08-01T00:00:00Z")
     issue_b = Issue("org/b", 2, "issue b", "body b", "2026-08-01T00:00:00Z")
     fake_github.issues = {"org/a": [issue_a], "org/b": [issue_b]}
+    fake_github.label(issue_a, LABEL)
+    fake_github.label(issue_b, LABEL)
     graph = build_issue_review_graph(
         fake_client,
         fake_github,

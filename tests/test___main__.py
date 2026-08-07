@@ -47,6 +47,7 @@ def test_main_runs_pr_review_flow_and_prints_one_line_per_pr(
     pr_a = PullRequest("kaiquekandykoga/nishikihebi", 1, "pr a", "body a", "sha-a")
     fake_github.pull_requests = {"kaiquekandykoga/nishikihebi": [pr_a]}
     fake_github.diffs = {pr_a: "diff a"}
+    fake_github.label(pr_a, "nishikihebi")
     monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
     monkeypatch.setattr(
         nishikihebi.__main__, "build_github_client", lambda: fake_github
@@ -98,6 +99,7 @@ def test_main_runs_issue_review_flow_and_prints_one_line_per_issue(
         "kaiquekandykoga/nishikihebi", 1, "issue a", "body a", "2026-08-01T00:00:00Z"
     )
     fake_github.issues = {"kaiquekandykoga/nishikihebi": [issue_a]}
+    fake_github.label(issue_a, "nishikihebi")
     monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
     monkeypatch.setattr(
         nishikihebi.__main__, "build_github_client", lambda: fake_github

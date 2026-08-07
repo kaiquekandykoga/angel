@@ -3,11 +3,14 @@ from nishikihebi.nodes.github import last_review_at
 from nishikihebi.states.github import PrReviewState, PullRequestContext
 
 
-def fetch_pull_requests(github: GitHubClient, reviewer_login: str):
+def fetch_pull_requests(
+    github: GitHubClient, reviewer_login: str, label: str, label_color: str
+):
     def node(state: PrReviewState) -> dict[str, list[PullRequestContext]]:
         pull_requests = []
         for repository in github.list_repositories():
-            for pull_request in github.list_open_pull_requests(repository):
+            github.ensure_label(repository, label, label_color)
+            for pull_request in github.list_open_pull_requests(repository, label):
                 comments = github.list_comments(pull_request)
                 last_review = last_review_at(comments, reviewer_login)
                 if last_review is None or (

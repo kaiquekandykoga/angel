@@ -29,12 +29,27 @@ class FakeGitHubClient:
         self.comments: dict[PullRequest | Issue, list[Comment]] = {}
         self.commit_dates: dict[str, str] = {}
         self.posted_comments: list[tuple[PullRequest | Issue, str]] = []
+        self.labels: dict[PullRequest | Issue, set[str]] = {}
+        self.ensure_label_calls: list[tuple[str, str, str]] = []
+        self.call_log: list[tuple[str, str]] = []
 
     def list_repositories(self) -> list[str]:
         return sorted({*self.pull_requests, *self.issues})
 
-    def list_open_pull_requests(self, repository: str) -> list[PullRequest]:
-        return self.pull_requests.get(repository, [])
+    def label(self, target: PullRequest | Issue, label: str) -> None:
+        self.labels.setdefault(target, set()).add(label)
+
+    def ensure_label(self, repository: str, label: str, color: str) -> None:
+        self.ensure_label_calls.append((repository, label, color))
+        self.call_log.append(("ensure_label", repository))
+
+    def list_open_pull_requests(self, repository: str, label: str) -> list[PullRequest]:
+        self.call_log.append(("list_open_pull_requests", repository))
+        return [
+            pull_request
+            for pull_request in self.pull_requests.get(repository, [])
+            if label in self.labels.get(pull_request, set())
+        ]
 
     def fetch_diff(self, pull_request: PullRequest) -> str:
         return self.diffs.get(pull_request, "")
@@ -42,8 +57,13 @@ class FakeGitHubClient:
     def fetch_commit_date(self, repository: str, sha: str) -> str:
         return self.commit_dates[sha]
 
-    def list_open_issues(self, repository: str) -> list[Issue]:
-        return self.issues.get(repository, [])
+    def list_open_issues(self, repository: str, label: str) -> list[Issue]:
+        self.call_log.append(("list_open_issues", repository))
+        return [
+            issue
+            for issue in self.issues.get(repository, [])
+            if label in self.labels.get(issue, set())
+        ]
 
     def list_comments(self, target: PullRequest | Issue) -> list[Comment]:
         return self.comments.get(target, [])

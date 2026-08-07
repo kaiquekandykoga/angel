@@ -53,6 +53,7 @@ def test_list_open_pull_requests_maps_head_sha_and_null_body():
                     "title": "a pr",
                     "body": None,
                     "head": {"sha": "abc123"},
+                    "labels": [{"name": "nishikihebi"}],
                 }
             ],
         )
@@ -62,7 +63,9 @@ def test_list_open_pull_requests_maps_head_sha_and_null_body():
         token_provider,
     )
 
-    pull_requests = client.list_open_pull_requests("kaiquekandykoga/nishikihebi")
+    pull_requests = client.list_open_pull_requests(
+        "kaiquekandykoga/nishikihebi", "nishikihebi"
+    )
 
     assert pull_requests == [
         PullRequest("kaiquekandykoga/nishikihebi", 1, "a pr", "", "abc123")
@@ -74,6 +77,42 @@ def test_list_open_pull_requests_maps_head_sha_and_null_body():
         captured["request"].headers["authorization"]
         == "Bearer token-for-kaiquekandykoga/nishikihebi"
     )
+
+
+def test_list_open_pull_requests_drops_prs_without_the_label():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json=[
+                {
+                    "number": 1,
+                    "title": "labeled",
+                    "body": None,
+                    "head": {"sha": "abc123"},
+                    "labels": [{"name": "nishikihebi"}],
+                },
+                {
+                    "number": 2,
+                    "title": "unlabeled",
+                    "body": None,
+                    "head": {"sha": "def456"},
+                    "labels": [{"name": "other"}],
+                },
+            ],
+        )
+
+    client = HttpGitHubClient(
+        httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com"),
+        token_provider,
+    )
+
+    pull_requests = client.list_open_pull_requests(
+        "kaiquekandykoga/nishikihebi", "nishikihebi"
+    )
+
+    assert pull_requests == [
+        PullRequest("kaiquekandykoga/nishikihebi", 1, "labeled", "", "abc123")
+    ]
 
 
 def test_list_open_issues_excludes_pull_requests_and_maps_updated_at():
@@ -106,7 +145,7 @@ def test_list_open_issues_excludes_pull_requests_and_maps_updated_at():
         token_provider,
     )
 
-    issues = client.list_open_issues("kaiquekandykoga/nishikihebi")
+    issues = client.list_open_issues("kaiquekandykoga/nishikihebi", "nishikihebi")
 
     assert issues == [
         Issue(
@@ -120,6 +159,7 @@ def test_list_open_issues_excludes_pull_requests_and_maps_updated_at():
     assert captured["url"].path == "/repos/kaiquekandykoga/nishikihebi/issues"
     assert captured["url"].params["state"] == "open"
     assert captured["url"].params["per_page"] == "100"
+    assert captured["url"].params["labels"] == "nishikihebi"
     assert (
         captured["request"].headers["authorization"]
         == "Bearer token-for-kaiquekandykoga/nishikihebi"
@@ -236,6 +276,52 @@ def test_post_comment_sends_body_to_issue_comments_endpoint():
     assert json.loads(request.content) == {"body": "great work"}
     expected_auth = "Bearer token-for-kaiquekandykoga/nishikihebi"
     assert request.headers["authorization"] == expected_auth
+
+
+def test_ensure_label_does_not_post_when_label_already_exists():
+    requests = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, json={"name": "nishikihebi"})
+
+    client = HttpGitHubClient(
+        httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com"),
+        token_provider,
+    )
+
+    client.ensure_label("kaiquekandykoga/nishikihebi", "nishikihebi", "f709c2")
+
+    assert len(requests) == 1
+    assert requests[0].method == "GET"
+    assert (
+        requests[0].url.path
+        == "/repos/kaiquekandykoga/nishikihebi/labels/nishikihebi"
+    )
+
+
+def test_ensure_label_creates_label_when_missing():
+    requests = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if request.method == "GET":
+            return httpx.Response(404, json={"message": "Not Found"})
+        return httpx.Response(201, json={"name": "nishikihebi"})
+
+    client = HttpGitHubClient(
+        httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com"),
+        token_provider,
+    )
+
+    client.ensure_label("kaiquekandykoga/nishikihebi", "nishikihebi", "f709c2")
+
+    assert [request.method for request in requests] == ["GET", "POST"]
+    assert requests[1].url.path == "/repos/kaiquekandykoga/nishikihebi/labels"
+    assert json.loads(requests[1].content) == {
+        "name": "nishikihebi",
+        "color": "f709c2",
+    }
 
 
 def test_build_github_client_raises_when_app_id_missing(monkeypatch, tmp_path):

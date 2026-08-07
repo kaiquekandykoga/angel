@@ -33,10 +33,13 @@ class Comment(NamedTuple):
 
 class GitHubClient(Protocol):
     def list_repositories(self) -> list[str]: ...
-    def list_open_pull_requests(self, repository: str) -> list[PullRequest]: ...
+    def ensure_label(self, repository: str, label: str, color: str) -> None: ...
+    def list_open_pull_requests(
+        self, repository: str, label: str
+    ) -> list[PullRequest]: ...
     def fetch_diff(self, pull_request: PullRequest) -> str: ...
     def fetch_commit_date(self, repository: str, sha: str) -> str: ...
-    def list_open_issues(self, repository: str) -> list[Issue]: ...
+    def list_open_issues(self, repository: str, label: str) -> list[Issue]: ...
     def list_comments(self, target: PullRequest | Issue) -> list[Comment]: ...
     def post_comment(self, target: PullRequest | Issue, body: str) -> None: ...
 
@@ -134,7 +137,22 @@ class HttpGitHubClient:
     def list_repositories(self) -> list[str]:
         return self.token_provider.list_repositories()
 
-    def list_open_pull_requests(self, repository: str) -> list[PullRequest]:
+    def ensure_label(self, repository: str, label: str, color: str) -> None:
+        response = self.http_client.get(
+            f"/repos/{repository}/labels/{label}",
+            headers=self._auth_header(repository),
+        )
+        if response.status_code == 404:
+            create_response = self.http_client.post(
+                f"/repos/{repository}/labels",
+                json={"name": label, "color": color},
+                headers=self._auth_header(repository),
+            )
+            create_response.raise_for_status()
+            return
+        response.raise_for_status()
+
+    def list_open_pull_requests(self, repository: str, label: str) -> list[PullRequest]:
         response = self.http_client.get(
             f"/repos/{repository}/pulls",
             params={"state": "open", "per_page": 100},
@@ -150,6 +168,7 @@ class HttpGitHubClient:
                 item["head"]["sha"],
             )
             for item in response.json()
+            if label in {item_label["name"] for item_label in item["labels"]}
         ]
 
     def fetch_diff(self, pull_request: PullRequest) -> str:
@@ -171,10 +190,10 @@ class HttpGitHubClient:
         response.raise_for_status()
         return response.json()["commit"]["committer"]["date"]
 
-    def list_open_issues(self, repository: str) -> list[Issue]:
+    def list_open_issues(self, repository: str, label: str) -> list[Issue]:
         response = self.http_client.get(
             f"/repos/{repository}/issues",
-            params={"state": "open", "per_page": 100},
+            params={"state": "open", "per_page": 100, "labels": label},
             headers=self._auth_header(repository),
         )
         response.raise_for_status()

@@ -3,12 +3,14 @@ from nishikihebi.graphs.github.pr_review import build_pr_review_graph
 from nishikihebi.states.github import Review
 
 REVIEWER_LOGIN = "kandy-nishikihebi[bot]"
+LABEL = "nishikihebi"
 
 
 def test_graph_posts_comment_for_never_reviewed_pull_request(fake_client, fake_github):
     pr_a = PullRequest("kaiquekandykoga/nishikihebi", 1, "pr a", "body a", "sha-a")
     fake_github.pull_requests = {"kaiquekandykoga/nishikihebi": [pr_a]}
     fake_github.diffs = {pr_a: "diff a"}
+    fake_github.label(pr_a, LABEL)
     graph = build_pr_review_graph(
         fake_client,
         fake_github,
@@ -32,6 +34,7 @@ def test_graph_posts_no_comment_for_already_reviewed_unchanged_pull_request(
         pr_a: [Comment(REVIEWER_LOGIN, "reviewed", review_comment_created_at)]
     }
     fake_github.commit_dates = {"sha-a": "2026-08-01T00:00:00Z"}
+    fake_github.label(pr_a, LABEL)
     graph = build_pr_review_graph(
         fake_client,
         fake_github,
@@ -49,6 +52,8 @@ def test_graph_covers_every_repository_of_the_installation(fake_client, fake_git
     pr_b = PullRequest("org/b", 2, "pr b", "body b", "sha-b")
     fake_github.pull_requests = {"org/a": [pr_a], "org/b": [pr_b]}
     fake_github.diffs = {pr_a: "diff a", pr_b: "diff b"}
+    fake_github.label(pr_a, LABEL)
+    fake_github.label(pr_b, LABEL)
     graph = build_pr_review_graph(
         fake_client,
         fake_github,
