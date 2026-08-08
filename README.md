@@ -1,6 +1,11 @@
 # Nishikihebi
 
-The idea is to build a Multi-Agent System using Python reflected by [kirinn](https://github.com/kaiquekandykoga/kirinn)
+A Python CLI built on [LangGraph](https://langchain-ai.github.io/langgraph/) state graphs,
+backed by an NVIDIA-hosted model. It offers three commands: an interactive `chat` REPL,
+plus `pr_review` and `issue_review`, which act as the
+[kandy-nishikihebi](https://github.com/apps/kandy-nishikihebi) GitHub App and automatically
+comment on pull requests and issues labeled `nishikihebi` across the repositories the App
+is installed on.
 
 ## Usage
 
@@ -9,7 +14,7 @@ Copy `.env.example` to `.env` and fill in the variables below.
 | Variable | Command | Required | Description |
 |---|---|---|---|
 | `NISHIKIHEBI_NVIDIA_API_KEY` | `chat`, `pr_review`, `issue_review` | Yes | NVIDIA API key from https://build.nvidia.com — used for all model calls. |
-| `NISHIKIHEBI_GITHUB_APP_ID` | `pr_review`, `issue_review` | Yes for `pr_review`, `issue_review` | ID of the GitHub App used to authenticate; needs read access to pull requests, issues, and contents, plus write access to issue comments. The repositories to review are whichever ones the App is installed on — there is no list to maintain in the code. |
+| `NISHIKIHEBI_GITHUB_APP_ID` | `pr_review`, `issue_review` | Yes for `pr_review`, `issue_review` | ID of the GitHub App used to authenticate — [kandy-nishikihebi](https://github.com/apps/kandy-nishikihebi) is the App behind the PR and issue reviews; it needs read access to pull requests, issues, and contents, plus write access to issue comments. The repositories to review are whichever ones the App is installed on — there is no list to maintain in the code. |
 | `NISHIKIHEBI_GITHUB_PRIVATE_KEY_PATH` | `pr_review`, `issue_review` | Yes for `pr_review`, `issue_review` | Path to the GitHub App's private key (`.pem`). |
 
 The app loads `.env` automatically; an already-exported shell variable still takes precedence.
@@ -21,13 +26,6 @@ uv run nishikihebi pr_review
 uv run nishikihebi issue_review
 uv run ci
 ```
-
-## Logs
-
-High-level progress is printed to the console. Every run also writes a detailed log to
-`log/nishikihebi-<timestamp>.jsonl` — one JSON object per line, carrying the structured
-fields each node attaches (repository, PR/issue number, counts, and so on). `log/` is
-gitignored.
 
 ## Graphs
 
@@ -134,3 +132,10 @@ which covers both an edited description and new comments.
 | `fetch_issues` | Ensures each repository has the `nishikihebi` label, lists issues carrying it and their comments, keeps the ones due for review, and emits `IssueContext` (the issue plus its comments) |
 | `review_issues` | Asks the model for one review comment, given the title, description, and existing comments |
 | `post_review_comments` | Shared with `pr_review` — posts each review as an issue comment |
+
+## Logs
+
+High-level progress is printed to the console. Every run also writes a detailed log to
+`log/nishikihebi-<timestamp>.jsonl` — one JSON object per line, carrying the structured
+fields each node attaches (repository, PR/issue number, counts, and so on). `log/` is
+gitignored.

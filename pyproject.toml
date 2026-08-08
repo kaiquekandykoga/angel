@@ -35,7 +35,7 @@ select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "PT", "C4", "N"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra --strict-markers --strict-config"
+addopts = "-ra --strict-markers --strict-config --import-mode=importlib"
 
 [tool.basedpyright]
 typeCheckingMode = "standard"

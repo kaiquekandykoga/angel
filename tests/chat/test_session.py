@@ -1,7 +1,7 @@
 from langchain_core.messages import SystemMessage
 
 from nishikihebi.chat.session import start_session
-from nishikihebi.graphs.chat import build_chat_graph
+from nishikihebi.graphs.chat.chat import build_chat_graph
 
 
 def test_ask_returns_client_reply(fake_client):

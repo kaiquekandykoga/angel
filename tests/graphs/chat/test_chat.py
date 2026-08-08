@@ -3,7 +3,7 @@ import logging
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.runnables import RunnableConfig
 
-from nishikihebi.graphs.chat import build_chat_graph
+from nishikihebi.graphs.chat.chat import build_chat_graph
 
 
 def test_graph_routes_through_chat_node(fake_client):
