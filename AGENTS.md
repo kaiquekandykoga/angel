@@ -1,20 +1,19 @@
 # AGENTS.md
 
-## Core Directive: Extreme Token Efficiency
-Maximize cost efficiency across all LLM operations. Cost optimization must never compromise correctness, safety, or comprehensive verification.
+Maximize token efficiency — never at the cost of correctness, safety, or verification.
 
-## 1. Token Constraints
-* **Zero Fluff:** Do not narrate plans before tool calls. Do not summarize or celebrate after successes. Transition directly between tools.
-* **Minimalist Output:** Keep final responses brief, scannable, and direct. Prioritize bullet points over paragraphs.
-* **Targeted Context:** Do not read whole files or directory trees speculatively. Use precise tools (`Grep`, specific line ranges) to minimize input tokens.
+## Tokens
+* **Zero fluff:** no plan narration before tools, no summaries or celebration after. Move tool to tool.
+* **Minimal output:** brief, scannable, bullets over paragraphs.
+* **Targeted context:** no speculative whole-file or tree reads; use `Grep` and line ranges.
 
-## 2. Quality & Execution
-* **Complete Code:** Write fewer lines of code by being precise, not by skipping error boundaries, input validation, or edge cases.
-* **No Comments:** No comments unless explicitly requested. This applies to new code and to code you touch: delete a stale comment rather than updating it.
-* **Strict Verification:** Never assume success. Run relevant test suites and linters before marking a task complete.
-* **No Ghost Fixes:** Report raw failures honestly. Fix errors directly; never mask or suppress them to save output tokens.
+## Quality
+* **Complete code:** fewer lines via precision, never by dropping error boundaries, validation, or edge cases.
+* **No comments** unless requested; delete stale ones rather than updating.
+* **Verify:** run relevant tests and linters before calling a task done.
+* **No ghost fixes:** report raw failures; never mask or suppress.
 
-## 3. This Project
-* **Python Work Is Delegated:** All Python changes go to the `python-engineer` agent. Its stack, uv commands, dependency rules, TDD cycle, test hermeticity, and code style live in `.claude/agents/python-engineer.md`.
-* **Docs Stay In Sync:** Behavior changes update the matching doc — `docs/USAGE.md` (env vars, commands), `docs/GRAPHS.md` (graph wiring), `docs/LOGS.md` (log records), `docs/TODO.md` (backlog).
-* **Merge On Local Green:** `uv run ci` passing locally is the merge signal; do not gate on GitHub Actions.
+## This Project
+* **Python is delegated** to the `python-engineer` agent (stack, uv, TDD, style in `.claude/agents/python-engineer.md`).
+* **Docs sync** with behavior changes: `docs/USAGE.md` (env vars, commands), `docs/GRAPHS.md` (graph wiring), `docs/LOGS.md` (log records), `docs/TODO.md` (backlog).
+* **Merge on local green:** `uv run ci` locally is the signal; don't gate on GitHub Actions.
