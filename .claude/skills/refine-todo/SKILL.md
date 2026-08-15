@@ -12,7 +12,7 @@ Make `docs/TODO.md` true again: fix what drifted, retire what landed, add what's
 If the user passed a scope (a file, a directory, a theme like "logging" or "security"), refine only the items and code in that scope. With no scope, sweep the whole app.
 
 ## Steps
-1. Load the backlog first: read `docs/TODO.md` end to end, including "Done". Every existing item is now something to re-check, not just a duplicate filter. Do this before reading any code.
+1. Load the backlog first: read `docs/TODO.md` end to end. Every existing item is now something to re-check, not just a duplicate filter. Do this before reading any code.
 2. Read the code. Prefer whole files over greps here: this skill is looking for what is *missing*, and absence does not grep. Budget for the sweep:
    - `src/nishikihebi/clients/github.py`, `clients/llm.py` — the network boundary; where errors, limits, and untrusted data enter
    - `src/nishikihebi/agents/*/nodes.py`, `graph.py`, `prompts.py` — the graphs; where model output becomes a public comment
@@ -25,8 +25,8 @@ If the user passed a scope (a file, a directory, a theme like "logging" or "secu
    - **Drifted** — line numbers moved, a path was renamed, or the *Why* describes code that has since changed shape. Correct the item in place, keeping it short.
    - **Mis-prioritized** — promote when reality changed (anything becomes P0 the moment it causes wrong behavior in a real run); demote only when the risk it names has actually gone away.
    - **Oversized** — one item that needs two PRs is two items. Split it, giving each its own *Done when*.
-   - **Landed** — delete it and append a dated line under "Done". Only when its *Done when* condition genuinely holds in the code **and** `uv run ci` is green; run it yourself before deleting anything. If it is partly done, shrink the item to what remains instead of deleting it.
-   - **Obsolete** — the gap no longer exists because the design moved, not because the work was done. Delete it and say so in your report; it does not belong under "Done".
+   - **Landed** — delete it. Only when its *Done when* condition genuinely holds in the code **and** `uv run ci` is green; run it yourself before deleting anything. The file keeps no "Done" section — git history is the record. If it is partly done, shrink the item to what remains instead of deleting it.
+   - **Obsolete** — the gap no longer exists because the design moved, not because the work was done. Delete it and say so in your report.
 4. Find new work. A candidate is an item only if it names a **concrete failure or gap — a symptom, not a preference**. Test it with "what breaks, and when?". Drop anything answered with "it would be nicer if". Sources that reliably produce real items:
    - a code path that fails on input the app will actually see (large, paginated, malformed, hostile, rate-limited)
    - a LangGraph capability the app should be using and is not (checkpointers, `Send`, structured output, `interrupt`, `RetryPolicy`)
