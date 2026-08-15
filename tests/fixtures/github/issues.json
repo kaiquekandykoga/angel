@@ -1,0 +1,132 @@
+[
+  {
+    "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/41",
+    "repository_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi",
+    "labels_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/41/labels{/name}",
+    "comments_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/41/comments",
+    "events_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/41/events",
+    "html_url": "https://github.com/kaiquekandykoga/nishikihebi/pull/41",
+    "id": 3489120774,
+    "node_id": "I_kwDOPXwRr87Q3xLG",
+    "number": 41,
+    "title": "Paginate every GitHub list call",
+    "user": {
+      "login": "kaiquekandykoga",
+      "id": 22661138,
+      "node_id": "MDQ6VXNlcjIyNjYxMTM4",
+      "avatar_url": "https://avatars.githubusercontent.com/u/22661138?v=4",
+      "url": "https://api.github.com/users/kaiquekandykoga",
+      "html_url": "https://github.com/kaiquekandykoga",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "labels": [
+      {
+        "id": 9481120334,
+        "node_id": "LA_kwDOPXwRr88AAAACaHqXjg",
+        "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/labels/nishikihebi",
+        "name": "nishikihebi",
+        "color": "f709c2",
+        "default": false,
+        "description": null
+      }
+    ],
+    "state": "open",
+    "state_reason": null,
+    "locked": false,
+    "assignee": null,
+    "assignees": [],
+    "milestone": null,
+    "comments": 1,
+    "created_at": "2026-08-14T11:02:41Z",
+    "updated_at": "2026-08-15T09:17:03Z",
+    "closed_at": null,
+    "author_association": "OWNER",
+    "active_lock_reason": null,
+    "draft": false,
+    "pull_request": {
+      "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/pulls/41",
+      "html_url": "https://github.com/kaiquekandykoga/nishikihebi/pull/41",
+      "diff_url": "https://github.com/kaiquekandykoga/nishikihebi/pull/41.diff",
+      "patch_url": "https://github.com/kaiquekandykoga/nishikihebi/pull/41.patch",
+      "merged_at": null
+    },
+    "body": "Follows the `Link: rel=\"next\"` header on every list endpoint.",
+    "reactions": {
+      "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/41/reactions",
+      "total_count": 0,
+      "+1": 0,
+      "-1": 0,
+      "laugh": 0,
+      "hooray": 0,
+      "confused": 0,
+      "heart": 0,
+      "rocket": 0,
+      "eyes": 0
+    },
+    "timeline_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/41/timeline",
+    "performed_via_github_app": null
+  },
+  {
+    "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/38",
+    "repository_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi",
+    "labels_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/38/labels{/name}",
+    "comments_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/38/comments",
+    "events_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/38/events",
+    "html_url": "https://github.com/kaiquekandykoga/nishikihebi/issues/38",
+    "id": 3487006512,
+    "node_id": "I_kwDOPXwRr87QvsWw",
+    "number": 38,
+    "title": "Add a LICENSE",
+    "user": {
+      "login": "kaiquekandykoga",
+      "id": 22661138,
+      "node_id": "MDQ6VXNlcjIyNjYxMTM4",
+      "avatar_url": "https://avatars.githubusercontent.com/u/22661138?v=4",
+      "url": "https://api.github.com/users/kaiquekandykoga",
+      "html_url": "https://github.com/kaiquekandykoga",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "labels": [
+      {
+        "id": 9481120334,
+        "node_id": "LA_kwDOPXwRr88AAAACaHqXjg",
+        "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/labels/nishikihebi",
+        "name": "nishikihebi",
+        "color": "f709c2",
+        "default": false,
+        "description": null
+      }
+    ],
+    "state": "open",
+    "state_reason": null,
+    "locked": false,
+    "assignee": null,
+    "assignees": [],
+    "milestone": null,
+    "comments": 0,
+    "created_at": "2026-08-12T07:31:09Z",
+    "updated_at": "2026-08-13T15:22:47Z",
+    "closed_at": null,
+    "author_association": "OWNER",
+    "active_lock_reason": null,
+    "body": null,
+    "reactions": {
+      "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/38/reactions",
+      "total_count": 0,
+      "+1": 0,
+      "-1": 0,
+      "laugh": 0,
+      "hooray": 0,
+      "confused": 0,
+      "heart": 0,
+      "rocket": 0,
+      "eyes": 0
+    },
+    "timeline_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/38/timeline",
+    "performed_via_github_app": null
+  }
+]

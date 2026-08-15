@@ -1,0 +1,29 @@
+diff --git a/src/nishikihebi/clients/github.py b/src/nishikihebi/clients/github.py
+index 3f2a1c4..9b7d0e2 100644
+--- a/src/nishikihebi/clients/github.py
++++ b/src/nishikihebi/clients/github.py
+@@ -152,10 +152,16 @@ class HttpGitHubClient:
+     def list_open_pull_requests(self, repository: str, label: str) -> list[PullRequest]:
+-        response = self.http_client.get(
+-            f"/repos/{repository}/pulls",
+-            params={"state": "open", "per_page": 100},
+-            headers=self._auth_header(repository),
+-        )
+-        response.raise_for_status()
++        items = self._get_all(
++            f"/repos/{repository}/pulls",
++            params={"state": "open", "per_page": 100},
++            headers=self._auth_header(repository),
++        )
+         return [
+             PullRequest(
+                 repository,
+                 item["number"],
+                 item["title"],
+                 item["body"] or "",
+                 item["head"]["sha"],
+             )
+-            for item in response.json()
++            for item in items
+             if label in {item_label["name"] for item_label in item["labels"]}
+         ]

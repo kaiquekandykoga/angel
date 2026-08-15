@@ -1,0 +1,10 @@
+{
+  "token": "ghs_REDACTEDINSTALLATIONTOKEN0000000000",
+  "expires_at": "2026-08-15T10:16:44Z",
+  "permissions": {
+    "issues": "write",
+    "metadata": "read",
+    "pull_requests": "write"
+  },
+  "repository_selection": "selected"
+}

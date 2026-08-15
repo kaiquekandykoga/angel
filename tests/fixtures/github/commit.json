@@ -1,0 +1,78 @@
+{
+  "sha": "9f1b0c4bd2a54a1e6e2b7dbb1a0dd4b13ec2f0a1",
+  "node_id": "C_kwDOPXwRr9oAKDlmMWIwYzRiZDJhNTRhMWU2ZTJiN2RiYjFhMGRkNGIxM2VjMmYwYTE",
+  "commit": {
+    "author": {
+      "name": "Kaíque Kandy Koga",
+      "email": "kaiquekandykoga@gmail.com",
+      "date": "2026-08-10T20:11:07Z"
+    },
+    "committer": {
+      "name": "Kaíque Kandy Koga",
+      "email": "kaiquekandykoga@gmail.com",
+      "date": "2026-08-14T10:58:12Z"
+    },
+    "message": "Follow the Link rel=next header on list calls",
+    "tree": {
+      "sha": "2b1a0f9e8d7c6b5a49382716f5e4d3c2b1a09f8e",
+      "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/git/trees/2b1a0f9e8d7c6b5a49382716f5e4d3c2b1a09f8e"
+    },
+    "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/git/commits/9f1b0c4bd2a54a1e6e2b7dbb1a0dd4b13ec2f0a1",
+    "comment_count": 0,
+    "verification": {
+      "verified": false,
+      "reason": "unsigned",
+      "signature": null,
+      "payload": null,
+      "verified_at": null
+    }
+  },
+  "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/commits/9f1b0c4bd2a54a1e6e2b7dbb1a0dd4b13ec2f0a1",
+  "html_url": "https://github.com/kaiquekandykoga/nishikihebi/commit/9f1b0c4bd2a54a1e6e2b7dbb1a0dd4b13ec2f0a1",
+  "comments_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/commits/9f1b0c4bd2a54a1e6e2b7dbb1a0dd4b13ec2f0a1/comments",
+  "author": {
+    "login": "kaiquekandykoga",
+    "id": 22661138,
+    "node_id": "MDQ6VXNlcjIyNjYxMTM4",
+    "url": "https://api.github.com/users/kaiquekandykoga",
+    "html_url": "https://github.com/kaiquekandykoga",
+    "type": "User",
+    "user_view_type": "public",
+    "site_admin": false
+  },
+  "committer": {
+    "login": "kaiquekandykoga",
+    "id": 22661138,
+    "node_id": "MDQ6VXNlcjIyNjYxMTM4",
+    "url": "https://api.github.com/users/kaiquekandykoga",
+    "html_url": "https://github.com/kaiquekandykoga",
+    "type": "User",
+    "user_view_type": "public",
+    "site_admin": false
+  },
+  "parents": [
+    {
+      "sha": "41880bf3b1cbb7d3a3a1b7c2f9e0c3fd2a5b6e77",
+      "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/commits/41880bf3b1cbb7d3a3a1b7c2f9e0c3fd2a5b6e77",
+      "html_url": "https://github.com/kaiquekandykoga/nishikihebi/commit/41880bf3b1cbb7d3a3a1b7c2f9e0c3fd2a5b6e77"
+    }
+  ],
+  "stats": {
+    "total": 84,
+    "additions": 71,
+    "deletions": 13
+  },
+  "files": [
+    {
+      "sha": "c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4",
+      "filename": "src/nishikihebi/clients/github.py",
+      "status": "modified",
+      "additions": 71,
+      "deletions": 13,
+      "changes": 84,
+      "blob_url": "https://github.com/kaiquekandykoga/nishikihebi/blob/9f1b0c4bd2a54a1e6e2b7dbb1a0dd4b13ec2f0a1/src%2Fnishikihebi%2Fclients%2Fgithub.py",
+      "raw_url": "https://github.com/kaiquekandykoga/nishikihebi/raw/9f1b0c4bd2a54a1e6e2b7dbb1a0dd4b13ec2f0a1/src%2Fnishikihebi%2Fclients%2Fgithub.py",
+      "contents_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/contents/src%2Fnishikihebi%2Fclients%2Fgithub.py?ref=9f1b0c4bd2a54a1e6e2b7dbb1a0dd4b13ec2f0a1"
+    }
+  ]
+}

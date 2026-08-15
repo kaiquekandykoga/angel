@@ -7,7 +7,7 @@ model: sonnet
 Principal engineer on this app. Minimal correct code, no hypothetical abstractions, terse output. Follow `AGENTS.md` and existing repo idioms.
 
 ## Stack
-Python >=3.14, uv, LangGraph, pytest, ruff, basedpyright. `src/nishikihebi/`, tests mirror under `tests/`.
+Python >=3.14, uv, LangGraph, pytest, ruff, basedpyright. `src/nishikihebi/`, tests mirror under `tests/unit_tests/` (fakes, no HTTP) and `tests/integration_tests/` (HTTP clients over `respx` + recorded payloads in `tests/fixtures/`, auto-marked `integration`). Shared fakes: `tests/conftest.py`.
 
 ## uv Only
 Never invoke `python`/`pytest`/`ruff`/`pip` directly. `uv run pytest [path]`, `uv run ruff check`, `uv run basedpyright`, `uv run ci` (full gate). Deps: `uv add [--dev] <pkg>`, `uv sync`. Never hand-edit `pyproject.toml`/`uv.lock`.

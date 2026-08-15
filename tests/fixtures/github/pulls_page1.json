@@ -1,0 +1,234 @@
+[
+  {
+    "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/pulls/41",
+    "id": 2419883512,
+    "node_id": "PR_kwDOPXwRr86Zb1x4",
+    "html_url": "https://github.com/kaiquekandykoga/nishikihebi/pull/41",
+    "diff_url": "https://github.com/kaiquekandykoga/nishikihebi/pull/41.diff",
+    "patch_url": "https://github.com/kaiquekandykoga/nishikihebi/pull/41.patch",
+    "issue_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/41",
+    "number": 41,
+    "state": "open",
+    "locked": false,
+    "title": "Paginate every GitHub list call",
+    "user": {
+      "login": "kaiquekandykoga",
+      "id": 22661138,
+      "node_id": "MDQ6VXNlcjIyNjYxMTM4",
+      "avatar_url": "https://avatars.githubusercontent.com/u/22661138?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/kaiquekandykoga",
+      "html_url": "https://github.com/kaiquekandykoga",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "body": "Follows the `Link: rel=\"next\"` header on every list endpoint.",
+    "created_at": "2026-08-14T11:02:41Z",
+    "updated_at": "2026-08-15T09:17:03Z",
+    "closed_at": null,
+    "merged_at": null,
+    "merge_commit_sha": "0c2ac9a3ee8d5f6ec5c7e1e37b0f7b7d0b0a1c22",
+    "assignee": null,
+    "assignees": [],
+    "requested_reviewers": [],
+    "requested_teams": [],
+    "labels": [
+      {
+        "id": 9481120334,
+        "node_id": "LA_kwDOPXwRr88AAAACaHqXjg",
+        "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/labels/nishikihebi",
+        "name": "nishikihebi",
+        "color": "f709c2",
+        "default": false,
+        "description": null
+      }
+    ],
+    "milestone": null,
+    "draft": false,
+    "commits_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/pulls/41/commits",
+    "review_comments_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/pulls/41/comments",
+    "review_comment_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/pulls/comments{/number}",
+    "comments_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/41/comments",
+    "statuses_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/statuses/9f1b0c4bd2a54a1e6e2b7dbb1a0dd4b13ec2f0a1",
+    "head": {
+      "label": "kaiquekandykoga:paginate-list-calls",
+      "ref": "paginate-list-calls",
+      "sha": "9f1b0c4bd2a54a1e6e2b7dbb1a0dd4b13ec2f0a1",
+      "user": {
+        "login": "kaiquekandykoga",
+        "id": 22661138,
+        "type": "User",
+        "site_admin": false
+      },
+      "repo": {
+        "id": 1031573935,
+        "node_id": "R_kgDOPXwRrw",
+        "name": "nishikihebi",
+        "full_name": "kaiquekandykoga/nishikihebi",
+        "private": false,
+        "html_url": "https://github.com/kaiquekandykoga/nishikihebi",
+        "description": "Multi-Agent System using Python",
+        "fork": false,
+        "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi",
+        "default_branch": "master"
+      }
+    },
+    "base": {
+      "label": "kaiquekandykoga:master",
+      "ref": "master",
+      "sha": "41880bf3b1cbb7d3a3a1b7c2f9e0c3fd2a5b6e77",
+      "user": {
+        "login": "kaiquekandykoga",
+        "id": 22661138,
+        "type": "User",
+        "site_admin": false
+      },
+      "repo": {
+        "id": 1031573935,
+        "node_id": "R_kgDOPXwRrw",
+        "name": "nishikihebi",
+        "full_name": "kaiquekandykoga/nishikihebi",
+        "private": false,
+        "html_url": "https://github.com/kaiquekandykoga/nishikihebi",
+        "description": "Multi-Agent System using Python",
+        "fork": false,
+        "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi",
+        "default_branch": "master"
+      }
+    },
+    "_links": {
+      "self": {
+        "href": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/pulls/41"
+      },
+      "html": {
+        "href": "https://github.com/kaiquekandykoga/nishikihebi/pull/41"
+      },
+      "issue": {
+        "href": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/41"
+      },
+      "comments": {
+        "href": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/41/comments"
+      }
+    },
+    "author_association": "OWNER",
+    "auto_merge": null,
+    "active_lock_reason": null
+  },
+  {
+    "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/pulls/40",
+    "id": 2419712004,
+    "node_id": "PR_kwDOPXwRr86ZbLzE",
+    "html_url": "https://github.com/kaiquekandykoga/nishikihebi/pull/40",
+    "diff_url": "https://github.com/kaiquekandykoga/nishikihebi/pull/40.diff",
+    "patch_url": "https://github.com/kaiquekandykoga/nishikihebi/pull/40.patch",
+    "issue_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/40",
+    "number": 40,
+    "state": "open",
+    "locked": false,
+    "title": "Bump uv.lock",
+    "user": {
+      "login": "dependabot[bot]",
+      "id": 49699333,
+      "node_id": "MDM6Qm90NDk2OTkzMzM=",
+      "avatar_url": "https://avatars.githubusercontent.com/in/29110?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/dependabot%5Bbot%5D",
+      "html_url": "https://github.com/apps/dependabot",
+      "type": "Bot",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "body": null,
+    "created_at": "2026-08-13T06:00:12Z",
+    "updated_at": "2026-08-13T06:00:14Z",
+    "closed_at": null,
+    "merged_at": null,
+    "merge_commit_sha": "b7e6d5c4a39218f0d1c2b3a495867d5e4f3c2b1a",
+    "assignee": null,
+    "assignees": [],
+    "requested_reviewers": [],
+    "requested_teams": [],
+    "labels": [
+      {
+        "id": 9481120901,
+        "node_id": "LA_kwDOPXwRr88AAAACaHqZxQ",
+        "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/labels/dependencies",
+        "name": "dependencies",
+        "color": "0366d6",
+        "default": false,
+        "description": "Pull requests that update a dependency file"
+      }
+    ],
+    "milestone": null,
+    "draft": false,
+    "commits_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/pulls/40/commits",
+    "review_comments_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/pulls/40/comments",
+    "review_comment_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/pulls/comments{/number}",
+    "comments_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/40/comments",
+    "statuses_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/statuses/3d9f8e7c6b5a49382716f5e4d3c2b1a09f8e7d6c",
+    "head": {
+      "label": "kaiquekandykoga:dependabot/uv/uv-lock",
+      "ref": "dependabot/uv/uv-lock",
+      "sha": "3d9f8e7c6b5a49382716f5e4d3c2b1a09f8e7d6c",
+      "user": {
+        "login": "kaiquekandykoga",
+        "id": 22661138,
+        "type": "User",
+        "site_admin": false
+      },
+      "repo": {
+        "id": 1031573935,
+        "node_id": "R_kgDOPXwRrw",
+        "name": "nishikihebi",
+        "full_name": "kaiquekandykoga/nishikihebi",
+        "private": false,
+        "html_url": "https://github.com/kaiquekandykoga/nishikihebi",
+        "description": "Multi-Agent System using Python",
+        "fork": false,
+        "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi",
+        "default_branch": "master"
+      }
+    },
+    "base": {
+      "label": "kaiquekandykoga:master",
+      "ref": "master",
+      "sha": "41880bf3b1cbb7d3a3a1b7c2f9e0c3fd2a5b6e77",
+      "user": {
+        "login": "kaiquekandykoga",
+        "id": 22661138,
+        "type": "User",
+        "site_admin": false
+      },
+      "repo": {
+        "id": 1031573935,
+        "node_id": "R_kgDOPXwRrw",
+        "name": "nishikihebi",
+        "full_name": "kaiquekandykoga/nishikihebi",
+        "private": false,
+        "html_url": "https://github.com/kaiquekandykoga/nishikihebi",
+        "description": "Multi-Agent System using Python",
+        "fork": false,
+        "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi",
+        "default_branch": "master"
+      }
+    },
+    "_links": {
+      "self": {
+        "href": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/pulls/40"
+      },
+      "html": {
+        "href": "https://github.com/kaiquekandykoga/nishikihebi/pull/40"
+      },
+      "issue": {
+        "href": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/40"
+      },
+      "comments": {
+        "href": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/40/comments"
+      }
+    },
+    "author_association": "CONTRIBUTOR",
+    "auto_merge": null,
+    "active_lock_reason": null
+  }
+]

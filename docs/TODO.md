@@ -59,7 +59,9 @@ parses it); `/installation/repositories` needs a variant reading the `repositori
 ```python
 next_url = response.links.get("next", {}).get("url")   # next link already carries the query
 ```
-**Done when:** a test with a two-page fake response returns items from both pages.
+**Done when:** the three `xfail(strict=True)` pagination tests in `tests/integration_tests/clients/`
+pass and their markers are deleted — they already serve two-page recorded payloads with a
+`Link: rel="next"` header for pulls, comments, and `/installation/repositories`.
 
 ### Harden against prompt injection, and validate output before posting
 **Where:** `agents/*/prompts.py`, `agents/*/nodes.py`, `agents/_shared.py`
@@ -248,12 +250,6 @@ and drop disallowed links (the P0 validation layer) without touching the prompt.
 `session.ask()` blocks for the full reply. `graph.stream(..., stream_mode="messages")` — small
 change, biggest perceived-quality delta in the file.
 
-### Recorded HTTP fixtures, and a unit/integration test split
-`FakeGitHubClient` encodes the same assumptions as the real client, so it cannot falsify them —
-that is precisely why the pagination bug survived. Add `respx` (httpx-native) or `vcrpy` against
-real recorded GitHub payloads, and split `tests/unit_tests/` vs `tests/integration_tests/` (the
-LangGraph template convention).
-
 ### `langgraph.json` for LangGraph Studio
 ~10 lines, unlocks `langgraph dev` → visual graph stepping, which is high value for a project
 whose `docs/GRAPHS.md` hand-draws ASCII diagrams. Needs real work though: it requires module-level
@@ -363,6 +359,12 @@ CLI, a leak in anything long-running, and a `ResourceWarning` the moment warning
 
 ## Done
 
+- **2026-08-16 — recorded HTTP fixtures and a unit/integration split.** `tests/` is now
+  `tests/unit_tests/` (fake-driven) and `tests/integration_tests/` (client code over `respx`,
+  auto-marked `integration`), with full-shape sanitized GitHub payloads under `tests/fixtures/`.
+  Shared fakes stayed in the root `tests/conftest.py`. The pagination bug is now provable rather
+  than invisible: three `xfail(strict=True)` tests serve two-page responses with a
+  `Link: rel="next"` header and are the "Done when" for the P0 pagination item.
 - **2026-08-15 — domain-first restructure.** `src/nishikihebi/` moved from layer-first
   (`graphs/`, `nodes/`, `states/`) to one directory per agent under `agents/`, each with
   `graph.py` / `state.py` / `nodes.py` / `prompts.py`, plus `agents/_shared.py` and `settings.py`.

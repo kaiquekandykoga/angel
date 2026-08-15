@@ -1,0 +1,72 @@
+[
+  {
+    "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/comments/3211884471",
+    "html_url": "https://github.com/kaiquekandykoga/nishikihebi/pull/41#issuecomment-3211884471",
+    "issue_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/41",
+    "id": 3211884471,
+    "node_id": "IC_kwDOPXwRr87Le5s3",
+    "user": {
+      "login": "kaiquekandykoga",
+      "id": 22661138,
+      "node_id": "MDQ6VXNlcjIyNjYxMTM4",
+      "avatar_url": "https://avatars.githubusercontent.com/u/22661138?v=4",
+      "url": "https://api.github.com/users/kaiquekandykoga",
+      "html_url": "https://github.com/kaiquekandykoga",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "created_at": "2026-08-14T11:04:02Z",
+    "updated_at": "2026-08-14T11:04:02Z",
+    "author_association": "OWNER",
+    "body": "Ready for a look.",
+    "reactions": {
+      "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/comments/3211884471/reactions",
+      "total_count": 0,
+      "+1": 0,
+      "-1": 0,
+      "laugh": 0,
+      "hooray": 0,
+      "confused": 0,
+      "heart": 0,
+      "rocket": 0,
+      "eyes": 0
+    },
+    "performed_via_github_app": null
+  },
+  {
+    "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/comments/3211890114",
+    "html_url": "https://github.com/kaiquekandykoga/nishikihebi/pull/41#issuecomment-3211890114",
+    "issue_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/41",
+    "id": 3211890114,
+    "node_id": "IC_kwDOPXwRr87LfDDC",
+    "user": {
+      "login": "octocat",
+      "id": 583231,
+      "node_id": "MDQ6VXNlcjU4MzIzMQ==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/583231?v=4",
+      "url": "https://api.github.com/users/octocat",
+      "html_url": "https://github.com/octocat",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "created_at": "2026-08-14T12:20:35Z",
+    "updated_at": "2026-08-14T12:20:35Z",
+    "author_association": "NONE",
+    "body": null,
+    "reactions": {
+      "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/comments/3211890114/reactions",
+      "total_count": 0,
+      "+1": 0,
+      "-1": 0,
+      "laugh": 0,
+      "hooray": 0,
+      "confused": 0,
+      "heart": 0,
+      "rocket": 0,
+      "eyes": 0
+    },
+    "performed_via_github_app": null
+  }
+]
