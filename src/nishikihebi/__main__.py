@@ -2,17 +2,17 @@ import logging
 import sys
 from collections.abc import Sequence
 
-from nishikihebi.chat import cli
-from nishikihebi.chat.session import start_session
+from nishikihebi.agents.chat import repl
+from nishikihebi.agents.chat.graph import build_chat_graph
+from nishikihebi.agents.chat.repl import start_session
+from nishikihebi.agents.issue_review.graph import build_issue_review_graph
+from nishikihebi.agents.pr_review.graph import build_pr_review_graph
 from nishikihebi.clients.github import (
     GitHubClient,
     MissingGitHubCredentialsError,
     build_github_client,
 )
 from nishikihebi.clients.llm import LlmClient, MissingApiKeyError, build_llm_client
-from nishikihebi.graphs.chat.chat import build_chat_graph
-from nishikihebi.graphs.github.issue_review import build_issue_review_graph
-from nishikihebi.graphs.github.pr_review import build_pr_review_graph
 from nishikihebi.logs import configure_logging
 
 COMMANDS = ("chat", "pr_review", "issue_review")
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 def run_chat(client: LlmClient) -> None:
     graph = build_chat_graph(client)
     session = start_session(graph)
-    cli.run(session)
+    repl.run(session)
 
 
 def run_pr_review(client: LlmClient, github: GitHubClient) -> None:

@@ -28,7 +28,7 @@ def test_main_logs_the_command_being_run(monkeypatch, caplog, fake_client):
         ran["session"] = session
 
     monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
-    monkeypatch.setattr(nishikihebi.__main__.cli, "run", fake_run)
+    monkeypatch.setattr(nishikihebi.__main__.repl, "run", fake_run)
 
     nishikihebi.__main__.main(["chat"])
 
@@ -51,7 +51,7 @@ def test_main_runs_chat_flow_without_needing_a_github_token(monkeypatch, fake_cl
     def fake_run(session):
         ran["session"] = session
 
-    monkeypatch.setattr(nishikihebi.__main__.cli, "run", fake_run)
+    monkeypatch.setattr(nishikihebi.__main__.repl, "run", fake_run)
 
     nishikihebi.__main__.main(["chat"])
 
