@@ -196,6 +196,21 @@ no flags.
 dashboard can read. A non-zero exit at least makes the scheduler's failure notification do the
 alerting for free.
 
+### Re-review a PR on its pushed head, not its commit date
+**Where:** `agents/pr_review/nodes.py:41-46`, `clients/github.py::fetch_commit_date` (185)
+**Why:** the freshness test is `fetch_commit_date(head_sha) > last_review`, and that date is the
+git **committer** date baked into the commit — not the push time. Commit locally on Monday, get
+reviewed Wednesday, push Friday: the head's date is older than the last review, so the PR is
+**silently never reviewed again**. Force-pushing to an earlier commit fails the same way. The
+sibling P2 item covers issues over-firing; this is PRs under-firing, and it loses work rather
+than wasting a call.
+**Do:** stop asking the commit for a timestamp. Record the reviewed `head_sha` in the bot's own
+comment (`<!-- nishikihebi: sha=… -->`) and re-review when the current head differs — same
+marker mechanism as the issue heuristic item, and it drops `fetch_commit_date` (one API call per
+PR per run) entirely.
+**Done when:** a fixture PR whose head commit date precedes the bot's last comment, but whose
+`head_sha` differs from the recorded one, is selected for review.
+
 ### Add security tooling
 **Where:** `pyproject.toml`, `src/nishikihebi/__ci__.py`
 **Do:** add `S` (flake8-bandit) to the ruff `select` list; add `pip-audit` (or uv's audit path)
@@ -273,8 +288,9 @@ thorough review and truncates mid-sentence on large diffs — raise it for the r
   downloads far more than it needs.
 - The whole repo loop could be one `GET /search/issues?q=is:open+label:nishikihebi+is:pr` instead
   of 2 + 2N requests. Worth it past a handful of repos.
-- `fetch_commit_date` is an extra call per PR per run; `pull_request.updated_at` is already on the
-  payload.
+- `fetch_commit_date` is an extra call per PR per run. Don't swap it for `updated_at` from the
+  payload — that bumps on any comment, the same over-firing the issue heuristic has. The P1
+  "Re-review a PR on its pushed head" item removes the call outright.
 
 ### Replace the issue freshness heuristic
 `issue.updated_at > last_review` re-fires on any mutation — a label change, an assignment, a
@@ -288,20 +304,37 @@ keeps state in the only place guaranteed to survive: the issue itself.
 LangGraph's `interrupt()` gives a `--require-approval` mode that pauses before posting — a genuinely
 useful feature for a bot commenting publicly under your identity.
 
+### Fail with a message, not a traceback
+**Where:** `src/nishikihebi/__main__.py:64-75`, `agents/chat/repl.py:35-39`
+**Why:** `main()` catches exactly two errors — `MissingApiKeyError` and
+`MissingGitHubCredentialsError`. A *typo* in `NISHIKIHEBI_GITHUB_PRIVATE_KEY_PATH` is not a
+missing variable, so `build_github_client` (github.py:249) raises a bare `FileNotFoundError`;
+an expired key gives an `httpx.HTTPStatusError`. Both print a stack trace. `repl.run` catches
+`EOFError` but not `KeyboardInterrupt`, so Ctrl-C out of `chat` — the documented sibling of
+Ctrl-D — also tracebacks.
+**Do:** one `try/except` in `main()` around the run for `OSError` / `httpx.HTTPStatusError` /
+`KeyboardInterrupt`, logging with `exc_info` and exiting via `sys.exit(message)`; catch
+`KeyboardInterrupt` alongside `EOFError` in `repl.run`.
+**Done when:** a missing private-key file exits with a one-line message and no traceback, and
+Ctrl-C in the REPL returns cleanly.
+
 ### Close the `httpx.Client`
 `build_github_client` (github.py:233) creates a client nobody closes. Harmless for a short-lived
 CLI, a leak in anything long-running, and a `ResourceWarning` the moment warnings are enabled in tests.
 
 ### Typing and lint strictness
-- Node factories are unannotated: `def call_llm(client):`, `def fetch_issues(github, reviewer_login,
-  label, label_color):`; the returned closure's type is inferred, and `post_review_comments`'s node
-  returns bare `dict`. basedpyright at `standard` permits this — move toward `strict` (or ruff `ANN`)
-  and declare `Callable[[State], dict[...]]` returns. Most visible remaining typing gap.
+- Node factories annotate their parameters but not their return: `def call_llm(client: LlmClient):`,
+  `def post_review_comments(github: GitHubClient):`; the returned closure's type is inferred, and
+  `post_review_comments`'s node returns bare `dict`. basedpyright at `standard` permits this — move
+  toward `strict` (or ruff `ANN`) and declare `Callable[[State], dict[...]]` returns. Most visible
+  remaining typing gap.
 - f-strings in log calls (`logger.info(f"posting {len(reviews)} review comments")`) defeat lazy
   formatting and lose the structured argument — and the `extra={"context": {...}}` style is already
   used elsewhere, so this is an internal inconsistency.
 - Ruff has no `target-version`, no `line-length`. Consider `ANN`, `TRY`, `LOG`/`G`, `PTH`, `ARG`,
   `DTZ`, `ERA`, `A`.
+- `__ci__.py`'s `CHECKS` runs `ruff check`, `basedpyright`, `pytest` — no `ruff format --check`.
+  Since `uv run ci` is deliberately the only gate, formatting is the one thing nothing enforces.
 
 ### Packaging and repo polish
 - **Rename `__ci__.py`.** Dunder module names are conventionally reserved for the runtime
@@ -322,8 +355,9 @@ CLI, a leak in anything long-running, and a `ResourceWarning` the moment warning
   deliberately (removed in `2c27db5`); gating on local `uv run ci` is reasonable solo. Writing it
   down is the difference between a decision and an omission — and note that the moment a second
   contributor appears, "green on my machine" stops being verifiable.
-- **Docs are missing a limitations section** — say plainly what doesn't work yet (no pagination,
-  etc.) alongside a LICENSE badge and an architecture/decisions section.
+- **`README.md` has no limitations section.** `GRAPHS.md`, `LOGS.md`, and `USAGE.md` each now
+  carry their own "Known gaps", but the entry point does not — a reader has to open three files
+  to learn there is no pagination. Add a short one there, plus a LICENSE badge.
 
 ---
 
