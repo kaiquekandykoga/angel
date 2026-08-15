@@ -113,8 +113,8 @@ which covers both an edited description and new comments.
 
 ## Known gaps
 
-The three graphs are linear and sequential, and [`TODO.md`](TODO.md) §6 lists what that
-leaves on the table: no `Send` fan-out, so ten PRs mean ten serial model calls with no
-per-item failure isolation (§6.2, §4.2); no checkpointer on the review graphs, so a crash
-mid-run loses everything (§6.1); no structured output, so a review body is an unvalidated
-`str` (§6.3); and no streaming in the chat REPL (§6.6).
+The three graphs are linear and sequential, and [`TODO.md`](TODO.md) lists what that leaves
+on the table: no `Send` fan-out, so ten PRs mean ten serial model calls with no per-item
+failure isolation; no checkpointer on the review graphs, so a crash mid-run loses
+everything; no structured output, so a review body is an unvalidated `str`; and no
+streaming in the chat REPL.

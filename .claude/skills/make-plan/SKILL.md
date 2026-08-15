@@ -24,7 +24,7 @@ The instruction to plan is whatever the user passed to this skill (or their prec
    - new or renamed `NISHIKIHEBI_*` variable, or a change to a command's arguments → `.env.example` and `docs/USAGE.md`
    - node added, removed, or rewired in a graph → the affected diagram and node walkthrough in `docs/GRAPHS.md`
    - change to console output or the JSONL record written to `log/` → `docs/LOGS.md`
-   - work that closes something in `docs/TODO.md` → flip that item to done and append an entry under §12 Changelog, dated
+   - work that closes something in `docs/TODO.md` → delete that item and append a dated line under "Done"; new work discovered along the way → add an item using the template at the top of that file
    - new agent package `src/nishikihebi/agents/<name>/` → mirrored `tests/agents/<name>/`
 5. Ship: take each agent's report at face value, then run `uv run ci` (ruff → basedpyright → pytest) once over the whole tree — that green is the merge signal, not GitHub Actions. Then run `/commit-and-push-changes`.
 6. Minimal report: tasks completed, `uv run ci` result, PR URL.

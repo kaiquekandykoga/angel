@@ -25,8 +25,9 @@ uv run ci                         # ruff check, then basedpyright, then pytest
 ```
 
 Each command runs once and exits — `pr_review` and `issue_review` scan, review, post, and
-stop. Nothing schedules them yet. See [`TODO.md`](TODO.md) §8.1 for the deployment options
-and §9 for the flags that are still missing, `--dry-run` most of all: there is currently no
-way to see what a review run *would* post without posting it.
+stop. Nothing schedules them yet. See [`TODO.md`](TODO.md) — "Pick a deployment story" for
+the scheduling options, and "Add `--dry-run`" / "Replace the hand-rolled CLI" for the flags
+that are still missing: there is currently no way to see what a review run *would* post
+without posting it.
 
 What each run writes to the console and to disk is documented in [`LOGS.md`](LOGS.md).

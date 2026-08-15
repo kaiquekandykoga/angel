@@ -51,11 +51,11 @@ the UTC start time. `log/` is gitignored.
 
 Logging is not production-shaped yet, and [`TODO.md`](TODO.md) tracks the specifics:
 
-- **§8.3** — file-first with no rotation and no retention, one file per run, and the path
-  depends on cwd. The 12-factor answer is JSON to stdout with the file handler behind an
-  opt-in flag. Also missing: a run-id to group one run's lines, and `exc_info` capture —
-  nothing currently logs a traceback.
-- **§5.3** — `review_issues` / `review_pull_requests` log the **entire review body** at
-  `DEBUG`, so model output derived from untrusted input lands on disk unbounded. Combined
-  with no retention, that is a slow disk-fill and a data-handling question.
-- **§5.2** — nothing redacts secrets; the formatter dumps whatever is in `context`.
+- **"Log JSON to stdout by default"** — logging is file-first with no rotation and no
+  retention, one file per run, and the path depends on cwd. The 12-factor answer is JSON to
+  stdout with the file handler behind an opt-in flag. Also missing: a run-id to group one
+  run's lines, and `exc_info` capture — nothing currently logs a traceback.
+- Under that same item — `review_issues` / `review_pull_requests` log the **entire review
+  body** at `DEBUG`, so model output derived from untrusted input lands on disk unbounded.
+  Combined with no retention, that is a slow disk-fill and a data-handling question.
+- Nothing redacts secrets; the formatter dumps whatever is in `context`.
