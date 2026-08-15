@@ -15,15 +15,7 @@ For every change, explicitly execute and report these steps:
 5. Refactor while maintaining green.
 Never write production code without a failing test. Never assume green without running the suite.
 
-## Environment & Tools
-- Language: Python. Framework: uv, pytest, ruff
-- Run all commands through uv; never invoke `python`/`pytest`/`ruff`/`pip` directly.
-- Commands: Run suite: `uv run pytest`. Run single file: `uv run pytest <path>`. Lint: `uv run ruff check`.
-- Dependencies: add with `uv add <package>` (`uv add --dev <package>` for dev-only), sync with `uv sync`. Never edit `pyproject.toml`/`uv.lock` by hand or use `pip install`.
-- Internal backward-compatibility is not required; prefer clean design.
-
-## Code Style & Constraints
-- No comments unless explicitly requested. 
-- Fast/Hermetic: Do not spawn subprocesses or hit networks in tests. Inject fakes/doubles at boundaries.
-- No dead code or needless ceremony. Do not use defensive programming; trust internal callers and let unexpected errors surface rather than guarding against them.
+## Constraints
+- Follow `AGENTS.md` for the stack, uv commands, dependency rules, test hermeticity, and code style.
 - Match existing repository idioms.
+- Finish with `uv run ci` green before reporting done.
