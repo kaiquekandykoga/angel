@@ -14,33 +14,40 @@ Copy `.env.example` to `.env` and fill in the variables below.
 | Variable | Command | Required | Description |
 |---|---|---|---|
 | `NISHIKIHEBI_NVIDIA_API_KEY` | `chat`, `pr_review`, `issue_review` | Yes | NVIDIA API key from https://build.nvidia.com — used for all model calls. |
-| `NISHIKIHEBI_GITHUB_APP_ID` | `pr_review`, `issue_review` | Yes for `pr_review`, `issue_review` | ID of the GitHub App used to authenticate — [kandy-nishikihebi](https://github.com/apps/kandy-nishikihebi) is the App behind the PR and issue reviews; it needs read access to pull requests, issues, and contents, plus write access to issue comments. The repositories to review are whichever ones the App is installed on — there is no list to maintain in the code. |
+| `NISHIKIHEBI_GITHUB_APP_ID` | `pr_review`, `issue_review` | Yes for `pr_review`, `issue_review` | ID of the GitHub App used to authenticate — [kandy-nishikihebi](https://github.com/apps/kandy-nishikihebi) is the App behind the PR and issue reviews. It needs **Pull requests: read** (list PRs, fetch diffs), **Issues: read and write** (read issues and comments, create the `nishikihebi` label, post the review comment), **Contents: read** (head commit dates), and **Metadata: read**. Nothing more — it cannot approve, merge, or push. The repositories to review are whichever ones the App is installed on — there is no list to maintain in the code. |
 | `NISHIKIHEBI_GITHUB_PRIVATE_KEY_PATH` | `pr_review`, `issue_review` | Yes for `pr_review`, `issue_review` | Path to the GitHub App's private key (`.pem`). |
 
 The app loads `.env` automatically; an already-exported shell variable still takes precedence.
 
+Python 3.14 or newer is required.
+
 ```bash
 uv sync
-uv run nishikihebi chat
+uv run nishikihebi chat           # interactive REPL; leave with /exit or Ctrl-D
 uv run nishikihebi pr_review
 uv run nishikihebi issue_review
-uv run ci
+uv run ci                         # ruff check, then basedpyright, then pytest
 ```
 
 ## Graphs
 
 Each command is a [LangGraph](https://langchain-ai.github.io/langgraph/) state graph
-assembled in `src/nishikihebi/graphs/`. The graphs only wire nodes together — the nodes
-in `src/nishikihebi/nodes/` are factories that take their dependencies (LLM client,
-GitHub client) and return the node function, so a graph can be built against fakes in
-tests. The state threaded between nodes lives in `src/nishikihebi/states/`.
+assembled in `src/nishikihebi/graphs/` — `graphs/chat/chat.py` for `chat`, and
+`graphs/github/` for the two review commands. The graphs only wire nodes together — the
+nodes in `src/nishikihebi/nodes/` (`nodes/chat/`, `nodes/github/`) are factories that take
+their dependencies (LLM client, GitHub client) and return the node function, so a graph
+can be built against fakes in tests. Those dependencies sit behind `Protocol` seams in
+`src/nishikihebi/clients/`, and the state threaded between nodes lives in
+`src/nishikihebi/states/`.
 
 ### `chat`
 
-A single-turn assistant loop. The graph holds one node; the conversation grows because
-`ChatState.messages` uses the `add_messages` reducer and the compiled graph carries a
-checkpointer (`MemorySaver` by default), so each invocation appends to the same thread.
-The REPL in `chat/cli.py` invokes the graph once per user line.
+An interactive assistant REPL over a one-node graph. `chat/cli.py` reads a line at a time
+and stops at `/exit` or end of input (Ctrl-D); `chat/session.py` holds the `thread_id`
+generated when the session starts and invokes the graph once per line. The conversation
+grows because `ChatState.messages` uses the `add_messages` reducer and the compiled graph
+carries a checkpointer (`MemorySaver` by default), so each invocation appends to that same
+thread — and the history lives only in memory, so it ends with the process.
 
 ```
   START
@@ -139,3 +146,10 @@ High-level progress is printed to the console. Every run also writes a detailed 
 `log/nishikihebi-<timestamp>.jsonl` — one JSON object per line, carrying the structured
 fields each node attaches (repository, PR/issue number, counts, and so on). `log/` is
 gitignored.
+
+## Docs
+
+[`docs/PRODUCTION_READINESS.md`](docs/PRODUCTION_READINESS.md) reviews what stands between
+this and running unattended — pagination, retries, prompt-injection hardening, a
+deployment story — and ends with a prioritized roadmap. The gaps it lists are known and
+still open; it is being worked through step by step.
