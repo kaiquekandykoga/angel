@@ -54,6 +54,8 @@ lets you drop whole files instead of truncating mid-hunk.
 **Where:** `clients/{github,llm}.py`
 **Why:** `raise_for_status()` and nothing else. Production hits 403 + `x-ratelimit-remaining: 0`,
 403/429 + `Retry-After` (comment loops trigger the secondary limit), routine 5xx, NVIDIA 429/503.
+A review is also one long non-streaming call — measured at ~48 s against a 8.7 KB diff — so a read
+timeout at `NVIDIA_TIMEOUT_SECONDS` loses the whole item with no second attempt.
 **Do:** `httpx.HTTPTransport(retries=3)` for connection-level, plus a response hook reading
 `Retry-After` / `x-ratelimit-reset` and sleeping. `tenacity` is the usual backoff dependency.
 
@@ -173,10 +175,8 @@ A/B path. Add a version constant per prompt and log it per run so a trace ties b
 
 ### Make model choice configurable
 `NVIDIA_MODEL` is a module constant; silent model swaps are a leading cause of "it used to work".
-Make it configurable, log it per run, pin it. `NVIDIA_MAX_COMPLETION_TOKENS = 1024` is low for a
-thorough review and truncates mid-sentence on large diffs — tighter still now that the review path
-spends part of that budget on structured-output JSON, where a truncation is a validation error and
-loses the whole review. Raise it for the review path.
+Make it configurable, log it per run, pin it. `NVIDIA_MAX_COMPLETION_TOKENS` is a module constant
+too, and belongs in the same knob.
 
 ### Fix the listing inefficiencies
 - `list_open_pull_requests` filters by label client-side (github.py:196) while `list_open_issues`

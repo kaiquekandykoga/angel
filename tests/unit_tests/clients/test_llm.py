@@ -4,51 +4,58 @@ from typing import cast
 import pytest
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
-from nishikihebi.clients.llm import MissingApiKeyError, NvidiaClient, build_llm_client
+from nishikihebi.clients.llm import (
+    MissingApiKeyError,
+    NvidiaClient,
+    TruncatedCompletionError,
+    build_llm_client,
+)
 
 
 class Answer(BaseModel):
     text: str
 
 
-class FakeStructuredRunnable:
+class FakeBoundRunnable:
     def __init__(
-        self, result: BaseModel | None = None, error: Exception | None = None
+        self, reply: AIMessage | None = None, error: Exception | None = None
     ) -> None:
-        self.result = result
+        self.reply = reply
         self.error = error
         self.invoked_messages: Sequence[BaseMessage] | None = None
 
-    def invoke(self, messages: Sequence[BaseMessage]) -> BaseModel:
+    def invoke(self, messages: Sequence[BaseMessage]) -> AIMessage:
         self.invoked_messages = messages
         if self.error is not None:
             raise self.error
-        assert self.result is not None
-        return self.result
+        assert self.reply is not None
+        return self.reply
 
 
 class FakeChatModel:
     def __init__(
         self,
         reply: str,
-        structured_runnable: FakeStructuredRunnable | None = None,
+        bound_reply: AIMessage | None = None,
+        bound_error: Exception | None = None,
     ) -> None:
         self.reply = reply
         self.invoked_messages: Sequence[BaseMessage] | None = None
-        self.structured_runnable = structured_runnable
-        self.structured_output_schema: type[BaseModel] | None = None
+        self.bound_reply = bound_reply
+        self.bound_error = bound_error
+        self.bind_kwargs: dict[str, object] | None = None
+        self.bound_runnable: FakeBoundRunnable | None = None
 
     def invoke(self, messages: Sequence[BaseMessage]) -> AIMessage:
         self.invoked_messages = messages
         return AIMessage(content=self.reply)
 
-    def with_structured_output(
-        self, schema: type[BaseModel]
-    ) -> FakeStructuredRunnable | None:
-        self.structured_output_schema = schema
-        return self.structured_runnable
+    def bind(self, **kwargs: object) -> FakeBoundRunnable:
+        self.bind_kwargs = kwargs
+        self.bound_runnable = FakeBoundRunnable(self.bound_reply, self.bound_error)
+        return self.bound_runnable
 
 
 def test_complete_forwards_messages_and_returns_ai_message():
@@ -77,24 +84,76 @@ def test_complete_forwards_system_messages():
     assert chat_model.invoked_messages == messages
 
 
-def test_complete_structured_forwards_schema_and_messages_and_returns_parsed_model():
-    parsed = Answer(text="hi")
-    runnable = FakeStructuredRunnable(result=parsed)
-    chat_model = FakeChatModel(reply="unused", structured_runnable=runnable)
+def test_complete_structured_binds_json_schema_response_format_and_returns_model():
+    reply = AIMessage(
+        content='{"text": "hi"}', response_metadata={"finish_reason": "stop"}
+    )
+    chat_model = FakeChatModel(reply="unused", bound_reply=reply)
     client = NvidiaClient(cast("BaseChatModel", chat_model))
 
     messages = [HumanMessage(content="hello")]
     result = client.complete_structured(messages, Answer)
 
-    assert result is parsed
-    assert chat_model.structured_output_schema is Answer
-    assert runnable.invoked_messages == messages
+    assert result == Answer(text="hi")
+    assert chat_model.bind_kwargs == {
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "Answer",
+                "schema": Answer.model_json_schema(),
+                "strict": True,
+            },
+        }
+    }
+    assert chat_model.bound_runnable is not None
+    assert chat_model.bound_runnable.invoked_messages == messages
 
 
-def test_complete_structured_propagates_exception():
+def test_complete_structured_raises_truncated_error_when_finish_reason_is_length():
+    reply = AIMessage(
+        content='{"text": "hi"}', response_metadata={"finish_reason": "length"}
+    )
+    chat_model = FakeChatModel(reply="unused", bound_reply=reply)
+    client = NvidiaClient(cast("BaseChatModel", chat_model))
+
+    with pytest.raises(TruncatedCompletionError, match="Answer"):
+        client.complete_structured([HumanMessage(content="hello")], Answer)
+
+
+def test_complete_structured_propagates_validation_error_for_json_not_matching_schema():
+    reply = AIMessage(
+        content='{"wrong": "field"}', response_metadata={"finish_reason": "stop"}
+    )
+    chat_model = FakeChatModel(reply="unused", bound_reply=reply)
+    client = NvidiaClient(cast("BaseChatModel", chat_model))
+
+    with pytest.raises(ValidationError):
+        client.complete_structured([HumanMessage(content="hello")], Answer)
+
+
+def test_complete_structured_propagates_validation_error_for_non_json_content():
+    reply = AIMessage(content="not json", response_metadata={"finish_reason": "stop"})
+    chat_model = FakeChatModel(reply="unused", bound_reply=reply)
+    client = NvidiaClient(cast("BaseChatModel", chat_model))
+
+    with pytest.raises(ValidationError):
+        client.complete_structured([HumanMessage(content="hello")], Answer)
+
+
+def test_complete_structured_raises_value_error_when_content_is_not_a_string():
+    reply = AIMessage(
+        content=["a", "b"], response_metadata={"finish_reason": "stop"}
+    )
+    chat_model = FakeChatModel(reply="unused", bound_reply=reply)
+    client = NvidiaClient(cast("BaseChatModel", chat_model))
+
+    with pytest.raises(ValueError, match="Answer"):
+        client.complete_structured([HumanMessage(content="hello")], Answer)
+
+
+def test_complete_structured_propagates_errors_from_the_model_call():
     error = ValueError("bad output")
-    runnable = FakeStructuredRunnable(error=error)
-    chat_model = FakeChatModel(reply="unused", structured_runnable=runnable)
+    chat_model = FakeChatModel(reply="unused", bound_error=error)
     client = NvidiaClient(cast("BaseChatModel", chat_model))
 
     with pytest.raises(ValueError, match="bad output"):
@@ -119,7 +178,8 @@ def test_build_llm_client_constructs_chat_nvidia_with_expected_kwargs(monkeypatc
         "base_url": "https://integrate.api.nvidia.com/v1",
         "api_key": "test-key",
         "model": "nvidia/nemotron-3-super-120b-a12b",
-        "max_completion_tokens": 1024,
+        "max_completion_tokens": 8192,
+        "timeout": 300,
     }
 
 

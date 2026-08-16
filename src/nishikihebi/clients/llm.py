@@ -21,9 +21,14 @@ class MissingApiKeyError(RuntimeError):
     pass
 
 
+class TruncatedCompletionError(RuntimeError):
+    pass
+
+
 NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"
 NVIDIA_MODEL = "nvidia/nemotron-3-super-120b-a12b"
-NVIDIA_MAX_COMPLETION_TOKENS = 1024
+NVIDIA_MAX_COMPLETION_TOKENS = 8192
+NVIDIA_TIMEOUT_SECONDS = 300
 
 
 class NvidiaClient:
@@ -36,9 +41,30 @@ class NvidiaClient:
     def complete_structured[T: BaseModel](
         self, messages: Sequence[BaseMessage], schema: type[T]
     ) -> T:
-        return cast(
-            "T", self.chat_model.with_structured_output(schema).invoke(list(messages))
+        reply = cast(
+            "AIMessage",
+            self.chat_model.bind(
+                response_format={
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": schema.__name__,
+                        "schema": schema.model_json_schema(),
+                        "strict": True,
+                    },
+                }
+            ).invoke(list(messages)),
         )
+        if reply.response_metadata.get("finish_reason") == "length":
+            raise TruncatedCompletionError(
+                f"Completion for schema {schema.__name__!r} was truncated: "
+                "the model hit the max_completion_tokens limit."
+            )
+        if not isinstance(reply.content, str):
+            raise ValueError(
+                f"Expected string content for schema {schema.__name__!r}, "
+                f"got {type(reply.content).__name__} instead."
+            )
+        return schema.model_validate_json(reply.content)
 
 
 def build_llm_client() -> LlmClient:
@@ -53,5 +79,6 @@ def build_llm_client() -> LlmClient:
         api_key=api_key,
         model=NVIDIA_MODEL,
         max_completion_tokens=NVIDIA_MAX_COMPLETION_TOKENS,
+        timeout=NVIDIA_TIMEOUT_SECONDS,
     )
     return NvidiaClient(chat_model)

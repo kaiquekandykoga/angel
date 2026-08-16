@@ -13,10 +13,15 @@ markdown renderers — lives in `agents/_shared.py`. Those dependencies sit behi
 colour in `src/nishikihebi/settings.py`.
 
 Both review agents ask the model for a schema, not prose: `LlmClient.complete_structured`
-wraps `with_structured_output`, so a reply that does not fit `PullRequestReviewOutput` /
-`IssueReviewOutput` raises and is recorded as an item failure instead of being posted. The
-comment body is rendered from the validated object by `render_pull_request_review` /
-`render_issue_review`.
+binds the OpenAI-style `response_format` json_schema for `PullRequestReviewOutput` /
+`IssueReviewOutput` and validates the reply against that model itself, rather than going
+through LangChain's `with_structured_output` — whose fallback chain retries a truncated
+reply with `guided_json`, a format the hosted endpoint rejects, so a truncation surfaced as
+a misleading `400 unknown field guided_json`. A completion stopped by the token ceiling
+raises `TruncatedCompletionError`, and a reply that does not fit the schema raises a
+validation error; either way the pull request is recorded as an item failure instead of
+being posted. The comment body is rendered from the validated object by
+`render_pull_request_review` / `render_issue_review`.
 
 ## `chat`
 
