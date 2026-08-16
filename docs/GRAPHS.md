@@ -20,8 +20,9 @@ reply with `guided_json`, a format the hosted endpoint rejects, so a truncation 
 a misleading `400 unknown field guided_json`. A completion stopped by the token ceiling
 raises `TruncatedCompletionError`, and a reply that does not fit the schema raises a
 validation error; either way the pull request is recorded as an item failure instead of
-being posted. The comment body is rendered from the validated object by
-`render_pull_request_review` / `render_issue_review`.
+being posted. The comment body is rendered from the validated object — `pr_review` merges its
+three lens objects into one body in `agents/pr_review/nodes.py`, `issue_review` renders its
+single object with `render_issue_review`.
 
 ## `chat`
 
@@ -70,7 +71,8 @@ a PR is re-reviewed exactly when its head has moved.
     v
   +----------------------+
   | review_pull_requests |  <--- GitHub: the PR diff
-  +----------------------+  <--- NVIDIA model: a PullRequestReviewOutput
+  +----------------------+  <--- NVIDIA model, once per lens (security, quality,
+    |                             performance): a PullRequestReviewOutput each
     |  Review (target + body)
     v
   +----------------------+
@@ -84,7 +86,7 @@ a PR is re-reviewed exactly when its head has moved.
 | Node | Does |
 |---|---|
 | `fetch_pull_requests` | Ensures each repository has the `nishikihebi` label, lists PRs carrying it and their comments, keeps the ones due for review, and emits `PullRequestContext` (the PR plus its comments) |
-| `review_pull_requests` | Fetches the diff and asks the model for a `PullRequestReviewOutput` (summary + severity-tagged findings) given the title, description, existing comments, and diff, then renders it to the comment body |
+| `review_pull_requests` | Fetches the diff, then asks the model for a `PullRequestReviewOutput` (summary + severity-tagged findings) three times over the same title, description, existing comments, and diff — once per specialised lens (security, quality, performance), each prompted to stay in its lane — and merges the three into one comment body with a finding section per lens. A lens that fails fails the whole pull request: nothing is posted and it is retried next run |
 | `post_review_comments` | Posts each review as an issue comment on its PR |
 
 Under `--dry-run` the wiring is identical — the flag wraps the GitHub client in a read-only
@@ -156,7 +158,7 @@ A run that recorded any failure exits non-zero; see [`USAGE.md`](USAGE.md).
 ## Known gaps
 
 The three graphs are linear and sequential, and [`TODO.md`](TODO.md) lists what that leaves
-on the table: no `Send` fan-out, so ten PRs mean ten serial model calls and no per-item
-retry; no checkpointer on the review graphs, so a crash mid-run loses everything; and no
+on the table: no `Send` fan-out, so ten PRs mean thirty serial model calls — three lenses each —
+and no per-item retry; no checkpointer on the review graphs, so a crash mid-run loses everything; and no
 streaming in the chat REPL. The chat agent still returns an unvalidated `str` — only the two
 review agents go through a schema.

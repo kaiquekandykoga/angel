@@ -206,6 +206,7 @@ def test_build_llm_client_constructs_chat_nvidia_with_expected_kwargs(monkeypatc
         "model": "nvidia/nemotron-3-ultra-550b-a55b",
         "max_completion_tokens": 32768,
         "timeout": 300,
+        "temperature": 0.0,
     }
     assert client.max_completion_tokens == 32768
 

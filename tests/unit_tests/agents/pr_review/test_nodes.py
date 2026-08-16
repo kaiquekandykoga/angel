@@ -8,11 +8,11 @@ from nishikihebi.agents._shared import (
     PullRequestReviewOutput,
     Review,
     Severity,
-    render_pull_request_review,
+    render_finding,
     review_marker,
 )
 from nishikihebi.agents.pr_review.nodes import fetch_pull_requests, review_pull_requests
-from nishikihebi.agents.pr_review.prompts import REVIEW_SYSTEM_PROMPT
+from nishikihebi.agents.pr_review.prompts import REVIEW_LENSES
 from nishikihebi.agents.pr_review.state import PullRequestContext
 from nishikihebi.clients.github import Comment, PullRequest
 
@@ -20,12 +20,22 @@ REVIEWER_LOGIN = "kandy-nishikihebi[bot]"
 LABEL = "nishikihebi"
 LABEL_COLOR = "f709c2"
 
-DEFAULT_REVIEW_BODY = render_pull_request_review(
-    PullRequestReviewOutput(
-        summary="fake summary",
-        findings=[
-            Finding(severity=Severity.MINOR, title="fake finding", detail="fake detail")
-        ],
+_FAKE_OUTPUT = PullRequestReviewOutput(
+    summary="fake summary",
+    findings=[
+        Finding(severity=Severity.MINOR, title="fake finding", detail="fake detail")
+    ],
+)
+
+DEFAULT_REVIEW_BODY = (
+    "\n\n".join(
+        f"**{lens.capitalize()}:** {_FAKE_OUTPUT.summary}" for lens, _ in REVIEW_LENSES
+    )
+    + "\n\n"
+    + "\n\n".join(
+        f"### {lens.capitalize()}\n\n"
+        + "\n\n".join(render_finding(finding) for finding in _FAKE_OUTPUT.findings)
+        for lens, _ in REVIEW_LENSES
     )
 )
 
@@ -420,7 +430,7 @@ def test_review_pull_requests_sends_title_body_comments_and_diff(
 
     sent = fake_client.calls[-1]
     assert isinstance(sent[0], SystemMessage)
-    assert sent[0].content == REVIEW_SYSTEM_PROMPT
+    assert sent[0].content == REVIEW_LENSES[-1][1]
     assert isinstance(sent[1], HumanMessage)
     content = sent[1].content
     assert "diff --git a/x b/x" in content
@@ -430,6 +440,131 @@ def test_review_pull_requests_sends_title_body_comments_and_diff(
     assert "the pr description" in content
     assert "@alice: please add tests" in content
     assert "@kandy-nishikihebi[bot]: looks fine" in content
+
+
+def test_review_pull_requests_calls_each_lens_with_shared_content(
+    fake_client, fake_github
+):
+    pr_a = PullRequest("org/a", 1, "pr a", "the pr description", "sha-a")
+    fake_github.diffs = {pr_a: "diff --git a/x b/x"}
+    comments = [Comment("alice", "please add tests", "2026-08-01T00:00:00Z")]
+    node = review_pull_requests(fake_github, fake_client)
+
+    node(
+        {
+            "pull_requests": [PullRequestContext(pr_a, comments)],
+            "reviews": [],
+            "failures": [],
+        }
+    )
+
+    calls = fake_client.calls
+    assert len(calls) == len(REVIEW_LENSES)
+    for call, (_, prompt) in zip(calls, REVIEW_LENSES, strict=True):
+        assert isinstance(call[0], SystemMessage)
+        assert call[0].content == prompt
+        assert isinstance(call[1], HumanMessage)
+
+    contents = {call[1].content for call in calls}
+    assert len(contents) == 1
+    content = contents.pop()
+    assert "org/a" in content
+    assert "1" in content
+    assert "pr a" in content
+    assert "the pr description" in content
+    assert "@alice: please add tests" in content
+    assert "diff --git a/x b/x" in content
+
+
+def test_review_pull_requests_merges_lens_outputs_into_one_review_body(fake_github):
+    pr_a = PullRequest("org/a", 1, "pr a", "body a", "sha-a")
+    fake_github.diffs = {pr_a: "diff a"}
+
+    class LensScriptedClient:
+        def complete(self, messages):
+            return AIMessage(content="ok")
+
+        def complete_structured(self, messages, schema):
+            lens = messages[0].content
+            if lens == REVIEW_LENSES[0][1]:
+                return schema(
+                    summary="security summary",
+                    findings=[
+                        Finding(
+                            severity=Severity.BLOCKER,
+                            title="sql injection",
+                            detail="unsafe query",
+                        )
+                    ],
+                )
+            if lens == REVIEW_LENSES[1][1]:
+                return schema(summary="quality summary", findings=[])
+            return schema(
+                summary="performance summary",
+                findings=[
+                    Finding(
+                        severity=Severity.MINOR,
+                        title="n+1 query",
+                        detail="loop does a query per item",
+                    )
+                ],
+            )
+
+    node = review_pull_requests(fake_github, LensScriptedClient())
+
+    result = node(
+        {
+            "pull_requests": [PullRequestContext(pr_a, [])],
+            "reviews": [],
+            "failures": [],
+        }
+    )
+
+    review = result["reviews"][0]
+    assert isinstance(review, Review)
+    body = review.body
+    assert "### Security" in body
+    assert "### Quality" in body
+    assert "### Performance" in body
+    assert "sql injection" in body
+    assert "No findings." in body
+    assert "n+1 query" in body
+
+
+def test_review_pull_requests_lens_failure_yields_one_failure_and_no_review(
+    fake_github,
+):
+    pr_a = PullRequest("org/a", 1, "pr a", "body a", "sha-a")
+    fake_github.diffs = {pr_a: "diff a"}
+
+    class RaisingOnSecondLensClient:
+        def complete(self, messages):
+            return AIMessage(content="ok")
+
+        def complete_structured(self, messages, schema):
+            if messages[0].content == REVIEW_LENSES[1][1]:
+                raise RuntimeError("lens boom")
+            return schema(summary="ok", findings=[])
+
+    node = review_pull_requests(fake_github, RaisingOnSecondLensClient())
+
+    result = node(
+        {
+            "pull_requests": [PullRequestContext(pr_a, [])],
+            "reviews": [],
+            "failures": [],
+        }
+    )
+
+    assert result["reviews"] == []
+    assert len(result["failures"]) == 1
+    assert result["failures"][0] == ItemFailure(
+        repository="org/a",
+        number=1,
+        stage="review_pull_requests",
+        error_type="RuntimeError",
+        error="lens boom",
+    )
 
 
 def test_review_pull_requests_renders_no_comments_fallback(fake_client, fake_github):
@@ -572,7 +707,7 @@ def test_review_pull_requests_isolates_item_failure(fake_github):
     assert result["failures"] == [
         ItemFailure(
             repository="org/a",
-            number=3,
+            number=1,
             stage="review_pull_requests",
             error_type="RuntimeError",
             error="model boom",

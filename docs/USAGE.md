@@ -76,10 +76,20 @@ on the PR, ending with a `<!-- nishikihebi: sha=<head sha> -->` marker. That mar
 only state the bot keeps: it records which head was reviewed, on the PR itself. Deleting it
 from a comment makes the next run review that PR again.
 
-The comment is rendered from a validated schema, not pasted from the model: a summary
-paragraph, then one bold entry per finding tagged `[blocker]`, `[major]`, `[minor]`, or
-`[nit]` and pointing at a file and line where the diff makes that clear. A reply that does
-not fit the schema is a failure for that PR — nothing is posted — and the run moves on.
+Each PR is read three times, by three specialised prompts — **security**, **quality**, and
+**performance** — each told to stay in its lane and given the same title, description, existing
+comments, and diff. Three model calls per PR, so three times the tokens and roughly three times
+the wall clock of a single pass.
+
+The comment is rendered from validated schemas, not pasted from the model: one summary line per
+lens, then a `### Security` / `### Quality` / `### Performance` section, each holding one bold
+entry per finding tagged `[blocker]`, `[major]`, `[minor]`, or `[nit]` and pointing at a file and
+line where the diff makes that clear. A reply that does not fit the schema — or any one lens
+failing — is a failure for that PR: nothing is posted, the run moves on, and the PR is picked up
+again next run because no marker was written.
+
+Sampling is pinned at `temperature=0`, so two runs over an unchanged head give the same review far
+more often than they used to — though nothing about a hosted model guarantees it.
 
 > **The label is created for you.** Every scanned repository gets a pink `nishikihebi` label
 > if it lacks one — including repositories you never meant to review. Install the App only

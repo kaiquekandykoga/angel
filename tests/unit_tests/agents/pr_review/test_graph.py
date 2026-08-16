@@ -2,26 +2,21 @@ import logging
 
 from langchain_core.messages import AIMessage
 
-from nishikihebi.agents._shared import (
-    Finding,
-    PullRequestReviewOutput,
-    Review,
-    Severity,
-    render_pull_request_review,
-    review_marker,
-)
+from nishikihebi.agents._shared import Review, review_marker
 from nishikihebi.agents.pr_review.graph import build_pr_review_graph
+from nishikihebi.agents.pr_review.prompts import REVIEW_LENSES
 from nishikihebi.clients.github import Comment, PullRequest
 
 REVIEWER_LOGIN = "kandy-nishikihebi[bot]"
 LABEL = "nishikihebi"
 
-DEFAULT_REVIEW_BODY = render_pull_request_review(
-    PullRequestReviewOutput(
-        summary="fake summary",
-        findings=[
-            Finding(severity=Severity.MINOR, title="fake finding", detail="fake detail")
-        ],
+DEFAULT_REVIEW_BODY = (
+    "\n\n".join(f"**{lens.capitalize()}:** fake summary" for lens, _ in REVIEW_LENSES)
+    + "\n\n"
+    + "\n\n".join(
+        f"### {lens.capitalize()}\n\n"
+        "**[minor] fake finding**\nfake detail"
+        for lens, _ in REVIEW_LENSES
     )
 )
 
@@ -180,4 +175,4 @@ def test_graph_isolates_a_structured_output_failure_and_posts_the_other(fake_git
 
     assert len(result["reviews"]) == 1
     assert len(result["failures"]) == 1
-    assert {pr for pr, _ in fake_github.posted_comments} == {pr_a}
+    assert {pr for pr, _ in fake_github.posted_comments} == {pr_b}

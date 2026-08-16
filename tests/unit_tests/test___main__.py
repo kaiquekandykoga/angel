@@ -151,7 +151,7 @@ def test_main_exits_nonzero_when_a_pull_request_review_fails(
     assert excinfo.value.code != 0
     out = capsys.readouterr().out
     assert out.count("Commented on") == 4
-    assert f"{repository}#3" not in out
+    assert f"{repository}#1" not in out
 
 
 def test_main_exits_nonzero_when_an_issue_review_fails(
@@ -558,7 +558,7 @@ def test_main_dry_run_still_exits_nonzero_when_a_pull_request_review_fails(
     out = capsys.readouterr().out
     assert out.count("---") == 8
     assert "Commented on" not in out
-    assert f"{repository}#3" not in out
+    assert f"{repository}#1" not in out
 
 
 def test_main_exits_when_dry_run_is_used_with_chat():

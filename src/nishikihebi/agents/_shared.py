@@ -66,7 +66,7 @@ class IssueReviewOutput(BaseModel):
     )
 
 
-def _render_finding(finding: Finding) -> str:
+def render_finding(finding: Finding) -> str:
     location = ""
     if finding.file is not None:
         location = f" — `{finding.file}"
@@ -80,12 +80,8 @@ def _render_findings_section(findings: list[Finding]) -> str:
     if not findings:
         return "No findings."
     return "### Findings\n\n" + "\n\n".join(
-        _render_finding(finding) for finding in findings
+        render_finding(finding) for finding in findings
     )
-
-
-def render_pull_request_review(output: PullRequestReviewOutput) -> str:
-    return f"{output.summary}\n\n{_render_findings_section(output.findings)}"
 
 
 def render_issue_review(output: IssueReviewOutput) -> str:
@@ -156,20 +152,23 @@ def log_review_produced(
     number: int,
     review: str,
     findings: list[Finding],
+    lens: str = "",
 ) -> None:
     severity_counts: dict[str, int] = {}
     for finding in findings:
         severity_counts[finding.severity.value] = (
             severity_counts.get(finding.severity.value, 0) + 1
         )
-    log.debug(
-        "review produced",
-        repository=repository,
-        number=number,
-        review=review,
-        finding_count=len(findings),
-        severity_counts=severity_counts,
-    )
+    context: dict[str, object] = {
+        "repository": repository,
+        "number": number,
+        "review": review,
+        "finding_count": len(findings),
+        "severity_counts": severity_counts,
+    }
+    if lens:
+        context["lens"] = lens
+    log.debug("review produced", **context)
 
 
 def last_review_at(comments: list[Comment], reviewer_login: str) -> str | None:

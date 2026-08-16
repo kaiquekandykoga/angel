@@ -33,6 +33,7 @@ NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"
 NVIDIA_MODEL = "nvidia/nemotron-3-ultra-550b-a55b"
 NVIDIA_MAX_COMPLETION_TOKENS_DEFAULT = 32768
 NVIDIA_TIMEOUT_SECONDS = 300
+NVIDIA_TEMPERATURE = 0.0
 
 
 class NvidiaClient:
@@ -111,5 +112,6 @@ def build_llm_client() -> LlmClient:
         model=NVIDIA_MODEL,
         max_completion_tokens=max_completion_tokens,
         timeout=NVIDIA_TIMEOUT_SECONDS,
+        temperature=NVIDIA_TEMPERATURE,
     )
     return NvidiaClient(chat_model, max_completion_tokens)

@@ -50,12 +50,27 @@ lets you drop whole files instead of truncating mid-hunk.
 
 ## P1
 
+### Add a verification judge node to `pr_review`
+**Where:** `agents/pr_review/{graph,nodes,prompts,state}.py`
+**Why:** repeated runs over the same PR return different reviews. Temperature is pinned at `0`
+and the three lens prompts narrow the mandate, but nothing checks a finding against the diff
+before it is published — a finding citing a file or line the diff never touched, or restating
+something already in the comments, still gets posted under the App's identity.
+**Do:** a `verify_findings` node between `review_pull_requests` and `post_review_comments`. Give
+the model the diff plus the merged findings and have it return, per finding, keep/drop with a
+reason; drop anything unsupported. Cite-checking is mechanical first — a finding whose `file` is
+absent from the diff, or whose `line` falls outside the touched hunks, can be dropped without a
+model call, so do that pass before spending a call.
+**Done when:** a fixture review carrying one finding that cites a file absent from the diff posts
+a body without it, and the drop is logged with the reason.
+
 ### Rate-limit and backoff handling (GitHub, NVIDIA)
 **Where:** `clients/{github,llm}.py`
 **Why:** `raise_for_status()` and nothing else. Production hits 403 + `x-ratelimit-remaining: 0`,
 403/429 + `Retry-After` (comment loops trigger the secondary limit), routine 5xx, NVIDIA 429/503.
-A review is also one long non-streaming call — measured at ~48 s against a 8.7 KB diff — so a read
-timeout at `NVIDIA_TIMEOUT_SECONDS` loses the whole item with no second attempt.
+A pull request review is also three long non-streaming calls — one per lens, ~48 s each measured
+against a 8.7 KB diff — so a read timeout at `NVIDIA_TIMEOUT_SECONDS` on any one of them loses the
+whole item with no second attempt, and the two lenses already paid for are thrown away.
 **Do:** `httpx.HTTPTransport(retries=3)` for connection-level, plus a response hook reading
 `Retry-After` / `x-ratelimit-reset` and sleeping. `tenacity` is the usual backoff dependency.
 
@@ -143,7 +158,9 @@ with the most influence on whether this is good, is the only one with no regress
 **Do:** 10–20 fixture PRs/issues with known findings (planted bug, missing test, ambiguous
 requirement) and an LLM-as-judge rubric (found it? specific? hallucinated files?). Run via
 `pytest -m eval`, excluded by default — costs money, nondeterministic. Hallucinated file/line
-citations are checkable mechanically, no judge needed.
+citations are checkable mechanically, no judge needed. Sampling is pinned at `temperature=0`
+(`clients/llm.py`), so run-to-run drift is now the prompt's, not the sampler's — the harness
+measures whether a prompt change helped rather than whether the dice fell differently.
 
 ### `Send` fan-out and async
 Reviews run strictly sequentially. Failures are already isolated per item, but `RetryPolicy` is

@@ -102,6 +102,7 @@ Because the model returns a schema rather than prose, `review_pull_requests` /
 |---|---|
 | `finding_count` | how many findings the model returned — `0` is a clean review |
 | `severity_counts` | `{"blocker": 1, "nit": 2}` — only severities actually present |
+| `lens` | `security`, `quality`, or `performance` — which specialised prompt produced this record. `review_pull_requests` emits one record per lens per PR; `review_issues` makes a single call and omits the key |
 
 ```bash
 jq 'select(.finding_count) | {repository, number, finding_count, severity_counts}' log/nishikihebi-*.jsonl

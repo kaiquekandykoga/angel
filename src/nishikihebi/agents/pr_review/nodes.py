@@ -1,6 +1,7 @@
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from nishikihebi.agents._shared import (
+    Finding,
     ItemFailure,
     PullRequestReviewOutput,
     Review,
@@ -8,17 +9,40 @@ from nishikihebi.agents._shared import (
     last_review_at,
     log_review_produced,
     render_comments,
-    render_pull_request_review,
+    render_finding,
     review_marker,
     reviewed_sha,
 )
-from nishikihebi.agents.pr_review.prompts import REVIEW_SYSTEM_PROMPT
+from nishikihebi.agents.pr_review.prompts import REVIEW_LENSES
 from nishikihebi.agents.pr_review.state import PrReviewState, PullRequestContext
 from nishikihebi.clients.github import GitHubClient
 from nishikihebi.clients.llm import LlmClient
 from nishikihebi.logs import get_logger
 
 log = get_logger(__name__)
+
+
+def _render_lens_findings(findings: list[Finding]) -> str:
+    if not findings:
+        return "No findings."
+    return "\n\n".join(render_finding(finding) for finding in findings)
+
+
+def _render_lens_review(output: PullRequestReviewOutput) -> str:
+    return f"{output.summary}\n\n{_render_lens_findings(output.findings)}"
+
+
+def _render_merged_review(
+    lens_outputs: list[tuple[str, PullRequestReviewOutput]],
+) -> str:
+    summary = "\n\n".join(
+        f"**{lens.capitalize()}:** {output.summary}" for lens, output in lens_outputs
+    )
+    sections = "\n\n".join(
+        f"### {lens.capitalize()}\n\n{_render_lens_findings(output.findings)}"
+        for lens, output in lens_outputs
+    )
+    return f"{summary}\n\n{sections}"
 
 
 def fetch_pull_requests(
@@ -107,36 +131,42 @@ def review_pull_requests(github: GitHubClient, client: LlmClient):
                 number=pull_request.number,
             ):
                 diff = github.fetch_diff(pull_request)
-                messages = [
-                    SystemMessage(content=REVIEW_SYSTEM_PROMPT),
-                    HumanMessage(
-                        content=(
-                            f"Repository: {pull_request.repository}\n"
-                            f"Pull request #{pull_request.number}: "
-                            f"{pull_request.title}\n\n"
-                            f"Description:\n{pull_request.body}\n\n"
-                            f"Existing comments:\n"
-                            f"{render_comments(context.comments)}\n\n"
-                            f"Diff:\n{diff}"
-                        )
-                    ),
-                ]
+                content = (
+                    f"Repository: {pull_request.repository}\n"
+                    f"Pull request #{pull_request.number}: "
+                    f"{pull_request.title}\n\n"
+                    f"Description:\n{pull_request.body}\n\n"
+                    f"Existing comments:\n"
+                    f"{render_comments(context.comments)}\n\n"
+                    f"Diff:\n{diff}"
+                )
                 log.debug(
                     "reviewing pull request",
                     repository=pull_request.repository,
                     number=pull_request.number,
                     diff_size=len(diff),
-                    prompt_message_count=len(messages),
+                    prompt_message_count=2,
+                    lens_count=len(REVIEW_LENSES),
                 )
-                output = client.complete_structured(messages, PullRequestReviewOutput)
-                review_body = render_pull_request_review(output)
-                log_review_produced(
-                    log,
-                    repository=pull_request.repository,
-                    number=pull_request.number,
-                    review=review_body,
-                    findings=output.findings,
-                )
+                lens_outputs: list[tuple[str, PullRequestReviewOutput]] = []
+                for lens, prompt in REVIEW_LENSES:
+                    messages = [
+                        SystemMessage(content=prompt),
+                        HumanMessage(content=content),
+                    ]
+                    output = client.complete_structured(
+                        messages, PullRequestReviewOutput
+                    )
+                    lens_outputs.append((lens, output))
+                    log_review_produced(
+                        log,
+                        repository=pull_request.repository,
+                        number=pull_request.number,
+                        review=_render_lens_review(output),
+                        findings=output.findings,
+                        lens=lens,
+                    )
+                review_body = _render_merged_review(lens_outputs)
                 log.info(
                     f"reviewed {pull_request.repository}#{pull_request.number}",
                     repository=pull_request.repository,
