@@ -17,6 +17,5 @@ is installed on.
   `log/nishikihebi-<timestamp>.jsonl`, the shape of a log record, and how to read a run
   back with `jq`.
 - [`docs/TODO.md`](docs/TODO.md) — the living backlog of what stands between this and
-  running unattended: pagination, retries, prompt-injection hardening, a deployment story.
-  Open items only, grouped P0/P1/P2, with a short Done log at the bottom and the conventions
-  for adding new items at the top.
+  running unattended: retries, prompt-injection hardening, a deployment story.
+  Open items only, grouped P0/P1/P2, with the conventions for adding new items at the top.

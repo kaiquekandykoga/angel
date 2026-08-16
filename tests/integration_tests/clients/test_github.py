@@ -248,13 +248,6 @@ def test_ensure_label_creates_label_when_missing(
     }
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "client reads page 1 only; see docs/TODO.md P0 "
-        '"Paginate every GitHub list call"'
-    ),
-)
 def test_list_open_pull_requests_follows_link_header_pagination(
     respx_mock: respx.MockRouter,
     load_fixture: Callable[[str], Any],
@@ -285,13 +278,6 @@ def test_list_open_pull_requests_follows_link_header_pagination(
     assert {pull_request.number for pull_request in pull_requests} == {41, 12}
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "client reads page 1 only; see docs/TODO.md P0 "
-        '"Paginate every GitHub list call"'
-    ),
-)
 def test_list_comments_follows_link_header_pagination(
     respx_mock: respx.MockRouter,
     load_fixture: Callable[[str], Any],
@@ -323,6 +309,34 @@ def test_list_comments_follows_link_header_pagination(
         "octocat",
         "kandy-nishikihebi[bot]",
     }
+
+
+def test_list_open_issues_follows_link_header_pagination(
+    respx_mock: respx.MockRouter,
+    load_fixture: Callable[[str], Any],
+    client: HttpGitHubClient,
+):
+    def responder(request: httpx.Request) -> httpx.Response:
+        if request.url.params.get("page") == "2":
+            return httpx.Response(200, json=load_fixture("github/issues_page2.json"))
+        return httpx.Response(
+            200,
+            json=load_fixture("github/issues_page1.json"),
+            headers={
+                "Link": (
+                    "<https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues"
+                    '?state=open&per_page=100&labels=nishikihebi&page=2>; rel="next"'
+                )
+            },
+        )
+
+    respx_mock.get(
+        f"{GITHUB_BASE_URL}/repos/kaiquekandykoga/nishikihebi/issues"
+    ).mock(side_effect=responder)
+
+    issues = client.list_open_issues("kaiquekandykoga/nishikihebi", "nishikihebi")
+
+    assert [issue.number for issue in issues] == [38]
 
 
 def test_build_github_client_raises_when_app_id_missing(monkeypatch, tmp_path):

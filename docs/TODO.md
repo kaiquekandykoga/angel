@@ -21,17 +21,6 @@ structured output, `interrupt`), unadopted Python/tooling practice, or operation
 
 ## P0
 
-### Paginate every GitHub list call
-**Where:** `clients/github.py` — `/app/installations` (108), `/installation/repositories` (117),
-`list_open_pull_requests` (158), `list_open_issues` (196), `list_comments` (215).
-**Why:** every call sends `per_page: 100` and reads page 1 only; past 100 items results vanish
-silently. A PR with >100 comments hides the bot's own comment → `last_review_at` is `None` → the
-bot re-reviews and re-comments forever.
-**Do:** a `_get_all` helper following `response.links["next"]["url"]` (the next link already carries
-the query); `/installation/repositories` needs a variant reading the `repositories` key.
-**Done when:** the three `xfail(strict=True)` pagination tests in `tests/integration_tests/clients/`
-pass and their markers are deleted (they already serve two-page `Link: rel="next"` payloads).
-
 ### Harden against prompt injection; validate output before posting
 **Where:** `agents/*/prompts.py`, `agents/*/nodes.py`, `agents/_shared.py`
 **Why:** attacker-controlled text (PR/issue bodies, comments, diffs) is interpolated undelimited,
@@ -282,5 +271,5 @@ CLI, a leak in anything long-running, and a `ResourceWarning` once warnings are 
   absent (removed in `2c27db5`); writing it down is the difference between a decision and an
   omission — and note that a second contributor ends "green on my machine".
 - **No limitations section in `README.md`.** `GRAPHS.md`, `LOGS.md`, and `USAGE.md` each carry a
-  "Known gaps"; the entry point doesn't, so a reader opens three files to learn there is no
-  pagination. Add a short one, plus a LICENSE badge.
+  "Known gaps"; the entry point doesn't, so a reader opens three files to learn there are no
+  retries and no rate-limit handling. Add a short one, plus a LICENSE badge.

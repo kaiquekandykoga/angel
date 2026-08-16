@@ -1,12 +1,32 @@
 import time
 from collections.abc import Callable
 from pathlib import Path
-from typing import NamedTuple, Protocol
+from typing import Any, NamedTuple, Protocol
 
 import httpx
 import jwt
 
 from nishikihebi.env import load_env_var
+
+
+def _get_all(
+    http_client: httpx.Client,
+    url: str,
+    *,
+    params: dict[str, Any] | None = None,
+    headers: dict[str, str] | None = None,
+    key: str | None = None,
+) -> list[Any]:
+    items: list[Any] = []
+    while True:
+        response = http_client.get(url, params=params, headers=headers)
+        response.raise_for_status()
+        items.extend(response.json()[key] if key else response.json())
+        next_link = response.links.get("next")
+        if not next_link:
+            return items
+        url = next_link["url"]
+        params = None
 
 
 class PullRequest(NamedTuple):
@@ -104,21 +124,23 @@ class InstallationTokenProvider:
 
     def list_repositories(self) -> list[str]:
         headers = self._jwt_header()
-        installations_response = self.http_client.get(
-            "/app/installations", params={"per_page": 100}, headers=headers
+        installations = _get_all(
+            self.http_client,
+            "/app/installations",
+            params={"per_page": 100},
+            headers=headers,
         )
-        installations_response.raise_for_status()
 
         repositories = []
-        for installation in installations_response.json():
+        for installation in installations:
             token = self._create_token(installation["id"], headers)
-            response = self.http_client.get(
+            for repository in _get_all(
+                self.http_client,
                 "/installation/repositories",
                 params={"per_page": 100},
                 headers={"Authorization": f"Bearer {token}"},
-            )
-            response.raise_for_status()
-            for repository in response.json()["repositories"]:
+                key="repositories",
+            ):
                 self.tokens[repository["full_name"]] = token
                 repositories.append(repository["full_name"])
         return repositories
@@ -153,12 +175,12 @@ class HttpGitHubClient:
         response.raise_for_status()
 
     def list_open_pull_requests(self, repository: str, label: str) -> list[PullRequest]:
-        response = self.http_client.get(
+        items = _get_all(
+            self.http_client,
             f"/repos/{repository}/pulls",
             params={"state": "open", "per_page": 100},
             headers=self._auth_header(repository),
         )
-        response.raise_for_status()
         return [
             PullRequest(
                 repository,
@@ -167,7 +189,7 @@ class HttpGitHubClient:
                 item["body"] or "",
                 item["head"]["sha"],
             )
-            for item in response.json()
+            for item in items
             if label in {item_label["name"] for item_label in item["labels"]}
         ]
 
@@ -191,12 +213,12 @@ class HttpGitHubClient:
         return response.json()["commit"]["committer"]["date"]
 
     def list_open_issues(self, repository: str, label: str) -> list[Issue]:
-        response = self.http_client.get(
+        items = _get_all(
+            self.http_client,
             f"/repos/{repository}/issues",
             params={"state": "open", "per_page": 100, "labels": label},
             headers=self._auth_header(repository),
         )
-        response.raise_for_status()
         return [
             Issue(
                 repository,
@@ -205,20 +227,20 @@ class HttpGitHubClient:
                 item["body"] or "",
                 item["updated_at"],
             )
-            for item in response.json()
+            for item in items
             if "pull_request" not in item
         ]
 
     def list_comments(self, target: PullRequest | Issue) -> list[Comment]:
-        response = self.http_client.get(
+        items = _get_all(
+            self.http_client,
             f"/repos/{target.repository}/issues/{target.number}/comments",
             params={"per_page": 100},
             headers=self._auth_header(target.repository),
         )
-        response.raise_for_status()
         return [
             Comment(item["user"]["login"], item["body"] or "", item["created_at"])
-            for item in response.json()
+            for item in items
         ]
 
     def post_comment(self, target: PullRequest | Issue, body: str) -> None:

@@ -3,7 +3,6 @@ from typing import Any
 
 import httpx
 import jwt
-import pytest
 import respx
 
 from nishikihebi.clients.github import GITHUB_BASE_URL, InstallationTokenProvider
@@ -144,13 +143,6 @@ def test_caches_installation_token_per_repository(
     assert len(respx_mock.calls) == request_count_after_first_call
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "client reads page 1 only; see docs/TODO.md P0 "
-        '"Paginate every GitHub list call"'
-    ),
-)
 def test_list_repositories_follows_link_header_pagination(
     rsa_key_pair, respx_mock: respx.MockRouter, load_fixture: Callable[[str], Any]
 ):
@@ -182,6 +174,68 @@ def test_list_repositories_follows_link_header_pagination(
     )
     respx_mock.get(f"{GITHUB_BASE_URL}/installation/repositories").mock(
         side_effect=responder
+    )
+
+    provider = InstallationTokenProvider(
+        httpx.Client(base_url=GITHUB_BASE_URL), app_id="app-1", private_key=private_key
+    )
+
+    repositories = provider.list_repositories()
+
+    assert set(repositories) == {
+        "kaiquekandykoga/nishikihebi",
+        "kaiquekandykoga/dotfiles",
+    }
+
+
+def test_list_repositories_follows_link_header_pagination_across_installations(
+    rsa_key_pair, respx_mock: respx.MockRouter, load_fixture: Callable[[str], Any]
+):
+    private_key, _public_key = rsa_key_pair
+    repositories_by_installation = {
+        91733042: "kaiquekandykoga/nishikihebi",
+        91733099: "kaiquekandykoga/dotfiles",
+    }
+
+    def installations_responder(request: httpx.Request) -> httpx.Response:
+        if request.url.params.get("page") == "2":
+            return httpx.Response(
+                200, json=load_fixture("github/installations_page2.json")
+            )
+        return httpx.Response(
+            200,
+            json=load_fixture("github/installations_page1.json"),
+            headers={
+                "Link": (
+                    "<https://api.github.com/app/installations"
+                    '?per_page=100&page=2>; rel="next"'
+                )
+            },
+        )
+
+    def repositories_responder(request: httpx.Request) -> httpx.Response:
+        token = request.headers["authorization"].removeprefix("Bearer ")
+        installation_id = int(token.removeprefix("token-for-"))
+        return httpx.Response(
+            200,
+            json={
+                "repositories": [
+                    {"full_name": repositories_by_installation[installation_id]}
+                ]
+            },
+        )
+
+    respx_mock.get(f"{GITHUB_BASE_URL}/app/installations").mock(
+        side_effect=installations_responder
+    )
+    respx_mock.post(f"{GITHUB_BASE_URL}/app/installations/91733042/access_tokens").mock(
+        return_value=httpx.Response(201, json={"token": "token-for-91733042"})
+    )
+    respx_mock.post(f"{GITHUB_BASE_URL}/app/installations/91733099/access_tokens").mock(
+        return_value=httpx.Response(201, json={"token": "token-for-91733099"})
+    )
+    respx_mock.get(f"{GITHUB_BASE_URL}/installation/repositories").mock(
+        side_effect=repositories_responder
     )
 
     provider = InstallationTokenProvider(
