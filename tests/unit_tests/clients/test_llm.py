@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Sequence
 from typing import cast
 
@@ -85,6 +86,49 @@ def test_complete_forwards_system_messages():
     assert chat_model.invoked_messages == messages
 
 
+def test_complete_logs_model_call_completed(caplog):
+    reply = AIMessage(
+        content="hi there",
+        response_metadata={"finish_reason": "stop"},
+        usage_metadata={"input_tokens": 5, "output_tokens": 2, "total_tokens": 7},
+    )
+    chat_model = FakeChatModel(reply="unused")
+    chat_model.invoke = lambda messages: reply  # type: ignore[method-assign]
+    client = NvidiaClient(cast("BaseChatModel", chat_model), max_completion_tokens=8192)
+
+    with caplog.at_level(logging.DEBUG, logger="nishikihebi.clients.llm"):
+        client.complete([HumanMessage(content="hello")])
+
+    records = [r for r in caplog.records if r.message == "model call completed"]
+    assert len(records) == 1
+    context = records[0].context
+    assert context["call"] == "complete"
+    assert "schema" not in context
+    assert context["finish_reason"] == "stop"
+    assert context["input_tokens"] == 5
+    assert context["output_tokens"] == 2
+    assert context["total_tokens"] == 7
+    assert isinstance(context["duration_ms"], float)
+    assert context["duration_ms"] >= 0
+
+
+def test_complete_logs_none_when_usage_metadata_and_finish_reason_missing(caplog):
+    reply = AIMessage(content="hi there")
+    chat_model = FakeChatModel(reply="unused")
+    chat_model.invoke = lambda messages: reply  # type: ignore[method-assign]
+    client = NvidiaClient(cast("BaseChatModel", chat_model), max_completion_tokens=8192)
+
+    with caplog.at_level(logging.DEBUG, logger="nishikihebi.clients.llm"):
+        client.complete([HumanMessage(content="hello")])
+
+    matched = next(r for r in caplog.records if r.message == "model call completed")
+    context = matched.context
+    assert context["finish_reason"] is None
+    assert context["input_tokens"] is None
+    assert context["output_tokens"] is None
+    assert context["total_tokens"] is None
+
+
 def test_complete_structured_binds_json_schema_response_format_and_returns_model():
     reply = AIMessage(
         content='{"text": "hi"}', response_metadata={"finish_reason": "stop"}
@@ -108,6 +152,69 @@ def test_complete_structured_binds_json_schema_response_format_and_returns_model
     }
     assert chat_model.bound_runnable is not None
     assert chat_model.bound_runnable.invoked_messages == messages
+
+
+def test_complete_structured_logs_model_call_completed(caplog):
+    reply = AIMessage(
+        content='{"text": "hi"}',
+        response_metadata={"finish_reason": "stop"},
+        usage_metadata={"input_tokens": 5, "output_tokens": 2, "total_tokens": 7},
+    )
+    chat_model = FakeChatModel(reply="unused", bound_reply=reply)
+    client = NvidiaClient(cast("BaseChatModel", chat_model), max_completion_tokens=8192)
+
+    with caplog.at_level(logging.DEBUG, logger="nishikihebi.clients.llm"):
+        client.complete_structured([HumanMessage(content="hello")], Answer)
+
+    records = [r for r in caplog.records if r.message == "model call completed"]
+    assert len(records) == 1
+    context = records[0].context
+    assert context["call"] == "complete_structured"
+    assert context["schema"] == "Answer"
+    assert context["finish_reason"] == "stop"
+    assert context["input_tokens"] == 5
+    assert context["output_tokens"] == 2
+    assert context["total_tokens"] == 7
+    assert isinstance(context["duration_ms"], float)
+    assert context["duration_ms"] >= 0
+
+
+def test_complete_structured_logs_before_raising_truncated_error(caplog):
+    reply = AIMessage(
+        content='{"text": "hi"}',
+        response_metadata={"finish_reason": "length"},
+        usage_metadata={
+            "input_tokens": 3015,
+            "output_tokens": 8192,
+            "total_tokens": 11207,
+        },
+    )
+    chat_model = FakeChatModel(reply="unused", bound_reply=reply)
+    client = NvidiaClient(cast("BaseChatModel", chat_model), max_completion_tokens=8192)
+
+    with (
+        caplog.at_level(logging.DEBUG, logger="nishikihebi.clients.llm"),
+        pytest.raises(TruncatedCompletionError),
+    ):
+        client.complete_structured([HumanMessage(content="hello")], Answer)
+
+    records = [r for r in caplog.records if r.message == "model call completed"]
+    assert len(records) == 1
+    assert records[0].context["finish_reason"] == "length"
+
+
+def test_complete_structured_does_not_log_when_model_call_raises(caplog):
+    error = ValueError("bad output")
+    chat_model = FakeChatModel(reply="unused", bound_error=error)
+    client = NvidiaClient(cast("BaseChatModel", chat_model), max_completion_tokens=8192)
+
+    with (
+        caplog.at_level(logging.DEBUG, logger="nishikihebi.clients.llm"),
+        pytest.raises(ValueError, match="bad output"),
+    ):
+        client.complete_structured([HumanMessage(content="hello")], Answer)
+
+    assert not [r for r in caplog.records if r.message == "model call completed"]
 
 
 def test_complete_structured_raises_truncated_error_when_finish_reason_is_length():

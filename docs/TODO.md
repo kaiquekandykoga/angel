@@ -184,9 +184,14 @@ change, biggest perceived-quality delta here.
 `build_*_graph` takes credentialed clients, so a bare `graph = build_pr_review_graph(...)` fails at
 import without `.env`. Keep the factories; add a guarded Studio entry point.
 
-### Token and cost accounting
-Nothing records tokens or dollars for a bot reading unbounded diffs across unbounded repos. Log
-`response.usage_metadata` per call, aggregate per run, consider a budget ceiling that aborts cleanly.
+### Cost accounting and a budget ceiling
+**Where:** `clients/llm.py`
+**Why:** per-call tokens and latency now land in the log (`model call completed`), but a bot reading
+unbounded diffs across unbounded repos still has no dollar figure and nothing that stops it.
+**Do:** a per-run total instead of a `jq` sum after the fact; dollars once there is a pricing source
+worth trusting for the configured model; a budget ceiling that aborts cleanly when crossed.
+**Done when:** a run reports its own token total, and one that exceeds the ceiling stops instead of
+spending past it.
 
 ### Version the prompts
 Prompts are diffable in `agents/<name>/prompts.py` but unversioned — no constant, no changelog, no

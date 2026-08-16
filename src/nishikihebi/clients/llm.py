@@ -1,3 +1,4 @@
+import time
 from collections.abc import Sequence
 from typing import Protocol, cast
 
@@ -7,6 +8,9 @@ from langchain_nvidia_ai_endpoints import ChatNVIDIA
 from pydantic import BaseModel
 
 from nishikihebi.env import load_env_var
+from nishikihebi.logs import get_logger
+
+log = get_logger(__name__)
 
 
 class LlmClient(Protocol):
@@ -29,6 +33,21 @@ class TruncatedCompletionError(RuntimeError):
     pass
 
 
+def log_model_call_completed(
+    started: float, *, call: str, reply: AIMessage, schema: str | None = None
+) -> None:
+    usage = reply.usage_metadata
+    fields: dict[str, object] = {"call": call}
+    if schema is not None:
+        fields["schema"] = schema
+    fields["finish_reason"] = reply.response_metadata.get("finish_reason")
+    fields["input_tokens"] = usage["input_tokens"] if usage is not None else None
+    fields["output_tokens"] = usage["output_tokens"] if usage is not None else None
+    fields["total_tokens"] = usage["total_tokens"] if usage is not None else None
+    fields["duration_ms"] = round((time.monotonic() - started) * 1000, 1)
+    log.debug("model call completed", **fields)
+
+
 NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"
 NVIDIA_MODEL = "nvidia/nemotron-3-ultra-550b-a55b"
 NVIDIA_MAX_COMPLETION_TOKENS_DEFAULT = 32768
@@ -42,11 +61,15 @@ class NvidiaClient:
         self.max_completion_tokens = max_completion_tokens
 
     def complete(self, messages: Sequence[BaseMessage]) -> AIMessage:
-        return cast("AIMessage", self.chat_model.invoke(list(messages)))
+        started = time.monotonic()
+        reply = cast("AIMessage", self.chat_model.invoke(list(messages)))
+        log_model_call_completed(started, call="complete", reply=reply)
+        return reply
 
     def complete_structured[T: BaseModel](
         self, messages: Sequence[BaseMessage], schema: type[T]
     ) -> T:
+        started = time.monotonic()
         reply = cast(
             "AIMessage",
             self.chat_model.bind(
@@ -59,6 +82,9 @@ class NvidiaClient:
                     },
                 }
             ).invoke(list(messages)),
+        )
+        log_model_call_completed(
+            started, call="complete_structured", reply=reply, schema=schema.__name__
         )
         if reply.response_metadata.get("finish_reason") == "length":
             usage = reply.usage_metadata

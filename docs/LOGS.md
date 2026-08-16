@@ -10,7 +10,8 @@ Every run logs to two places at once, configured in `src/nishikihebi/logs.py` by
 
 The file is the detailed one: it keeps the `DEBUG` records the console drops, which is where
 the per-repository and per-item detail lives — what was scanned, what was selected for
-review and why, diff sizes, prompt message counts.
+review and why, diff sizes, prompt message counts, and what each model call cost in tokens and
+milliseconds.
 
 ## Record shape
 
@@ -110,6 +111,31 @@ jq 'select(.finding_count) | {repository, number, finding_count, severity_counts
 
 A reply the schema rejects never reaches this record; it is caught per item and logged as a
 failure below, with `error_type` naming the validation error.
+
+## Model call records
+
+Every call into the model logs one `DEBUG` record from `nishikihebi.clients.llm`, message
+`model call completed`, so a run's token spend and latency are recoverable after the fact:
+
+| Key | Meaning |
+|---|---|
+| `call` | `complete` or `complete_structured` — which client method made it |
+| `schema` | the schema the reply had to match; only on `complete_structured` |
+| `finish_reason` | what the provider said ended the reply — `stop`, `length`, `None` if absent |
+| `input_tokens` / `output_tokens` / `total_tokens` | from the reply's `usage_metadata`; all three are `null` when the provider returns none |
+| `duration_ms` | wall time around the provider call, milliseconds |
+
+The record is written before the truncation check, so a call that hits the
+`max_completion_tokens` ceiling is still accounted for — it shows up as `finish_reason:
+"length"` next to the `WARNING` for the item it cost. A call that raises before returning
+logs nothing here; it is the failure record that names it.
+
+```bash
+jq -s 'map(select(.message == "model call completed") | .total_tokens // 0) | add' log/nishikihebi-*.jsonl
+jq 'select(.message == "model call completed") | {call, schema, total_tokens, duration_ms}' log/nishikihebi-*.jsonl
+```
+
+Dollars are not logged — see the token and cost accounting item in [`TODO.md`](TODO.md).
 
 ## Dry-run records
 
