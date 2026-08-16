@@ -114,15 +114,15 @@ def test_main_exits_nonzero_when_a_pull_request_review_fails(
     for pr in pull_requests:
         fake_github.label(pr, "nishikihebi")
     calls = {"count": 0}
-    original_complete = fake_client.complete
+    original_complete_structured = fake_client.complete_structured
 
-    def flaky_complete(messages):
+    def flaky_complete_structured(messages, schema):
         calls["count"] += 1
         if calls["count"] == 3:
             raise RuntimeError("llm exploded")
-        return original_complete(messages)
+        return original_complete_structured(messages, schema)
 
-    monkeypatch.setattr(fake_client, "complete", flaky_complete)
+    monkeypatch.setattr(fake_client, "complete_structured", flaky_complete_structured)
     monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
     monkeypatch.setattr(
         nishikihebi.__main__, "build_github_client", lambda: fake_github
@@ -155,15 +155,15 @@ def test_main_exits_nonzero_when_an_issue_review_fails(
     for issue in issues:
         fake_github.label(issue, "nishikihebi")
     calls = {"count": 0}
-    original_complete = fake_client.complete
+    original_complete_structured = fake_client.complete_structured
 
-    def flaky_complete(messages):
+    def flaky_complete_structured(messages, schema):
         calls["count"] += 1
         if calls["count"] == 3:
             raise RuntimeError("llm exploded")
-        return original_complete(messages)
+        return original_complete_structured(messages, schema)
 
-    monkeypatch.setattr(fake_client, "complete", flaky_complete)
+    monkeypatch.setattr(fake_client, "complete_structured", flaky_complete_structured)
     monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
     monkeypatch.setattr(
         nishikihebi.__main__, "build_github_client", lambda: fake_github
@@ -212,10 +212,10 @@ def test_main_prints_a_readable_failure_summary_to_stderr(
     fake_github.diffs = {pr: "diff"}
     fake_github.label(pr, "nishikihebi")
 
-    def raise_llm_error(messages):
+    def raise_llm_error(messages, schema):
         raise RuntimeError("llm exploded")
 
-    monkeypatch.setattr(fake_client, "complete", raise_llm_error)
+    monkeypatch.setattr(fake_client, "complete_structured", raise_llm_error)
     monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
     monkeypatch.setattr(
         nishikihebi.__main__, "build_github_client", lambda: fake_github
@@ -281,12 +281,12 @@ def test_main_counts_each_item_once_across_review_and_post_failures(
     fake_github.diffs = {pr: f"diff {pr.number}" for pr in pull_requests}
     for pr in pull_requests:
         fake_github.label(pr, "nishikihebi")
-    original_complete = fake_client.complete
+    original_complete_structured = fake_client.complete_structured
 
-    def flaky_complete(messages):
+    def flaky_complete_structured(messages, schema):
         if "Pull request #2" in messages[1].content:
             raise RuntimeError("llm exploded")
-        return original_complete(messages)
+        return original_complete_structured(messages, schema)
 
     original_post_comment = fake_github.post_comment
 
@@ -295,7 +295,7 @@ def test_main_counts_each_item_once_across_review_and_post_failures(
             raise RuntimeError("github exploded")
         original_post_comment(target, body)
 
-    monkeypatch.setattr(fake_client, "complete", flaky_complete)
+    monkeypatch.setattr(fake_client, "complete_structured", flaky_complete_structured)
     monkeypatch.setattr(fake_github, "post_comment", flaky_post_comment)
     monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
     monkeypatch.setattr(
@@ -400,7 +400,7 @@ def test_main_dry_run_wraps_github_client_and_prints_review_body_for_pr_review(
     assert isinstance(captured["github"], DryRunGitHubClient)
     out = capsys.readouterr().out
     assert "--- kaiquekandykoga/nishikihebi#1 ---" in out
-    assert "fake reply" in out
+    assert "fake summary" in out
     assert "Commented on" not in out
     assert fake_github.posted_comments == []
 
@@ -520,15 +520,15 @@ def test_main_dry_run_still_exits_nonzero_when_a_pull_request_review_fails(
     for pr in pull_requests:
         fake_github.label(pr, "nishikihebi")
     calls = {"count": 0}
-    original_complete = fake_client.complete
+    original_complete_structured = fake_client.complete_structured
 
-    def flaky_complete(messages):
+    def flaky_complete_structured(messages, schema):
         calls["count"] += 1
         if calls["count"] == 3:
             raise RuntimeError("llm exploded")
-        return original_complete(messages)
+        return original_complete_structured(messages, schema)
 
-    monkeypatch.setattr(fake_client, "complete", flaky_complete)
+    monkeypatch.setattr(fake_client, "complete_structured", flaky_complete_structured)
     monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
     monkeypatch.setattr(
         nishikihebi.__main__, "build_github_client", lambda: fake_github

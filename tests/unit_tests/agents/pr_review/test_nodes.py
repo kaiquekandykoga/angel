@@ -2,7 +2,15 @@ import logging
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
-from nishikihebi.agents._shared import ItemFailure, Review, review_marker
+from nishikihebi.agents._shared import (
+    Finding,
+    ItemFailure,
+    PullRequestReviewOutput,
+    Review,
+    Severity,
+    render_pull_request_review,
+    review_marker,
+)
 from nishikihebi.agents.pr_review.nodes import fetch_pull_requests, review_pull_requests
 from nishikihebi.agents.pr_review.prompts import REVIEW_SYSTEM_PROMPT
 from nishikihebi.agents.pr_review.state import PullRequestContext
@@ -11,6 +19,15 @@ from nishikihebi.clients.github import Comment, PullRequest
 REVIEWER_LOGIN = "kandy-nishikihebi[bot]"
 LABEL = "nishikihebi"
 LABEL_COLOR = "f709c2"
+
+DEFAULT_REVIEW_BODY = render_pull_request_review(
+    PullRequestReviewOutput(
+        summary="fake summary",
+        findings=[
+            Finding(severity=Severity.MINOR, title="fake finding", detail="fake detail")
+        ],
+    )
+)
 
 
 def test_fetch_pull_requests_logs_start_per_repository_and_summary(fake_github, caplog):
@@ -291,6 +308,46 @@ def test_review_pull_requests_logs_start_per_item_and_end(
     assert info_records[-1].context["count"] == 1
 
 
+def test_review_pull_requests_logs_finding_count_and_severity_counts(
+    fake_github, caplog
+):
+    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+    pr_a = PullRequest("org/a", 1, "pr a", "body a", "sha-a")
+    fake_github.diffs = {pr_a: "diff a"}
+
+    class ScriptedClient:
+        def complete(self, messages):
+            return AIMessage(content="ok")
+
+        def complete_structured(self, messages, schema):
+            return schema(
+                summary="summary",
+                findings=[
+                    Finding(severity=Severity.BLOCKER, title="a", detail="a detail"),
+                    Finding(severity=Severity.BLOCKER, title="b", detail="b detail"),
+                    Finding(severity=Severity.NIT, title="c", detail="c detail"),
+                ],
+            )
+
+    node = review_pull_requests(fake_github, ScriptedClient())
+
+    node(
+        {
+            "pull_requests": [PullRequestContext(pr_a, [])],
+            "reviews": [],
+            "failures": [],
+        }
+    )
+
+    produced = next(
+        r
+        for r in caplog.records
+        if r.levelname == "DEBUG" and r.message == "review produced"
+    )
+    assert produced.context["finding_count"] == 3
+    assert produced.context["severity_counts"] == {"blocker": 2, "nit": 1}
+
+
 def test_review_pull_requests_returns_one_review_per_pull_request(
     fake_client, fake_github
 ):
@@ -312,8 +369,8 @@ def test_review_pull_requests_returns_one_review_per_pull_request(
 
     assert result == {
         "reviews": [
-            Review(pr_a, f"{fake_client.reply}\n\n{review_marker('sha-a')}"),
-            Review(pr_b, f"{fake_client.reply}\n\n{review_marker('sha-b')}"),
+            Review(pr_a, f"{DEFAULT_REVIEW_BODY}\n\n{review_marker('sha-a')}"),
+            Review(pr_b, f"{DEFAULT_REVIEW_BODY}\n\n{review_marker('sha-b')}"),
         ],
         "failures": [],
     }
@@ -336,7 +393,7 @@ def test_review_pull_requests_appends_head_sha_marker_to_the_body(
 
     assert result == {
         "reviews": [
-            Review(pr_a, f"{fake_client.reply}\n\n{review_marker('sha-a')}")
+            Review(pr_a, f"{DEFAULT_REVIEW_BODY}\n\n{review_marker('sha-a')}")
         ],
         "failures": [],
     }
@@ -490,10 +547,13 @@ def test_review_pull_requests_isolates_item_failure(fake_github):
             self.calls = 0
 
         def complete(self, messages):
+            return AIMessage(content="ok")
+
+        def complete_structured(self, messages, schema):
             self.calls += 1
             if self.calls == 3:
                 raise RuntimeError("model boom")
-            return AIMessage(content="ok")
+            return schema(summary="ok", findings=[])
 
     client = RaisingOnThirdClient()
     node = review_pull_requests(fake_github, client)
@@ -527,6 +587,9 @@ def test_review_pull_requests_logs_failure_at_warning(fake_github, caplog):
 
     class RaisingClient:
         def complete(self, messages):
+            return AIMessage(content="ok")
+
+        def complete_structured(self, messages, schema):
             raise RuntimeError("model boom")
 
     node = review_pull_requests(fake_github, RaisingClient())

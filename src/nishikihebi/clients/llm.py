@@ -4,12 +4,17 @@ from typing import Protocol, cast
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage
 from langchain_nvidia_ai_endpoints import ChatNVIDIA
+from pydantic import BaseModel
 
 from nishikihebi.env import load_env_var
 
 
 class LlmClient(Protocol):
     def complete(self, messages: Sequence[BaseMessage]) -> AIMessage: ...
+
+    def complete_structured[T: BaseModel](
+        self, messages: Sequence[BaseMessage], schema: type[T]
+    ) -> T: ...
 
 
 class MissingApiKeyError(RuntimeError):
@@ -27,6 +32,13 @@ class NvidiaClient:
 
     def complete(self, messages: Sequence[BaseMessage]) -> AIMessage:
         return cast("AIMessage", self.chat_model.invoke(list(messages)))
+
+    def complete_structured[T: BaseModel](
+        self, messages: Sequence[BaseMessage], schema: type[T]
+    ) -> T:
+        return cast(
+            "T", self.chat_model.with_structured_output(schema).invoke(list(messages))
+        )
 
 
 def build_llm_client() -> LlmClient:

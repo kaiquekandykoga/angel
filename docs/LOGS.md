@@ -41,6 +41,24 @@ jq 'select(.selected == false) | {repository, number, reason}' log/nishikihebi-*
 The second one answers "why didn't it review this PR?" — `fetch_pull_requests` and
 `fetch_issues` log a `selected` / `reason` pair for every labeled item they evaluate.
 
+## Review records
+
+Because the model returns a schema rather than prose, `review_pull_requests` /
+`review_issues` log what the review contained. The `review produced` `DEBUG` record carries
+`repository`, `number`, the rendered `review` body, and:
+
+| Key | Meaning |
+|---|---|
+| `finding_count` | how many findings the model returned — `0` is a clean review |
+| `severity_counts` | `{"blocker": 1, "nit": 2}` — only severities actually present |
+
+```bash
+jq 'select(.finding_count) | {repository, number, finding_count, severity_counts}' log/nishikihebi-*.jsonl
+```
+
+A reply the schema rejects never reaches this record; it is caught per item and logged as a
+failure below, with `error_type` naming the validation error.
+
 ## Dry-run records
 
 A `--dry-run` run logs each write it suppressed, at `INFO`, from
@@ -94,7 +112,8 @@ Logging is not production-shaped yet, and [`TODO.md`](TODO.md) tracks the specif
   retention, one file per run, and the path depends on cwd. The 12-factor answer is JSON to
   stdout with the file handler behind an opt-in flag. Also missing: a run-id to group one
   run's lines, and `exc_info` capture — nothing currently logs a traceback.
-- Under that same item — `review_issues` / `review_pull_requests` log the **entire review
-  body** at `DEBUG`, so model output derived from untrusted input lands on disk unbounded.
+- Under that same item — `review_issues` / `review_pull_requests` log the **entire rendered
+  review body** at `DEBUG`, so model output derived from untrusted input lands on disk
+  unbounded.
   Combined with no retention, that is a slow disk-fill and a data-handling question.
 - Nothing redacts secrets; the formatter dumps whatever is in `context`.

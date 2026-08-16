@@ -1,8 +1,11 @@
 from collections.abc import Sequence
+from typing import Any
 
 import pytest
 from langchain_core.messages import AIMessage, BaseMessage
+from pydantic import BaseModel
 
+from nishikihebi.agents._shared import Finding, Severity
 from nishikihebi.clients.github import Comment, Issue, PullRequest
 
 
@@ -14,11 +17,29 @@ def _run_in_tmp_path(tmp_path, monkeypatch):
 class FakeClient:
     def __init__(self, reply: str = "fake reply") -> None:
         self.reply = reply
+        self.structured_reply: BaseModel | None = None
         self.calls: list[Sequence[BaseMessage]] = []
 
     def complete(self, messages: Sequence[BaseMessage]) -> AIMessage:
         self.calls.append(list(messages))
         return AIMessage(content=self.reply)
+
+    def complete_structured(
+        self, messages: Sequence[BaseMessage], schema: type[BaseModel]
+    ) -> Any:
+        self.calls.append(list(messages))
+        if self.structured_reply is not None:
+            return self.structured_reply
+        return schema(
+            summary="fake summary",
+            findings=[
+                Finding(
+                    severity=Severity.MINOR,
+                    title="fake finding",
+                    detail="fake detail",
+                )
+            ],
+        )
 
 
 @pytest.fixture

@@ -7,9 +7,16 @@ each one owns a directory under `src/nishikihebi/agents/` — `agents/chat/`,
 and `nodes.py` holds the nodes themselves: factories that take their dependencies (LLM
 client, GitHub client) and return the node function, so a graph can be built against fakes
 in tests. Anything two agents share — the `Review` record, the `ItemFailure` record, the
-`post_review_comments` node, the comment helpers — lives in `agents/_shared.py`. Those dependencies sit behind
+`post_review_comments` node, the comment helpers, and the review output schemas and their
+markdown renderers — lives in `agents/_shared.py`. Those dependencies sit behind
 `Protocol` seams in `src/nishikihebi/clients/`, and the reviewer login, label, and label
 colour in `src/nishikihebi/settings.py`.
+
+Both review agents ask the model for a schema, not prose: `LlmClient.complete_structured`
+wraps `with_structured_output`, so a reply that does not fit `PullRequestReviewOutput` /
+`IssueReviewOutput` raises and is recorded as an item failure instead of being posted. The
+comment body is rendered from the validated object by `render_pull_request_review` /
+`render_issue_review`.
 
 ## `chat`
 
@@ -58,7 +65,7 @@ a PR is re-reviewed exactly when its head has moved.
     v
   +----------------------+
   | review_pull_requests |  <--- GitHub: the PR diff
-  +----------------------+  <--- NVIDIA model: one review comment
+  +----------------------+  <--- NVIDIA model: a PullRequestReviewOutput
     |  Review (target + body)
     v
   +----------------------+
@@ -72,7 +79,7 @@ a PR is re-reviewed exactly when its head has moved.
 | Node | Does |
 |---|---|
 | `fetch_pull_requests` | Ensures each repository has the `nishikihebi` label, lists PRs carrying it and their comments, keeps the ones due for review, and emits `PullRequestContext` (the PR plus its comments) |
-| `review_pull_requests` | Fetches the diff and asks the model for one review comment, given the title, description, existing comments, and diff |
+| `review_pull_requests` | Fetches the diff and asks the model for a `PullRequestReviewOutput` (summary + severity-tagged findings) given the title, description, existing comments, and diff, then renders it to the comment body |
 | `post_review_comments` | Posts each review as an issue comment on its PR |
 
 Under `--dry-run` the wiring is identical — the flag wraps the GitHub client in a read-only
@@ -99,7 +106,7 @@ which covers both an edited description and new comments.
     |  IssueContext (issue + comments), only the ones due for review
     v
   +---------------+
-  | review_issues |  <--- NVIDIA model: one review comment
+  | review_issues |  <--- NVIDIA model: an IssueReviewOutput
   +---------------+
     |  Review (target + body)
     v
@@ -114,7 +121,7 @@ which covers both an edited description and new comments.
 | Node | Does |
 |---|---|
 | `fetch_issues` | Ensures each repository has the `nishikihebi` label, lists issues carrying it and their comments, keeps the ones due for review, and emits `IssueContext` (the issue plus its comments) |
-| `review_issues` | Asks the model for one review comment, given the title, description, and existing comments |
+| `review_issues` | Asks the model for an `IssueReviewOutput` (summary, findings, acceptance criteria, suggested approach) given the title, description, and existing comments, then renders it to the comment body |
 | `post_review_comments` | Shared with `pr_review` — posts each review as an issue comment |
 
 `--dry-run` applies here too, by the same wrapper.
@@ -145,6 +152,6 @@ A run that recorded any failure exits non-zero; see [`USAGE.md`](USAGE.md).
 
 The three graphs are linear and sequential, and [`TODO.md`](TODO.md) lists what that leaves
 on the table: no `Send` fan-out, so ten PRs mean ten serial model calls and no per-item
-retry; no checkpointer on the review graphs, so a crash mid-run loses everything; no
-structured output, so a review body is an unvalidated `str`; and no streaming in the chat
-REPL.
+retry; no checkpointer on the review graphs, so a crash mid-run loses everything; and no
+streaming in the chat REPL. The chat agent still returns an unvalidated `str` — only the two
+review agents go through a schema.

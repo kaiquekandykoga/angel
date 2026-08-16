@@ -2,12 +2,28 @@ import logging
 
 from langchain_core.messages import AIMessage
 
-from nishikihebi.agents._shared import Review, review_marker
+from nishikihebi.agents._shared import (
+    Finding,
+    PullRequestReviewOutput,
+    Review,
+    Severity,
+    render_pull_request_review,
+    review_marker,
+)
 from nishikihebi.agents.pr_review.graph import build_pr_review_graph
 from nishikihebi.clients.github import Comment, PullRequest
 
 REVIEWER_LOGIN = "kandy-nishikihebi[bot]"
 LABEL = "nishikihebi"
+
+DEFAULT_REVIEW_BODY = render_pull_request_review(
+    PullRequestReviewOutput(
+        summary="fake summary",
+        findings=[
+            Finding(severity=Severity.MINOR, title="fake finding", detail="fake detail")
+        ],
+    )
+)
 
 
 def test_build_pr_review_graph_logs_wiring_and_ready(fake_client, fake_github, caplog):
@@ -39,7 +55,7 @@ def test_graph_posts_comment_for_never_reviewed_pull_request(fake_client, fake_g
 
     result = graph.invoke({"pull_requests": [], "reviews": []})
 
-    expected_body = f"{fake_client.reply}\n\n{review_marker('sha-a')}"
+    expected_body = f"{DEFAULT_REVIEW_BODY}\n\n{review_marker('sha-a')}"
     assert result["reviews"] == [Review(pr_a, expected_body)]
     assert fake_github.posted_comments == [(pr_a, expected_body)]
     assert "diff a" in fake_client.calls[-1][-1].content
@@ -117,10 +133,13 @@ def test_graph_isolates_a_review_failure_and_posts_the_rest(fake_github):
             self.calls = 0
 
         def complete(self, messages):
+            return AIMessage(content="ok")
+
+        def complete_structured(self, messages, schema):
             self.calls += 1
             if self.calls == 3:
                 raise RuntimeError("model boom")
-            return AIMessage(content="ok")
+            return schema(summary="ok", findings=[])
 
     graph = build_pr_review_graph(
         RaisingOnThirdClient(), fake_github, reviewer_login=REVIEWER_LOGIN
@@ -130,3 +149,35 @@ def test_graph_isolates_a_review_failure_and_posts_the_rest(fake_github):
 
     assert len(fake_github.posted_comments) == 4
     assert len(result["failures"]) == 1
+
+
+def test_graph_isolates_a_structured_output_failure_and_posts_the_other(fake_github):
+    pr_a = PullRequest("org/a", 1, "pr a", "body a", "sha-a")
+    pr_b = PullRequest("org/b", 2, "pr b", "body b", "sha-b")
+    fake_github.pull_requests = {"org/a": [pr_a], "org/b": [pr_b]}
+    fake_github.diffs = {pr_a: "diff a", pr_b: "diff b"}
+    fake_github.label(pr_a, LABEL)
+    fake_github.label(pr_b, LABEL)
+
+    class RaisingOnSecondClient:
+        def __init__(self):
+            self.calls = 0
+
+        def complete(self, messages):
+            return AIMessage(content="ok")
+
+        def complete_structured(self, messages, schema):
+            self.calls += 1
+            if self.calls == 2:
+                raise RuntimeError("schema boom")
+            return schema(summary="ok", findings=[])
+
+    graph = build_pr_review_graph(
+        RaisingOnSecondClient(), fake_github, reviewer_login=REVIEWER_LOGIN
+    )
+
+    result = graph.invoke({"pull_requests": [], "reviews": [], "failures": []})
+
+    assert len(result["reviews"]) == 1
+    assert len(result["failures"]) == 1
+    assert {pr for pr, _ in fake_github.posted_comments} == {pr_a}

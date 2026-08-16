@@ -2,7 +2,14 @@ import logging
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
-from nishikihebi.agents._shared import ItemFailure, Review
+from nishikihebi.agents._shared import (
+    Finding,
+    IssueReviewOutput,
+    ItemFailure,
+    Review,
+    Severity,
+    render_issue_review,
+)
 from nishikihebi.agents.issue_review.nodes import fetch_issues, review_issues
 from nishikihebi.agents.issue_review.prompts import REVIEW_SYSTEM_PROMPT
 from nishikihebi.agents.issue_review.state import IssueContext
@@ -11,6 +18,15 @@ from nishikihebi.clients.github import Comment, Issue
 REVIEWER_LOGIN = "kandy-nishikihebi[bot]"
 LABEL = "nishikihebi"
 LABEL_COLOR = "f709c2"
+
+DEFAULT_REVIEW_BODY = render_issue_review(
+    IssueReviewOutput(
+        summary="fake summary",
+        findings=[
+            Finding(severity=Severity.MINOR, title="fake finding", detail="fake detail")
+        ],
+    )
+)
 
 
 def test_fetch_issues_logs_start_per_repository_and_summary(fake_github, caplog):
@@ -186,6 +202,37 @@ def test_review_issues_logs_start_per_item_and_end(fake_client, caplog):
     assert info_records[-1].context["count"] == 1
 
 
+def test_review_issues_logs_finding_count_and_severity_counts(caplog):
+    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+    issue_a = Issue("org/a", 1, "issue a", "body a", "2026-08-01T00:00:00Z")
+
+    class ScriptedClient:
+        def complete(self, messages):
+            return AIMessage(content="ok")
+
+        def complete_structured(self, messages, schema):
+            return schema(
+                summary="summary",
+                findings=[
+                    Finding(severity=Severity.BLOCKER, title="a", detail="a detail"),
+                    Finding(severity=Severity.BLOCKER, title="b", detail="b detail"),
+                    Finding(severity=Severity.NIT, title="c", detail="c detail"),
+                ],
+            )
+
+    node = review_issues(ScriptedClient())
+
+    node({"issues": [IssueContext(issue_a, [])], "reviews": [], "failures": []})
+
+    produced = next(
+        r
+        for r in caplog.records
+        if r.levelname == "DEBUG" and r.message == "review produced"
+    )
+    assert produced.context["finding_count"] == 3
+    assert produced.context["severity_counts"] == {"blocker": 2, "nit": 1}
+
+
 def test_review_issues_returns_one_review_per_issue(fake_client):
     issue_a = Issue("org/a", 1, "issue a", "body a", "2026-08-01T00:00:00Z")
     issue_b = Issue("org/b", 2, "issue b", "body b", "2026-08-01T00:00:00Z")
@@ -201,8 +248,8 @@ def test_review_issues_returns_one_review_per_issue(fake_client):
 
     assert result == {
         "reviews": [
-            Review(issue_a, fake_client.reply),
-            Review(issue_b, fake_client.reply),
+            Review(issue_a, DEFAULT_REVIEW_BODY),
+            Review(issue_b, DEFAULT_REVIEW_BODY),
         ],
         "failures": [],
     }
@@ -340,10 +387,13 @@ def test_review_issues_isolates_item_failure(fake_client):
             self.calls = 0
 
         def complete(self, messages):
+            return AIMessage(content="ok")
+
+        def complete_structured(self, messages, schema):
             self.calls += 1
             if self.calls == 3:
                 raise RuntimeError("model boom")
-            return AIMessage(content="ok")
+            return schema(summary="ok", findings=[])
 
     client = RaisingOnThirdClient()
     node = review_issues(client)
@@ -377,6 +427,9 @@ def test_review_issues_logs_failure_at_warning(caplog):
 
     class RaisingClient:
         def complete(self, messages):
+            return AIMessage(content="ok")
+
+        def complete_structured(self, messages, schema):
             raise RuntimeError("model boom")
 
     node = review_issues(RaisingClient())

@@ -594,6 +594,7 @@ dependencies = [
     { name = "httpx" },
     { name = "langchain-nvidia-ai-endpoints" },
     { name = "langgraph" },
+    { name = "pydantic" },
     { name = "pyjwt", extra = ["crypto"] },
     { name = "python-dotenv" },
 ]
@@ -611,6 +612,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "langchain-nvidia-ai-endpoints", specifier = ">=1.4.3" },
     { name = "langgraph", specifier = ">=1.2.10" },
+    { name = "pydantic", specifier = ">=2.13.4" },
     { name = "pyjwt", extras = ["crypto"], specifier = ">=2.13.0" },
     { name = "python-dotenv", specifier = ">=1.2.1" },
 ]

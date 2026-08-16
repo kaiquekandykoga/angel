@@ -1,11 +1,20 @@
 import logging
 
+import pytest
+from pydantic import ValidationError
+
 from nishikihebi.agents._shared import (
+    Finding,
+    IssueReviewOutput,
     ItemFailure,
+    PullRequestReviewOutput,
     Review,
+    Severity,
     last_review_at,
     post_review_comments,
     render_comments,
+    render_issue_review,
+    render_pull_request_review,
     review_marker,
     reviewed_sha,
 )
@@ -243,3 +252,148 @@ def test_post_review_comments_logs_failure_at_warning(fake_github, caplog):
         and r.context["error"] == "nope"
         for r in warning_records
     )
+
+
+def test_render_pull_request_review_with_file_and_line():
+    output = PullRequestReviewOutput(
+        summary="Looks mostly good.",
+        findings=[
+            Finding(
+                severity=Severity.BLOCKER,
+                title="Off-by-one",
+                detail="This loop bound is wrong.",
+                file="src/foo.py",
+                line=42,
+            )
+        ],
+    )
+
+    assert render_pull_request_review(output) == (
+        "Looks mostly good.\n\n"
+        "### Findings\n\n"
+        "**[blocker] Off-by-one** — `src/foo.py:42`\n"
+        "This loop bound is wrong."
+    )
+
+
+def test_render_pull_request_review_finding_with_file_but_no_line():
+    output = PullRequestReviewOutput(
+        summary="Summary.",
+        findings=[
+            Finding(
+                severity=Severity.MAJOR,
+                title="Missing test",
+                detail="No coverage for this branch.",
+                file="src/bar.py",
+            )
+        ],
+    )
+
+    assert render_pull_request_review(output) == (
+        "Summary.\n\n"
+        "### Findings\n\n"
+        "**[major] Missing test** — `src/bar.py`\n"
+        "No coverage for this branch."
+    )
+
+
+def test_render_pull_request_review_finding_with_neither_file_nor_line():
+    output = PullRequestReviewOutput(
+        summary="Summary.",
+        findings=[
+            Finding(
+                severity=Severity.NIT,
+                title="Naming",
+                detail="Consider a clearer name.",
+            )
+        ],
+    )
+
+    assert render_pull_request_review(output) == (
+        "Summary.\n\n### Findings\n\n**[nit] Naming**\nConsider a clearer name."
+    )
+
+
+def test_render_pull_request_review_multiple_findings_separated_by_blank_line():
+    output = PullRequestReviewOutput(
+        summary="Summary.",
+        findings=[
+            Finding(
+                severity=Severity.BLOCKER,
+                title="Title of the finding",
+                detail="Detail paragraph.",
+                file="path/to/file.py",
+                line=42,
+            ),
+            Finding(
+                severity=Severity.NIT,
+                title="Another one",
+                detail="Detail paragraph.",
+            ),
+        ],
+    )
+
+    assert render_pull_request_review(output) == (
+        "Summary.\n\n"
+        "### Findings\n\n"
+        "**[blocker] Title of the finding** — `path/to/file.py:42`\n"
+        "Detail paragraph.\n\n"
+        "**[nit] Another one**\n"
+        "Detail paragraph."
+    )
+
+
+def test_render_pull_request_review_empty_findings():
+    output = PullRequestReviewOutput(summary="All good.", findings=[])
+
+    assert render_pull_request_review(output) == "All good.\n\nNo findings."
+
+
+def test_render_issue_review_with_criteria_and_approach():
+    output = IssueReviewOutput(
+        summary="Reasonable issue.",
+        findings=[
+            Finding(
+                severity=Severity.MINOR,
+                title="Vague title",
+                detail="Could be more specific.",
+            )
+        ],
+        acceptance_criteria=["Does X", "Does Y"],
+        suggested_approach="Start by refactoring the parser.",
+    )
+
+    assert render_issue_review(output) == (
+        "Reasonable issue.\n\n"
+        "### Findings\n\n"
+        "**[minor] Vague title**\n"
+        "Could be more specific.\n\n"
+        "### Acceptance criteria\n\n"
+        "- Does X\n"
+        "- Does Y\n\n"
+        "### Suggested approach\n\n"
+        "Start by refactoring the parser."
+    )
+
+
+def test_render_issue_review_without_criteria_or_approach():
+    output = IssueReviewOutput(summary="Fine.", findings=[])
+
+    assert render_issue_review(output) == "Fine.\n\nNo findings."
+
+
+def test_finding_rejects_unknown_severity():
+    with pytest.raises(ValidationError):
+        Finding.model_validate({"severity": "critical", "title": "t", "detail": "d"})
+
+
+def test_finding_rejects_extra_field():
+    with pytest.raises(ValidationError):
+        Finding.model_validate(
+            {
+                "severity": Severity.MINOR,
+                "title": "t",
+                "detail": "d",
+                "unexpected": "nope",
+            }
+        )

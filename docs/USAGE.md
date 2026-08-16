@@ -76,6 +76,11 @@ on the PR, ending with a `<!-- nishikihebi: sha=<head sha> -->` marker. That mar
 only state the bot keeps: it records which head was reviewed, on the PR itself. Deleting it
 from a comment makes the next run review that PR again.
 
+The comment is rendered from a validated schema, not pasted from the model: a summary
+paragraph, then one bold entry per finding tagged `[blocker]`, `[major]`, `[minor]`, or
+`[nit]` and pointing at a file and line where the diff makes that clear. A reply that does
+not fit the schema is a failure for that PR — nothing is posted — and the run moves on.
+
 > **The label is created for you.** Every scanned repository gets a pink `nishikihebi` label
 > if it lacks one — including repositories you never meant to review. Install the App only
 > where you want that.
@@ -89,7 +94,8 @@ uv run nishikihebi issue_review [--dry-run]
 The same pass over open issues labeled `nishikihebi`. An issue is reviewed when the bot has
 never commented on it, or when the issue's `updated_at` is newer than that last comment —
 which covers an edited description and new comments alike. The label caveat above applies
-here too.
+here too. The comment follows the same rendered-from-schema shape, with two extra sections:
+proposed acceptance criteria and a suggested approach.
 
 ## Options
 
@@ -106,7 +112,12 @@ comment. Each review body is printed instead:
 
 ```
 --- owner/repo#12 ---
-The change looks correct, but the new branch in `parse()` is untested …
+The change looks correct, but one branch is untested.
+
+### Findings
+
+**[major] New branch in `parse()` is untested** — `src/parse.py:42`
+The early return added here is not covered by any case in `tests/test_parse.py`.
 ```
 
 Every suppressed write is also logged; see [`LOGS.md`](LOGS.md). Exit codes are unchanged —

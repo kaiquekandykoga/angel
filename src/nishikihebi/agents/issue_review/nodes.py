@@ -1,13 +1,14 @@
 import logging
-from typing import cast
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from nishikihebi.agents._shared import (
+    IssueReviewOutput,
     ItemFailure,
     Review,
     last_review_at,
     render_comments,
+    render_issue_review,
 )
 from nishikihebi.agents.issue_review.prompts import REVIEW_SYSTEM_PROMPT
 from nishikihebi.agents.issue_review.state import IssueContext, IssueReviewState
@@ -154,8 +155,13 @@ def review_issues(client: LlmClient):
                         }
                     },
                 )
-                ai_message = client.complete(messages)
-                review_body = cast("str", ai_message.content)
+                output = client.complete_structured(messages, IssueReviewOutput)
+                review_body = render_issue_review(output)
+                severity_counts: dict[str, int] = {}
+                for finding in output.findings:
+                    severity_counts[finding.severity.value] = (
+                        severity_counts.get(finding.severity.value, 0) + 1
+                    )
                 logger.debug(
                     "review produced",
                     extra={
@@ -163,6 +169,8 @@ def review_issues(client: LlmClient):
                             "repository": issue.repository,
                             "number": issue.number,
                             "review": review_body,
+                            "finding_count": len(output.findings),
+                            "severity_counts": severity_counts,
                         }
                     },
                 )

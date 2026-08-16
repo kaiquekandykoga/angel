@@ -28,8 +28,10 @@ and output is published under the App's identity. A crafted PR can post fabricat
 links signed `kandy-nishikihebi[bot]` on every watched repo.
 **Do:** (1) fence untrusted fields (`<untrusted_pull_request_body>…`) and declare fenced content as
 data, never instructions; (2) refusal clause — never follow reviewed-content instructions, claim
-approval authority, or emit links absent from the diff; (3) validate before posting — length cap,
-strip external links, reject non-review-shaped output (this is the layer that actually saves you);
+approval authority, or emit links absent from the diff; (3) validate before posting — reviews now
+arrive as `PullRequestReviewOutput` / `IssueReviewOutput`, so the shape check is done; enforce the
+length cap and strip external links in `render_*_review` (this is the layer that actually saves
+you);
 (4) keep App permissions comments-only; (5) footer: "Automated review by nishikihebi — not a human
 approval."
 **Done when:** an injection fixture produces no policy-violating comment, enforced by a test on the
@@ -151,11 +153,6 @@ resume — `SqliteSaver` locally, `PostgresSaver` deployed. Durable execution is
 be on LangGraph at all. Chat uses `MemorySaver`, so conversations die with the process;
 `SqliteSaver` + `--thread-id` makes them resumable cheaply.
 
-### Structured output for reviews
-`cast("str", ai_message.content)` is trusted blindly. `.with_structured_output(ReviewSchema)` gives
-summary/severity/per-file findings, letting you render the comment, enforce length, and drop
-disallowed links (the P0 validation layer) without touching the prompt.
-
 ### Streaming chat REPL
 `session.ask()` blocks for the full reply. `graph.stream(..., stream_mode="messages")` — small
 change, biggest perceived-quality delta here.
@@ -177,7 +174,9 @@ A/B path. Add a version constant per prompt and log it per run so a trace ties b
 ### Make model choice configurable
 `NVIDIA_MODEL` is a module constant; silent model swaps are a leading cause of "it used to work".
 Make it configurable, log it per run, pin it. `NVIDIA_MAX_COMPLETION_TOKENS = 1024` is low for a
-thorough review and truncates mid-sentence on large diffs — raise it for the review path.
+thorough review and truncates mid-sentence on large diffs — tighter still now that the review path
+spends part of that budget on structured-output JSON, where a truncation is a validation error and
+loses the whole review. Raise it for the review path.
 
 ### Fix the listing inefficiencies
 - `list_open_pull_requests` filters by label client-side (github.py:196) while `list_open_issues`
