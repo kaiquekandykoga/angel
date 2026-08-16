@@ -584,11 +584,34 @@ def test_main_exits_on_unknown_command():
         nishikihebi.__main__.main(["bogus"])
 
 
-def test_main_exits_when_no_command_given():
-    with pytest.raises(
-        SystemExit, match="Valid commands: chat, pr_review, issue_review"
-    ):
+def test_main_no_args_matches_top_level_help(capsys):
+    with pytest.raises(SystemExit):
+        nishikihebi.__main__.main(["--help"])
+    from_flag = capsys.readouterr().out
+
+    with pytest.raises(SystemExit) as excinfo:
         nishikihebi.__main__.main([])
+    from_no_args = capsys.readouterr().out
+
+    assert excinfo.value.code == 0
+    assert from_flag == from_no_args
+
+
+def test_main_no_args_builds_nothing(monkeypatch, capsys):
+    def fail(*args, **kwargs):
+        raise AssertionError("should not be called")
+
+    monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", fail)
+    monkeypatch.setattr(nishikihebi.__main__, "build_github_client", fail)
+    monkeypatch.setattr(nishikihebi.__main__, "configure_logging", fail)
+
+    with pytest.raises(SystemExit):
+        nishikihebi.__main__.main([])
+
+
+def test_main_exits_when_only_a_flag_given():
+    with pytest.raises(SystemExit, match="Unknown command: --dry-run"):
+        nishikihebi.__main__.main(["--dry-run"])
 
 
 def test_main_exits_when_too_many_arguments_given():

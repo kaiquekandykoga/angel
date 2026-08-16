@@ -160,7 +160,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     )
     parser = _build_parser(unknown_command_message)
 
-    if argv[:1] == ["help"]:
+    if not argv or argv[:1] == ["help"]:
         rest = argv[1:]
         if not rest:
             parser.parse_args(["--help"])

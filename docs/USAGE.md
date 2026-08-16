@@ -102,7 +102,7 @@ proposed acceptance criteria and a suggested approach.
 | Option | Works with | Effect |
 |---|---|---|
 | `--dry-run` | `pr_review`, `issue_review` | Print each review to stdout and make zero GitHub writes |
-| `--help` | every command, and on its own | Print usage and exit `0` |
+| `--help` | every command, and on its own | Print usage and exit `0` — also what a bare `uv run nishikihebi` does |
 
 ### `--dry-run`
 
@@ -143,8 +143,10 @@ options:
   --dry-run   Print each review to stdout and make zero GitHub writes
 ```
 
-`uv run nishikihebi --help`, or a bare `help`, lists the three commands instead. `help` with
-an unknown name exits `1` with the usual `Unknown command: …`.
+`uv run nishikihebi --help`, a bare `help`, or `uv run nishikihebi` with no arguments at all
+lists the three commands instead — the same output and the same exit `0` from each. Naming
+something that is not a command still exits `1` with the usual `Unknown command: …`, whether
+it is `uv run nishikihebi bogus` or `uv run nishikihebi help bogus`.
 
 ## Output and exit codes
 
