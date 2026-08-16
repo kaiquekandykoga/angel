@@ -60,7 +60,7 @@ Reference it from `pyproject.toml` (`license`).
 `Retry-After` / `x-ratelimit-reset` and sleeping. `tenacity` is the usual backoff dependency.
 
 ### Expire and refresh installation tokens
-**Where:** `clients/github.py::InstallationTokenProvider.tokens` (~71)
+**Where:** `clients/github.py::InstallationTokenProvider.tokens` (~94)
 **Why:** tokens are cached per repo forever; GitHub installation tokens live 1 hour, so a long run
 401s halfway through with no recovery.
 **Do:** store `(token, expires_at)`, treat as expired ~5 min early, re-mint; invalidate and retry
@@ -108,7 +108,7 @@ and are merely polling — and they mostly dissolve the freshness heuristics. Ei
 `Dockerfile` (~15 lines on `ghcr.io/astral-sh/uv` with `uv.lock`).
 
 ### Make `ensure_label` opt-in
-**Where:** `agents/{issue,pr}_review/nodes.py:24`
+**Where:** `agents/{issue,pr}_review/nodes.py:33`
 **Why:** the label is created in every repo on every run — two wasted calls per repo per run, and
 installing the App to review *one* repo silently adds a pink label to all of them, a least-surprise
 violation that gets Apps uninstalled in orgs.
@@ -127,7 +127,7 @@ Partial failures now exit non-zero, so a scheduler alerts for free — but nothi
 reviews-posted / items-skipped / API-errors / tokens-used anywhere a dashboard can read.
 
 ### Re-review a PR on its pushed head, not its commit date
-**Where:** `agents/pr_review/nodes.py:41-46`, `clients/github.py::fetch_commit_date` (185)
+**Where:** `agents/pr_review/nodes.py:53-59`, `clients/github.py::fetch_commit_date` (210)
 **Why:** freshness is `fetch_commit_date(head_sha) > last_review`, but that is the git *committer*
 date baked into the commit, not push time. Commit Monday, reviewed Wednesday, pushed Friday → the
 head's date predates the last review and the PR is silently never reviewed again; force-pushing to
@@ -148,7 +148,7 @@ enable Dependabot or Renovate for the lockfile.
 ## P2
 
 ### Build an eval harness for review quality
-**Why:** all 99 tests assert plumbing; zero assert review quality — so the prompt, the component
+**Why:** all 145 tests assert plumbing; zero assert review quality — so the prompt, the component
 with the most influence on whether this is good, is the only one with no regression protection.
 **Do:** 10–20 fixture PRs/issues with known findings (planted bug, missing test, ambiguous
 requirement) and an LLM-as-judge rubric (found it? specific? hallucinated files?). Run via
@@ -196,7 +196,7 @@ Make it configurable, log it per run, pin it. `NVIDIA_MAX_COMPLETION_TOKENS = 10
 thorough review and truncates mid-sentence on large diffs — raise it for the review path.
 
 ### Fix the listing inefficiencies
-- `list_open_pull_requests` filters by label client-side (github.py:171) while `list_open_issues`
+- `list_open_pull_requests` filters by label client-side (github.py:196) while `list_open_issues`
   filters server-side — inconsistent, and the PR path downloads far more than it needs.
 - The whole repo loop could be one `GET /search/issues?q=is:open+label:nishikihebi+is:pr` instead
   of 2 + 2N requests. Worth it past a handful of repos.
@@ -211,12 +211,25 @@ past its own `created_at`, an undocumented GitHub timing detail.
 (`<!-- nishikihebi: sha=… -->`). Most review bots use the marker: it keeps state in the only place
 guaranteed to survive, the issue itself.
 
+### De-duplicate the pr_review/issue_review node pairs
+**Where:** `agents/pr_review/nodes.py`, `agents/issue_review/nodes.py`
+**Why:** `fetch_pull_requests`/`fetch_issues` and `review_pull_requests`/`review_issues` are ~90%
+identical line-for-line — same try/except nesting, logging shape, and failure bookkeeping, differing
+only in field names and the freshness check. Any fix to error handling or logging has to be made
+twice and can silently drift (the two freshness checks already diverge more than the domain
+requires).
+**Do:** extract the shared shape into a generic `_fetch_labeled_items` / `_review_items` helper
+parameterized by small per-agent functions (list call, freshness predicate, prompt renderer),
+keeping PR- and issue-specific bits injected rather than copy-pasted.
+**Done when:** the fetch/review control flow exists once, with PR- and issue-specific behavior
+isolated to injected functions, and both agents' existing tests pass unchanged in intent.
+
 ### Human-in-the-loop approval
 `interrupt()` gives a `--require-approval` mode pausing before posting — genuinely useful for a bot
 commenting publicly under your identity.
 
 ### Fail with a message, not a traceback
-**Where:** `__main__.py:64-75`, `agents/chat/repl.py:35-39`
+**Where:** `__main__.py:111-115`, `agents/chat/repl.py:35-39`
 **Why:** `main()` catches only `MissingApiKeyError` and `MissingGitHubCredentialsError`. A typo in
 `NISHIKIHEBI_GITHUB_PRIVATE_KEY_PATH` isn't a missing variable, so `build_github_client`
 (github.py:249) raises bare `FileNotFoundError`; an expired key gives `httpx.HTTPStatusError`. Both
@@ -229,7 +242,7 @@ logging with `exc_info` and exiting via `sys.exit(message)`; catch `KeyboardInte
 Ctrl-C in the REPL returns cleanly.
 
 ### Close the `httpx.Client`
-`build_github_client` (github.py:233) creates a client nobody closes — harmless for a short-lived
+`build_github_client` (github.py:324) creates a client nobody closes — harmless for a short-lived
 CLI, a leak in anything long-running, and a `ResourceWarning` once warnings are enabled in tests.
 
 ### Typing and lint strictness
