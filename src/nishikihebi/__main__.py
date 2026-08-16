@@ -16,7 +16,12 @@ from nishikihebi.clients.github import (
     MissingGitHubCredentialsError,
     build_github_client,
 )
-from nishikihebi.clients.llm import LlmClient, MissingApiKeyError, build_llm_client
+from nishikihebi.clients.llm import (
+    InvalidMaxCompletionTokensError,
+    LlmClient,
+    MissingApiKeyError,
+    build_llm_client,
+)
 from nishikihebi.logs import configure_logging
 
 COMMANDS = ("chat", "pr_review", "issue_review")
@@ -189,7 +194,11 @@ def main(argv: Sequence[str] | None = None) -> None:
     try:
         client = build_llm_client()
         github = None if command == "chat" else build_github_client()
-    except (MissingApiKeyError, MissingGitHubCredentialsError) as error:
+    except (
+        MissingApiKeyError,
+        InvalidMaxCompletionTokensError,
+        MissingGitHubCredentialsError,
+    ) as error:
         sys.exit(str(error))
 
     if github is None:

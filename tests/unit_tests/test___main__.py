@@ -10,7 +10,7 @@ from nishikihebi.clients.github import (
     MissingGitHubCredentialsError,
     PullRequest,
 )
-from nishikihebi.clients.llm import MissingApiKeyError
+from nishikihebi.clients.llm import InvalidMaxCompletionTokensError, MissingApiKeyError
 
 
 def test_main_exits_when_api_key_missing(monkeypatch):
@@ -20,6 +20,23 @@ def test_main_exits_when_api_key_missing(monkeypatch):
         raise MissingApiKeyError(message)
 
     monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", raise_missing_api_key)
+
+    with pytest.raises(SystemExit, match=re.escape(message)):
+        nishikihebi.__main__.main(["chat"])
+
+
+def test_main_exits_when_max_completion_tokens_invalid(monkeypatch):
+    message = (
+        "NISHIKIHEBI_NVIDIA_MAX_COMPLETION_TOKENS must be a positive integer, "
+        "got 'not-a-number'."
+    )
+
+    def raise_invalid_max_completion_tokens():
+        raise InvalidMaxCompletionTokensError(message)
+
+    monkeypatch.setattr(
+        nishikihebi.__main__, "build_llm_client", raise_invalid_max_completion_tokens
+    )
 
     with pytest.raises(SystemExit, match=re.escape(message)):
         nishikihebi.__main__.main(["chat"])

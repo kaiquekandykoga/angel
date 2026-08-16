@@ -176,8 +176,8 @@ A/B path. Add a version constant per prompt and log it per run so a trace ties b
 
 ### Make model choice configurable
 `NVIDIA_MODEL` is a module constant; silent model swaps are a leading cause of "it used to work".
-Make it configurable, log it per run, pin it. `NVIDIA_MAX_COMPLETION_TOKENS` is a module constant
-too, and belongs in the same knob.
+Make it configurable, log it per run, pin it — the completion ceiling next to it already reads
+from the environment, so follow that shape.
 
 ### Fix the listing inefficiencies
 - `list_open_pull_requests` filters by label client-side (github.py:196) while `list_open_issues`

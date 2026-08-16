@@ -191,9 +191,10 @@ Copy `.env.example` to `.env` and fill in these variables.
 | `NISHIKIHEBI_NVIDIA_API_KEY` | all three commands | NVIDIA API key from https://build.nvidia.com — used for every model call. |
 | `NISHIKIHEBI_GITHUB_APP_ID` | `pr_review`, `issue_review` | ID of the GitHub App to authenticate as. |
 | `NISHIKIHEBI_GITHUB_PRIVATE_KEY_PATH` | `pr_review`, `issue_review` | Path to that App's private key (`.pem`). |
+| `NISHIKIHEBI_NVIDIA_MAX_COMPLETION_TOKENS` | optional, all three commands | Output tokens allowed per model call, default `32768`. Counts the model's reasoning as well as its answer, so a value sized to the review text alone truncates the reply mid-object and the item fails. A non-integer or non-positive value exits `1` rather than falling back to the default. |
 
-A missing variable exits `1` with `<NAME> environment variable is not set.` before any work
-starts. `.env` is loaded automatically and searched from the current directory *upward*, so
+A missing *required* variable exits `1` with `<NAME> environment variable is not set.` before
+any work starts. `.env` is loaded automatically and searched from the current directory *upward*, so
 run the commands from the project root; an already-exported shell variable takes precedence
 over the file.
 

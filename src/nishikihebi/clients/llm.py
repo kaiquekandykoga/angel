@@ -21,19 +21,24 @@ class MissingApiKeyError(RuntimeError):
     pass
 
 
+class InvalidMaxCompletionTokensError(RuntimeError):
+    pass
+
+
 class TruncatedCompletionError(RuntimeError):
     pass
 
 
 NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"
-NVIDIA_MODEL = "nvidia/nemotron-3-super-120b-a12b"
-NVIDIA_MAX_COMPLETION_TOKENS = 8192
+NVIDIA_MODEL = "nvidia/nemotron-3-ultra-550b-a55b"
+NVIDIA_MAX_COMPLETION_TOKENS_DEFAULT = 32768
 NVIDIA_TIMEOUT_SECONDS = 300
 
 
 class NvidiaClient:
-    def __init__(self, chat_model: BaseChatModel) -> None:
+    def __init__(self, chat_model: BaseChatModel, max_completion_tokens: int) -> None:
         self.chat_model = chat_model
+        self.max_completion_tokens = max_completion_tokens
 
     def complete(self, messages: Sequence[BaseMessage]) -> AIMessage:
         return cast("AIMessage", self.chat_model.invoke(list(messages)))
@@ -55,9 +60,18 @@ class NvidiaClient:
             ).invoke(list(messages)),
         )
         if reply.response_metadata.get("finish_reason") == "length":
+            usage = reply.usage_metadata
+            usage_str = (
+                f"input_tokens={usage['input_tokens']}, "
+                f"output_tokens={usage['output_tokens']}, "
+                f"total_tokens={usage['total_tokens']}"
+                if usage is not None
+                else "usage metadata unavailable"
+            )
             raise TruncatedCompletionError(
                 f"Completion for schema {schema.__name__!r} was truncated: "
-                "the model hit the max_completion_tokens limit."
+                f"the model hit the max_completion_tokens limit of "
+                f"{self.max_completion_tokens} ({usage_str})."
             )
         if not isinstance(reply.content, str):
             raise ValueError(
@@ -74,11 +88,28 @@ def build_llm_client() -> LlmClient:
             "NISHIKIHEBI_NVIDIA_API_KEY environment variable is not set."
         )
 
+    max_completion_tokens_raw = load_env_var("NISHIKIHEBI_NVIDIA_MAX_COMPLETION_TOKENS")
+    if not max_completion_tokens_raw:
+        max_completion_tokens = NVIDIA_MAX_COMPLETION_TOKENS_DEFAULT
+    else:
+        try:
+            max_completion_tokens = int(max_completion_tokens_raw)
+        except ValueError as error:
+            raise InvalidMaxCompletionTokensError(
+                "NISHIKIHEBI_NVIDIA_MAX_COMPLETION_TOKENS must be a positive "
+                f"integer, got {max_completion_tokens_raw!r}."
+            ) from error
+        if max_completion_tokens <= 0:
+            raise InvalidMaxCompletionTokensError(
+                "NISHIKIHEBI_NVIDIA_MAX_COMPLETION_TOKENS must be a positive "
+                f"integer, got {max_completion_tokens_raw!r}."
+            )
+
     chat_model = ChatNVIDIA(
         base_url=NVIDIA_BASE_URL,
         api_key=api_key,
         model=NVIDIA_MODEL,
-        max_completion_tokens=NVIDIA_MAX_COMPLETION_TOKENS,
+        max_completion_tokens=max_completion_tokens,
         timeout=NVIDIA_TIMEOUT_SECONDS,
     )
-    return NvidiaClient(chat_model)
+    return NvidiaClient(chat_model, max_completion_tokens)

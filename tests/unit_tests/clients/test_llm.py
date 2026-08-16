@@ -7,6 +7,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 from pydantic import BaseModel, ValidationError
 
 from nishikihebi.clients.llm import (
+    InvalidMaxCompletionTokensError,
     MissingApiKeyError,
     NvidiaClient,
     TruncatedCompletionError,
@@ -60,7 +61,7 @@ class FakeChatModel:
 
 def test_complete_forwards_messages_and_returns_ai_message():
     chat_model = FakeChatModel(reply="hi there")
-    client = NvidiaClient(cast("BaseChatModel", chat_model))
+    client = NvidiaClient(cast("BaseChatModel", chat_model), max_completion_tokens=8192)
 
     messages = [HumanMessage(content="hello"), AIMessage(content="hey")]
     result = client.complete(messages)
@@ -72,7 +73,7 @@ def test_complete_forwards_messages_and_returns_ai_message():
 
 def test_complete_forwards_system_messages():
     chat_model = FakeChatModel(reply="hi there")
-    client = NvidiaClient(cast("BaseChatModel", chat_model))
+    client = NvidiaClient(cast("BaseChatModel", chat_model), max_completion_tokens=8192)
 
     messages = [
         SystemMessage(content="be nice"),
@@ -89,7 +90,7 @@ def test_complete_structured_binds_json_schema_response_format_and_returns_model
         content='{"text": "hi"}', response_metadata={"finish_reason": "stop"}
     )
     chat_model = FakeChatModel(reply="unused", bound_reply=reply)
-    client = NvidiaClient(cast("BaseChatModel", chat_model))
+    client = NvidiaClient(cast("BaseChatModel", chat_model), max_completion_tokens=8192)
 
     messages = [HumanMessage(content="hello")]
     result = client.complete_structured(messages, Answer)
@@ -111,13 +112,39 @@ def test_complete_structured_binds_json_schema_response_format_and_returns_model
 
 def test_complete_structured_raises_truncated_error_when_finish_reason_is_length():
     reply = AIMessage(
+        content='{"text": "hi"}',
+        response_metadata={"finish_reason": "length"},
+        usage_metadata={
+            "input_tokens": 3015,
+            "output_tokens": 8192,
+            "total_tokens": 11207,
+        },
+    )
+    chat_model = FakeChatModel(reply="unused", bound_reply=reply)
+    client = NvidiaClient(cast("BaseChatModel", chat_model), max_completion_tokens=8192)
+
+    with pytest.raises(TruncatedCompletionError, match="Answer") as excinfo:
+        client.complete_structured([HumanMessage(content="hello")], Answer)
+
+    message = str(excinfo.value)
+    assert "8192" in message
+    assert "3015" in message
+    assert "11207" in message
+
+
+def test_complete_structured_truncated_error_handles_missing_usage_metadata():
+    reply = AIMessage(
         content='{"text": "hi"}', response_metadata={"finish_reason": "length"}
     )
     chat_model = FakeChatModel(reply="unused", bound_reply=reply)
-    client = NvidiaClient(cast("BaseChatModel", chat_model))
+    client = NvidiaClient(cast("BaseChatModel", chat_model), max_completion_tokens=8192)
 
-    with pytest.raises(TruncatedCompletionError, match="Answer"):
+    with pytest.raises(TruncatedCompletionError, match="Answer") as excinfo:
         client.complete_structured([HumanMessage(content="hello")], Answer)
+
+    message = str(excinfo.value)
+    assert "None" not in message
+    assert "8192" in message
 
 
 def test_complete_structured_propagates_validation_error_for_json_not_matching_schema():
@@ -125,7 +152,7 @@ def test_complete_structured_propagates_validation_error_for_json_not_matching_s
         content='{"wrong": "field"}', response_metadata={"finish_reason": "stop"}
     )
     chat_model = FakeChatModel(reply="unused", bound_reply=reply)
-    client = NvidiaClient(cast("BaseChatModel", chat_model))
+    client = NvidiaClient(cast("BaseChatModel", chat_model), max_completion_tokens=8192)
 
     with pytest.raises(ValidationError):
         client.complete_structured([HumanMessage(content="hello")], Answer)
@@ -134,18 +161,16 @@ def test_complete_structured_propagates_validation_error_for_json_not_matching_s
 def test_complete_structured_propagates_validation_error_for_non_json_content():
     reply = AIMessage(content="not json", response_metadata={"finish_reason": "stop"})
     chat_model = FakeChatModel(reply="unused", bound_reply=reply)
-    client = NvidiaClient(cast("BaseChatModel", chat_model))
+    client = NvidiaClient(cast("BaseChatModel", chat_model), max_completion_tokens=8192)
 
     with pytest.raises(ValidationError):
         client.complete_structured([HumanMessage(content="hello")], Answer)
 
 
 def test_complete_structured_raises_value_error_when_content_is_not_a_string():
-    reply = AIMessage(
-        content=["a", "b"], response_metadata={"finish_reason": "stop"}
-    )
+    reply = AIMessage(content=["a", "b"], response_metadata={"finish_reason": "stop"})
     chat_model = FakeChatModel(reply="unused", bound_reply=reply)
-    client = NvidiaClient(cast("BaseChatModel", chat_model))
+    client = NvidiaClient(cast("BaseChatModel", chat_model), max_completion_tokens=8192)
 
     with pytest.raises(ValueError, match="Answer"):
         client.complete_structured([HumanMessage(content="hello")], Answer)
@@ -154,7 +179,7 @@ def test_complete_structured_raises_value_error_when_content_is_not_a_string():
 def test_complete_structured_propagates_errors_from_the_model_call():
     error = ValueError("bad output")
     chat_model = FakeChatModel(reply="unused", bound_error=error)
-    client = NvidiaClient(cast("BaseChatModel", chat_model))
+    client = NvidiaClient(cast("BaseChatModel", chat_model), max_completion_tokens=8192)
 
     with pytest.raises(ValueError, match="bad output"):
         client.complete_structured([HumanMessage(content="hello")], Answer)
@@ -168,7 +193,8 @@ def test_build_llm_client_constructs_chat_nvidia_with_expected_kwargs(monkeypatc
             captured_kwargs.update(kwargs)
 
     monkeypatch.setattr("nishikihebi.clients.llm.ChatNVIDIA", FakeChatNVIDIA)
-    monkeypatch.setattr("nishikihebi.clients.llm.load_env_var", lambda name: "test-key")
+    env = {"NISHIKIHEBI_NVIDIA_API_KEY": "test-key"}
+    monkeypatch.setattr("nishikihebi.clients.llm.load_env_var", env.get)
 
     client = build_llm_client()
 
@@ -177,14 +203,64 @@ def test_build_llm_client_constructs_chat_nvidia_with_expected_kwargs(monkeypatc
     assert captured_kwargs == {
         "base_url": "https://integrate.api.nvidia.com/v1",
         "api_key": "test-key",
-        "model": "nvidia/nemotron-3-super-120b-a12b",
-        "max_completion_tokens": 8192,
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "max_completion_tokens": 32768,
         "timeout": 300,
     }
+    assert client.max_completion_tokens == 32768
 
 
 def test_build_llm_client_raises_when_api_key_missing(monkeypatch):
     monkeypatch.setattr("nishikihebi.clients.llm.load_env_var", lambda name: None)
 
     with pytest.raises(MissingApiKeyError, match="NISHIKIHEBI_NVIDIA_API_KEY"):
+        build_llm_client()
+
+
+def test_build_llm_client_uses_max_completion_tokens_override(monkeypatch):
+    captured_kwargs = {}
+
+    class FakeChatNVIDIA:
+        def __init__(self, **kwargs):
+            captured_kwargs.update(kwargs)
+
+    monkeypatch.setattr("nishikihebi.clients.llm.ChatNVIDIA", FakeChatNVIDIA)
+    env = {
+        "NISHIKIHEBI_NVIDIA_API_KEY": "test-key",
+        "NISHIKIHEBI_NVIDIA_MAX_COMPLETION_TOKENS": "16000",
+    }
+    monkeypatch.setattr("nishikihebi.clients.llm.load_env_var", env.get)
+
+    client = build_llm_client()
+
+    assert isinstance(client, NvidiaClient)
+    assert captured_kwargs["max_completion_tokens"] == 16000
+    assert client.max_completion_tokens == 16000
+
+
+def test_build_llm_client_raises_when_max_completion_tokens_not_an_integer(monkeypatch):
+    env = {
+        "NISHIKIHEBI_NVIDIA_API_KEY": "test-key",
+        "NISHIKIHEBI_NVIDIA_MAX_COMPLETION_TOKENS": "not-a-number",
+    }
+    monkeypatch.setattr("nishikihebi.clients.llm.load_env_var", env.get)
+
+    with pytest.raises(
+        InvalidMaxCompletionTokensError,
+        match="NISHIKIHEBI_NVIDIA_MAX_COMPLETION_TOKENS",
+    ):
+        build_llm_client()
+
+
+def test_build_llm_client_raises_when_max_completion_tokens_not_positive(monkeypatch):
+    env = {
+        "NISHIKIHEBI_NVIDIA_API_KEY": "test-key",
+        "NISHIKIHEBI_NVIDIA_MAX_COMPLETION_TOKENS": "0",
+    }
+    monkeypatch.setattr("nishikihebi.clients.llm.load_env_var", env.get)
+
+    with pytest.raises(
+        InvalidMaxCompletionTokensError,
+        match="NISHIKIHEBI_NVIDIA_MAX_COMPLETION_TOKENS",
+    ):
         build_llm_client()
