@@ -44,10 +44,6 @@ validation layer.
 lets you drop whole files instead of truncating mid-hunk.
 **Done when:** an oversized fixture diff is truncated with a marker rather than sent whole.
 
-### Add a `LICENSE`
-Without one the code is legally "all rights reserved". One file; highest signal-per-byte item here.
-Reference it from `pyproject.toml` (`license`).
-
 ---
 
 ## P1
@@ -260,7 +256,7 @@ CLI, a leak in anything long-running, and a `ResourceWarning` once warnings are 
 ### Packaging and repo polish
 - **Rename `__ci__.py`** — dunder names are conventionally the runtime's (`__main__`, `__init__`).
   `tasks.py`, `scripts/ci.py`, or a `Makefile`/`justfile` target is expected.
-- **Thin `pyproject.toml` metadata** — no `license`, `classifiers`, `[project.urls]`, keywords.
+- **Thin `pyproject.toml` metadata** — no `classifiers`, `[project.urls]`, keywords.
 - **Static `0.1.0`** with no tags, no `CHANGELOG.md`, no `--version`. Pick SemVer or CalVer and tag.
 - **Inaccurate description** — "Multi-Agent System using Python" is three linear single-agent
   graphs. Fix it, or build toward it (a planner/critic split would be genuine multi-agent).
@@ -274,4 +270,4 @@ CLI, a leak in anything long-running, and a `ResourceWarning` once warnings are 
   omission — and note that a second contributor ends "green on my machine".
 - **No limitations section in `README.md`.** `GRAPHS.md`, `LOGS.md`, and `USAGE.md` each carry a
   "Known gaps"; the entry point doesn't, so a reader opens three files to learn there is no
-  rate-limit handling. Add a short one, plus a LICENSE badge.
+  rate-limit handling. Add a short one.
