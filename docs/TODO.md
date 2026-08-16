@@ -44,11 +44,6 @@ validation layer.
 lets you drop whole files instead of truncating mid-hunk.
 **Done when:** an oversized fixture diff is truncated with a marker rather than sent whole.
 
-### Add `--dry-run`
-**Where:** `__main__.py`, `agents/_shared.py::post_review_comments`
-**Why:** no way to test against real repositories without commenting on them.
-**Done when:** `nishikihebi pr_review --dry-run` prints reviews and makes zero write calls.
-
 ### Add a `LICENSE`
 Without one the code is legally "all rights reserved". One file; highest signal-per-byte item here.
 Reference it from `pyproject.toml` (`license`).
@@ -124,8 +119,8 @@ to review here".
 **Where:** `__main__.py`
 **Why:** `main()` is `if len(argv) != 1 or argv[0] not in COMMANDS`. No `--help`, no `--version`,
 no flags.
-**Do:** `argparse` or `typer`, then add `--dry-run` (P0), `--repo owner/name`, `--limit N`,
-`--log-level`, `--log-file`, `--version`.
+**Do:** `argparse` or `typer`, folding in the hand-parsed `--dry-run`, then add
+`--repo owner/name`, `--limit N`, `--log-level`, `--log-file`, `--version`.
 
 ### Emit run metrics
 Partial failures now exit non-zero, so a scheduler alerts for free — but nothing emits

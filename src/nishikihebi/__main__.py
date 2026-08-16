@@ -2,13 +2,14 @@ import logging
 import sys
 from collections.abc import Sequence
 
-from nishikihebi.agents._shared import ItemFailure
+from nishikihebi.agents._shared import ItemFailure, Review
 from nishikihebi.agents.chat import repl
 from nishikihebi.agents.chat.graph import build_chat_graph
 from nishikihebi.agents.chat.repl import start_session
 from nishikihebi.agents.issue_review.graph import build_issue_review_graph
 from nishikihebi.agents.pr_review.graph import build_pr_review_graph
 from nishikihebi.clients.github import (
+    DryRunGitHubClient,
     GitHubClient,
     MissingGitHubCredentialsError,
     build_github_client,
@@ -48,41 +49,63 @@ def report_failures(failures: list[ItemFailure], succeeded: int) -> None:
     sys.exit(f"{len(failures)} of {total} items failed")
 
 
-def run_pr_review(client: LlmClient, github: GitHubClient) -> None:
+def _print_review(review: Review, dry_run: bool) -> None:
+    target = review.target
+    if dry_run:
+        print(f"--- {target.repository}#{target.number} ---")
+        print(review.body)
+    else:
+        print(f"Commented on {target.repository}#{target.number}")
+
+
+def run_pr_review(
+    client: LlmClient, github: GitHubClient, dry_run: bool = False
+) -> None:
     graph = build_pr_review_graph(client, github)
     result = graph.invoke({"pull_requests": [], "reviews": [], "failures": []})
     if not result["reviews"]:
         print("No pull requests to review")
     else:
         for review in result["reviews"]:
-            pull_request = review.target
-            print(f"Commented on {pull_request.repository}#{pull_request.number}")
+            _print_review(review, dry_run)
     report_failures(result["failures"], len(result["reviews"]))
 
 
-def run_issue_review(client: LlmClient, github: GitHubClient) -> None:
+def run_issue_review(
+    client: LlmClient, github: GitHubClient, dry_run: bool = False
+) -> None:
     graph = build_issue_review_graph(client, github)
     result = graph.invoke({"issues": [], "reviews": [], "failures": []})
     if not result["reviews"]:
         print("No issues to review")
     else:
         for review in result["reviews"]:
-            issue = review.target
-            print(f"Commented on {issue.repository}#{issue.number}")
+            _print_review(review, dry_run)
     report_failures(result["failures"], len(result["reviews"]))
 
 
 def main(argv: Sequence[str] | None = None) -> None:
     argv = list(sys.argv[1:] if argv is None else argv)
-    if len(argv) != 1 or argv[0] not in COMMANDS:
+    dry_run = "--dry-run" in argv
+    remaining = [arg for arg in argv if arg != "--dry-run"]
+    if len(remaining) != 1 or remaining[0] not in COMMANDS:
         given = " ".join(argv) or "(none)"
         sys.exit(f"Unknown command: {given}. Valid commands: {', '.join(COMMANDS)}")
 
-    command = argv[0]
+    command = remaining[0]
+    if dry_run and command == "chat":
+        sys.exit("--dry-run is not valid for chat: chat makes no GitHub writes")
+
     log_path = configure_logging()
     logger.info(
         f"running {command}",
-        extra={"context": {"command": command, "log_path": str(log_path)}},
+        extra={
+            "context": {
+                "command": command,
+                "log_path": str(log_path),
+                "dry_run": dry_run,
+            }
+        },
     )
 
     try:
@@ -93,10 +116,13 @@ def main(argv: Sequence[str] | None = None) -> None:
 
     if github is None:
         run_chat(client)
-    elif command == "pr_review":
-        run_pr_review(client, github)
     else:
-        run_issue_review(client, github)
+        if dry_run:
+            github = DryRunGitHubClient(github)
+        if command == "pr_review":
+            run_pr_review(client, github, dry_run)
+        else:
+            run_issue_review(client, github, dry_run)
 
 
 if __name__ == "__main__":

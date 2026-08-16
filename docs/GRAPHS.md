@@ -74,6 +74,11 @@ after new commits land.
 | `review_pull_requests` | Fetches the diff and asks the model for one review comment, given the title, description, existing comments, and diff |
 | `post_review_comments` | Posts each review as an issue comment on its PR |
 
+Under `--dry-run` the wiring is identical — the flag wraps the GitHub client in a read-only
+`DryRunGitHubClient`, so the label check in `fetch_pull_requests` and the comment in
+`post_review_comments` become logged no-ops while every read behaves as usual. See
+[`USAGE.md`](USAGE.md).
+
 ## `issue_review`
 
 Same shape as `pr_review`, over the open issues of the same discovered repositories. Only
@@ -110,6 +115,8 @@ which covers both an edited description and new comments.
 | `fetch_issues` | Ensures each repository has the `nishikihebi` label, lists issues carrying it and their comments, keeps the ones due for review, and emits `IssueContext` (the issue plus its comments) |
 | `review_issues` | Asks the model for one review comment, given the title, description, and existing comments |
 | `post_review_comments` | Shared with `pr_review` — posts each review as an issue comment |
+
+`--dry-run` applies here too, by the same wrapper.
 
 ## Failure isolation and retries
 

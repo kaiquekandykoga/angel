@@ -1,3 +1,4 @@
+import logging
 import time
 from collections.abc import Callable
 from pathlib import Path
@@ -7,6 +8,8 @@ import httpx
 import jwt
 
 from nishikihebi.env import load_env_var
+
+logger = logging.getLogger(__name__)
 
 
 def _get_all(
@@ -250,6 +253,54 @@ class HttpGitHubClient:
             headers=self._auth_header(target.repository),
         )
         response.raise_for_status()
+
+
+class DryRunGitHubClient:
+    def __init__(self, inner: GitHubClient) -> None:
+        self.inner = inner
+
+    def list_repositories(self) -> list[str]:
+        return self.inner.list_repositories()
+
+    def ensure_label(self, repository: str, label: str, color: str) -> None:
+        logger.info(
+            "dry run: skipping ensure_label",
+            extra={
+                "context": {
+                    "dry_run": True,
+                    "repository": repository,
+                    "label": label,
+                }
+            },
+        )
+
+    def list_open_pull_requests(self, repository: str, label: str) -> list[PullRequest]:
+        return self.inner.list_open_pull_requests(repository, label)
+
+    def fetch_diff(self, pull_request: PullRequest) -> str:
+        return self.inner.fetch_diff(pull_request)
+
+    def fetch_commit_date(self, repository: str, sha: str) -> str:
+        return self.inner.fetch_commit_date(repository, sha)
+
+    def list_open_issues(self, repository: str, label: str) -> list[Issue]:
+        return self.inner.list_open_issues(repository, label)
+
+    def list_comments(self, target: PullRequest | Issue) -> list[Comment]:
+        return self.inner.list_comments(target)
+
+    def post_comment(self, target: PullRequest | Issue, body: str) -> None:
+        logger.info(
+            "dry run: skipping post_comment",
+            extra={
+                "context": {
+                    "dry_run": True,
+                    "repository": target.repository,
+                    "number": target.number,
+                    "body_length": len(body),
+                }
+            },
+        )
 
 
 def build_github_client() -> GitHubClient:

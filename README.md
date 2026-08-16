@@ -9,13 +9,15 @@ is installed on.
 
 ## Docs
 
-- [`docs/USAGE.md`](docs/USAGE.md) — the environment variables each command needs, how the
-  GitHub App is configured, and the commands themselves. **Start here.**
+- [`docs/USAGE.md`](docs/USAGE.md) — every command and option, what each one prints and
+  exits with, and the environment variables and GitHub App they need. **Start here.**
 - [`docs/GRAPHS.md`](docs/GRAPHS.md) — how each of the three graphs is wired, node by node,
   with a diagram per command and how the code is laid out under `src/nishikihebi/agents/`.
 - [`docs/LOGS.md`](docs/LOGS.md) — what each run writes to the console and to
   `log/nishikihebi-<timestamp>.jsonl`, the shape of a log record, and how to read a run
   back with `jq`.
+- [`docs/TESTING.md`](docs/TESTING.md) — how the unit and integration suites are split, why
+  both exist, and how to add a recorded GitHub fixture.
 - [`docs/TODO.md`](docs/TODO.md) — the living backlog of what stands between this and
   running unattended: retries, prompt-injection hardening, a deployment story.
   Open items only, grouped P0/P1/P2, with the conventions for adding new items at the top.

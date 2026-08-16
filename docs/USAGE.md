@@ -1,50 +1,130 @@
 # Usage
 
-## Configuration
+Three commands, one process each: `chat`, `pr_review`, `issue_review`. Every one of them
+runs once and exits — there is no daemon and nothing schedules them.
 
-Copy `.env.example` to `.env` and fill in the variables below.
+- [Quick start](#quick-start)
+- [Commands](#commands) · [`chat`](#chat) · [`pr_review`](#pr_review) · [`issue_review`](#issue_review)
+- [Options](#options) — `--dry-run`
+- [Output and exit codes](#output-and-exit-codes)
+- [Configuration](#configuration)
+- [Known gaps](#known-gaps)
 
-| Variable | Command | Required | Description |
-|---|---|---|---|
-| `NISHIKIHEBI_NVIDIA_API_KEY` | `chat`, `pr_review`, `issue_review` | Yes | NVIDIA API key from https://build.nvidia.com — used for all model calls. |
-| `NISHIKIHEBI_GITHUB_APP_ID` | `pr_review`, `issue_review` | Yes for `pr_review`, `issue_review` | ID of the GitHub App used to authenticate — [kandy-nishikihebi](https://github.com/apps/kandy-nishikihebi) is the App behind the PR and issue reviews. It needs **Pull requests: read** (list PRs, fetch diffs), **Issues: read and write** (read issues and comments, create the `nishikihebi` label, post the review comment), **Contents: read** (head commit dates), and **Metadata: read**. Nothing more — it cannot approve, merge, or push. The repositories to review are whichever ones the App is installed on — there is no list to maintain in the code. |
-| `NISHIKIHEBI_GITHUB_PRIVATE_KEY_PATH` | `pr_review`, `issue_review` | Yes for `pr_review`, `issue_review` | Path to the GitHub App's private key (`.pem`). |
+## Quick start
 
-The app loads `.env` automatically; an already-exported shell variable still takes precedence.
-
-## Running
-
-Python 3.14 or newer is required.
+Python 3.14 or newer.
 
 ```bash
-uv sync
-uv run nishikihebi chat           # interactive REPL; leave with /exit or Ctrl-D
-uv run nishikihebi pr_review
-uv run nishikihebi issue_review
-uv run ci                         # ruff check, then basedpyright, then pytest
+uv sync                  # install
+cp .env.example .env     # then fill in the three variables — see Configuration
+uv run nishikihebi chat  # talk to the model; no GitHub credentials needed
 ```
 
-Each command runs once and exits — `pr_review` and `issue_review` scan, review, post, and
-stop. Nothing schedules them yet. See [`TODO.md`](TODO.md) — "Pick a deployment story" for
-the scheduling options, and "Add `--dry-run`" / "Replace the hand-rolled CLI" for the flags
-that are still missing: there is currently no way to see what a review run *would* post
-without posting it.
+Once the GitHub App variables are set, see what a review run *would* post, without posting
+anything:
 
-What each run writes to the console and to disk is documented in [`LOGS.md`](LOGS.md).
+```bash
+uv run nishikihebi pr_review --dry-run
+```
 
-### Exit codes
+## Commands
 
-A review run isolates each repository and each item, so one failure never discards the rest
-of the work — a model error on the fifth pull request still leaves the other nine reviewed
-and posted. What failed is then reported and the run exits non-zero, which is what makes a
-scheduler notice:
+| Command | What it does | Needs |
+|---|---|---|
+| [`chat`](#chat) | Interactive REPL against the model | NVIDIA key |
+| [`pr_review`](#pr_review) | One pass over open PRs labeled `nishikihebi`; comments on the ones due for review | NVIDIA key + GitHub App |
+| [`issue_review`](#issue_review) | Same, over open issues labeled `nishikihebi` | NVIDIA key + GitHub App |
 
-| Exit code | Meaning |
-|---|---|
-| `0` | every item that was due for review was reviewed and posted (including the case where nothing was due) |
-| `1` | at least one repository or item failed, or the command was invalid, or credentials were missing |
+```bash
+uv run nishikihebi <command> [--dry-run]
+```
 
-Failures print to stderr, one line each, followed by a count:
+The command may be given before or after the flag. Anything else exits `1` with
+`Unknown command: … Valid commands: chat, pr_review, issue_review`. There is no `--help`
+and no `--version` yet.
+
+How each command is wired internally, node by node, is in [`GRAPHS.md`](GRAPHS.md).
+
+### `chat`
+
+```bash
+uv run nishikihebi chat
+```
+
+Reads a line at a time at a `>` prompt and prints the reply. Blank lines are ignored. Leave
+with `/exit` or Ctrl-D. The conversation is kept in memory for the life of the process, so
+it is gone when you leave — nothing is written to GitHub, and `--dry-run` is rejected here.
+
+### `pr_review`
+
+```bash
+uv run nishikihebi pr_review [--dry-run]
+```
+
+Scans every repository the GitHub App is installed on — the list is discovered at run time,
+so granting or revoking the App's access is all it takes to add or drop a repository — and
+reviews the open pull requests labeled `nishikihebi`.
+
+A labeled PR is reviewed when:
+
+- `kandy-nishikihebi[bot]` has **never** commented on it, or
+- its **head commit is newer** than that last bot comment — so it is re-reviewed only after
+  new commits land.
+
+Otherwise it is skipped as already up to date. Each review is posted as one issue comment
+on the PR.
+
+> **The label is created for you.** Every scanned repository gets a pink `nishikihebi` label
+> if it lacks one — including repositories you never meant to review. Install the App only
+> where you want that.
+
+### `issue_review`
+
+```bash
+uv run nishikihebi issue_review [--dry-run]
+```
+
+The same pass over open issues labeled `nishikihebi`. An issue is reviewed when the bot has
+never commented on it, or when the issue's `updated_at` is newer than that last comment —
+which covers an edited description and new comments alike. The label caveat above applies
+here too.
+
+## Options
+
+| Option | Works with | Effect |
+|---|---|---|
+| `--dry-run` | `pr_review`, `issue_review` | Print each review to stdout and make zero GitHub writes |
+
+### `--dry-run`
+
+The run is identical up to the point of writing: repositories are discovered, labeled items
+are selected, diffs are fetched, and the model is called — so it costs the same tokens.
+Only the two writes are suppressed: creating the `nishikihebi` label, and posting the review
+comment. Each review body is printed instead:
+
+```
+--- owner/repo#12 ---
+The change looks correct, but the new branch in `parse()` is untested …
+```
+
+Every suppressed write is also logged; see [`LOGS.md`](LOGS.md). Exit codes are unchanged —
+a fetch or model failure still reports and exits `1`.
+
+## Output and exit codes
+
+A review run prints one line per posted review, or a single line when nothing was due:
+
+```
+Commented on owner/repo#12
+Commented on owner/other#3
+```
+```
+No pull requests to review
+```
+
+Each repository and each item is isolated, so one failure never discards the rest of the
+work — a model error on the fifth pull request still leaves the other nine reviewed and
+posted. What failed prints to stderr, one line each, followed by a count:
 
 ```
 Failed review_pull_requests for owner/repo#12: HTTPStatusError: 500 Server Error
@@ -53,43 +133,66 @@ Failed post_review_comments for owner/other: TimeoutError:
 ```
 
 Repository-level failures — one repository of thirty unreachable during the scan — carry no
-item number and print as `owner/repo`. The same failures appear as `WARNING` records in the
-JSON log with structured `stage` / `error_type` fields; see [`LOGS.md`](LOGS.md).
+item number and print as `owner/repo`.
+
+| Exit code | Meaning |
+|---|---|
+| `0` | every item due for review was reviewed and posted (including the case where nothing was due) |
+| `1` | at least one repository or item failed, or the command was invalid, or credentials were missing |
+
+The non-zero exit is what makes a scheduler notice. The same failures appear as `WARNING`
+records in the JSON log with structured `stage` / `error_type` fields; what every run writes
+to the console and to `log/` is documented in [`LOGS.md`](LOGS.md).
+
+## Configuration
+
+Copy `.env.example` to `.env` and fill in these variables.
+
+| Variable | Needed by | Description |
+|---|---|---|
+| `NISHIKIHEBI_NVIDIA_API_KEY` | all three commands | NVIDIA API key from https://build.nvidia.com — used for every model call. |
+| `NISHIKIHEBI_GITHUB_APP_ID` | `pr_review`, `issue_review` | ID of the GitHub App to authenticate as. |
+| `NISHIKIHEBI_GITHUB_PRIVATE_KEY_PATH` | `pr_review`, `issue_review` | Path to that App's private key (`.pem`). |
+
+A missing variable exits `1` with `<NAME> environment variable is not set.` before any work
+starts. `.env` is loaded automatically and searched from the current directory *upward*, so
+run the commands from the project root; an already-exported shell variable takes precedence
+over the file.
+
+### The GitHub App
+
+[kandy-nishikihebi](https://github.com/apps/kandy-nishikihebi) is the App behind the
+reviews. The repositories it reviews are exactly the ones it is installed on — there is no
+list to maintain in the code. It needs four permissions and nothing more, so it cannot
+approve, merge, or push:
+
+| Permission | Used for |
+|---|---|
+| **Pull requests: read** | listing PRs and fetching diffs |
+| **Issues: read and write** | reading issues and comments, creating the `nishikihebi` label, posting the review comment |
+| **Contents: read** | head commit dates, for the re-review check |
+| **Metadata: read** | required by the others |
 
 ## Testing
 
-`uv run ci` runs the whole suite. The tests are split in two:
-
-| Tree | What lives there | How it stubs the world |
-|---|---|---|
-| `tests/unit_tests/` | Graphs, nodes, the REPL, logging, the CLI — everything driven through a fake. | `FakeGitHubClient` / `FakeClient` from `tests/conftest.py`. No HTTP at all. |
-| `tests/integration_tests/` | `HttpGitHubClient` and `InstallationTokenProvider` — the code that actually speaks HTTP. | [`respx`](https://lundberg.github.io/respx/) routes serving recorded GitHub payloads from `tests/fixtures/`. Still no network. |
+`uv run ci` runs the whole gate — `ruff check`, then `basedpyright`, then `pytest`:
 
 ```bash
+uv run ci
 uv run pytest -m "not integration"   # fakes only, fastest
-uv run pytest -m integration         # client code over recorded payloads
+uv run pytest -m integration         # client code over recorded GitHub payloads
 ```
 
-Everything under `tests/integration_tests/` is marked `integration` automatically by that
-tree's `conftest.py` — you do not mark tests by hand.
+Neither suite touches the network. How the two trees differ, and how to add a fixture, is
+in [`TESTING.md`](TESTING.md).
 
-**Why both.** `FakeGitHubClient` encodes the same assumptions as the real client, so it can
-never falsify them; that is exactly how the missing pagination went unnoticed. The recorded
-fixtures are full-shape GitHub responses (every field the API really returns, sanitized),
-so a test can serve a `Link: rel="next"` header and prove that page 2 is dropped.
+## Known gaps
 
-**Adding a fixture.** Drop the sanitized JSON (or raw text, for diffs) under
-`tests/fixtures/github/` and load it with the `load_fixture` fixture:
-
-```python
-def test_something(load_fixture):
-    payload = load_fixture("github/pulls_page1.json")
-```
-
-Keep the whole response shape rather than the handful of fields the client reads today —
-the extra fields are what makes the fixture useful when the client grows. Never commit a
-real token: the recorded installation token is a redacted placeholder.
-
-Some integration tests are `xfail(strict=True)` and name an open item in [`TODO.md`](TODO.md).
-That is deliberate — they document a known bug against real payloads. When the fix lands,
-the test starts passing and the marker gets deleted in the same PR.
+- **Nothing schedules a run.** Both review commands are one-shot; see [`TODO.md`](TODO.md),
+  "Pick a deployment story".
+- **The CLI is hand-rolled** — no `--help`, no `--version`, and no `--repo owner/name`,
+  `--limit N`, `--log-level`, or `--log-file`. See "Replace the hand-rolled CLI".
+- **Some failures still print a traceback** rather than a message — a bad private-key path,
+  an expired key, or Ctrl-C out of `chat`. See "Fail with a message, not a traceback".
+- **No rate-limit or backoff handling.** A run that hits GitHub's secondary limit fails the
+  affected items instead of waiting.

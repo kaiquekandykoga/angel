@@ -4,7 +4,12 @@ import re
 import pytest
 
 import nishikihebi.__main__
-from nishikihebi.clients.github import Issue, MissingGitHubCredentialsError, PullRequest
+from nishikihebi.clients.github import (
+    DryRunGitHubClient,
+    Issue,
+    MissingGitHubCredentialsError,
+    PullRequest,
+)
 from nishikihebi.clients.llm import MissingApiKeyError
 
 
@@ -368,6 +373,210 @@ def test_main_exits_when_github_token_missing_for_issue_review(
 
     with pytest.raises(SystemExit, match=re.escape(message)):
         nishikihebi.__main__.main(["issue_review"])
+
+
+def test_main_dry_run_wraps_github_client_and_prints_review_body_for_pr_review(
+    monkeypatch, capsys, fake_client, fake_github
+):
+    pr_a = PullRequest("kaiquekandykoga/nishikihebi", 1, "pr a", "body a", "sha-a")
+    fake_github.pull_requests = {"kaiquekandykoga/nishikihebi": [pr_a]}
+    fake_github.diffs = {pr_a: "diff a"}
+    fake_github.label(pr_a, "nishikihebi")
+    monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
+    monkeypatch.setattr(
+        nishikihebi.__main__, "build_github_client", lambda: fake_github
+    )
+    captured = {}
+    original_build = nishikihebi.__main__.build_pr_review_graph
+
+    def spy(client, github):
+        captured["github"] = github
+        return original_build(client, github)
+
+    monkeypatch.setattr(nishikihebi.__main__, "build_pr_review_graph", spy)
+
+    nishikihebi.__main__.main(["pr_review", "--dry-run"])
+
+    assert isinstance(captured["github"], DryRunGitHubClient)
+    out = capsys.readouterr().out
+    assert "--- kaiquekandykoga/nishikihebi#1 ---" in out
+    assert "fake reply" in out
+    assert "Commented on" not in out
+    assert fake_github.posted_comments == []
+
+
+def test_main_dry_run_before_command_parses_the_same_as_after(
+    monkeypatch, capsys, fake_client, fake_github
+):
+    pr_a = PullRequest("kaiquekandykoga/nishikihebi", 1, "pr a", "body a", "sha-a")
+    fake_github.pull_requests = {"kaiquekandykoga/nishikihebi": [pr_a]}
+    fake_github.diffs = {pr_a: "diff a"}
+    fake_github.label(pr_a, "nishikihebi")
+    monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
+    monkeypatch.setattr(
+        nishikihebi.__main__, "build_github_client", lambda: fake_github
+    )
+    captured = {}
+    original_build = nishikihebi.__main__.build_pr_review_graph
+
+    def spy(client, github):
+        captured["github"] = github
+        return original_build(client, github)
+
+    monkeypatch.setattr(nishikihebi.__main__, "build_pr_review_graph", spy)
+
+    nishikihebi.__main__.main(["--dry-run", "pr_review"])
+
+    assert isinstance(captured["github"], DryRunGitHubClient)
+    out = capsys.readouterr().out
+    assert "--- kaiquekandykoga/nishikihebi#1 ---" in out
+    assert "Commented on" not in out
+
+
+def test_main_dry_run_wraps_github_client_and_prints_review_body_for_issue_review(
+    monkeypatch, capsys, fake_client, fake_github
+):
+    issue_a = Issue(
+        "kaiquekandykoga/nishikihebi", 1, "issue a", "body a", "2026-08-01T00:00:00Z"
+    )
+    fake_github.issues = {"kaiquekandykoga/nishikihebi": [issue_a]}
+    fake_github.label(issue_a, "nishikihebi")
+    monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
+    monkeypatch.setattr(
+        nishikihebi.__main__, "build_github_client", lambda: fake_github
+    )
+    captured = {}
+    original_build = nishikihebi.__main__.build_issue_review_graph
+
+    def spy(client, github):
+        captured["github"] = github
+        return original_build(client, github)
+
+    monkeypatch.setattr(nishikihebi.__main__, "build_issue_review_graph", spy)
+
+    nishikihebi.__main__.main(["issue_review", "--dry-run"])
+
+    assert isinstance(captured["github"], DryRunGitHubClient)
+    out = capsys.readouterr().out
+    assert "--- kaiquekandykoga/nishikihebi#1 ---" in out
+    assert "Commented on" not in out
+    assert fake_github.posted_comments == []
+
+
+def test_main_non_dry_run_passes_the_raw_github_client_through(
+    monkeypatch, capsys, fake_client, fake_github
+):
+    pr_a = PullRequest("kaiquekandykoga/nishikihebi", 1, "pr a", "body a", "sha-a")
+    fake_github.pull_requests = {"kaiquekandykoga/nishikihebi": [pr_a]}
+    fake_github.diffs = {pr_a: "diff a"}
+    fake_github.label(pr_a, "nishikihebi")
+    monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
+    monkeypatch.setattr(
+        nishikihebi.__main__, "build_github_client", lambda: fake_github
+    )
+    captured = {}
+    original_build = nishikihebi.__main__.build_pr_review_graph
+
+    def spy(client, github):
+        captured["github"] = github
+        return original_build(client, github)
+
+    monkeypatch.setattr(nishikihebi.__main__, "build_pr_review_graph", spy)
+
+    nishikihebi.__main__.main(["pr_review"])
+
+    assert captured["github"] is fake_github
+    out = capsys.readouterr().out
+    assert "Commented on kaiquekandykoga/nishikihebi#1" in out
+
+
+def test_main_dry_run_reports_when_there_is_nothing_to_review(
+    monkeypatch, capsys, fake_client, fake_github
+):
+    fake_github.pull_requests = {}
+    monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
+    monkeypatch.setattr(
+        nishikihebi.__main__, "build_github_client", lambda: fake_github
+    )
+
+    nishikihebi.__main__.main(["pr_review", "--dry-run"])
+
+    out = capsys.readouterr().out
+    assert "No pull requests to review" in out
+
+
+def test_main_dry_run_still_exits_nonzero_when_a_pull_request_review_fails(
+    monkeypatch, capsys, fake_client, fake_github
+):
+    repository = "kaiquekandykoga/nishikihebi"
+    pull_requests = [
+        PullRequest(
+            repository, number, f"pr {number}", f"body {number}", f"sha-{number}"
+        )
+        for number in range(1, 6)
+    ]
+    fake_github.pull_requests = {repository: pull_requests}
+    fake_github.diffs = {pr: f"diff {pr.number}" for pr in pull_requests}
+    for pr in pull_requests:
+        fake_github.label(pr, "nishikihebi")
+    calls = {"count": 0}
+    original_complete = fake_client.complete
+
+    def flaky_complete(messages):
+        calls["count"] += 1
+        if calls["count"] == 3:
+            raise RuntimeError("llm exploded")
+        return original_complete(messages)
+
+    monkeypatch.setattr(fake_client, "complete", flaky_complete)
+    monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
+    monkeypatch.setattr(
+        nishikihebi.__main__, "build_github_client", lambda: fake_github
+    )
+
+    with pytest.raises(SystemExit) as excinfo:
+        nishikihebi.__main__.main(["pr_review", "--dry-run"])
+
+    assert excinfo.value.code != 0
+    out = capsys.readouterr().out
+    assert out.count("---") == 8
+    assert "Commented on" not in out
+    assert f"{repository}#3" not in out
+
+
+def test_main_exits_when_dry_run_is_used_with_chat():
+    with pytest.raises(SystemExit, match="--dry-run is not valid for chat"):
+        nishikihebi.__main__.main(["chat", "--dry-run"])
+
+
+def test_main_exits_on_unknown_flag():
+    with pytest.raises(SystemExit, match="Unknown command: pr_review --bogus"):
+        nishikihebi.__main__.main(["pr_review", "--bogus"])
+
+
+def test_main_exits_when_two_commands_given():
+    with pytest.raises(
+        SystemExit, match="Unknown command: pr_review issue_review"
+    ):
+        nishikihebi.__main__.main(["pr_review", "issue_review"])
+
+
+def test_main_logs_dry_run_flag(monkeypatch, caplog, fake_client, fake_github):
+    caplog.set_level(logging.INFO, logger="nishikihebi")
+    fake_github.pull_requests = {}
+    monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
+    monkeypatch.setattr(
+        nishikihebi.__main__, "build_github_client", lambda: fake_github
+    )
+
+    nishikihebi.__main__.main(["pr_review", "--dry-run"])
+
+    records = [
+        record
+        for record in caplog.records
+        if getattr(record, "context", {}).get("command") == "pr_review"
+    ]
+    assert any(record.context["dry_run"] is True for record in records)
 
 
 def test_main_exits_on_unknown_command():

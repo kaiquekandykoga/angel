@@ -41,6 +41,23 @@ jq 'select(.selected == false) | {repository, number, reason}' log/nishikihebi-*
 The second one answers "why didn't it review this PR?" — `fetch_pull_requests` and
 `fetch_issues` log a `selected` / `reason` pair for every labeled item they evaluate.
 
+## Dry-run records
+
+A `--dry-run` run logs each write it suppressed, at `INFO`, from
+`nishikihebi.clients.github`. Both records carry `dry_run: true`, so one filter shows
+everything the run would have written:
+
+| Message | Context keys |
+|---|---|
+| `dry run: skipping ensure_label` | `dry_run`, `repository`, `label` |
+| `dry run: skipping post_comment` | `dry_run`, `repository`, `number`, `body_length` |
+
+```bash
+jq 'select(.dry_run == true) | {message, repository, number}' log/nishikihebi-*.jsonl
+```
+
+The review bodies themselves go to stdout, not the log — see [`USAGE.md`](USAGE.md).
+
 ## Failure records
 
 Every isolated failure — a repository or item skipped while fetching, a review the model
