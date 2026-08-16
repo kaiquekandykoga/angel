@@ -8,6 +8,8 @@ from nishikihebi.agents._shared import (
     Review,
     last_review_at,
     render_comments,
+    review_marker,
+    reviewed_sha,
 )
 from nishikihebi.agents.pr_review.prompts import REVIEW_SYSTEM_PROMPT
 from nishikihebi.agents.pr_review.state import PrReviewState, PullRequestContext
@@ -47,16 +49,14 @@ def fetch_pull_requests(
                     items_scanned += 1
                     try:
                         comments = github.list_comments(pull_request)
-                        last_review = last_review_at(comments, reviewer_login)
-                        if last_review is None:
+                        if last_review_at(comments, reviewer_login) is None:
                             selected, reason = True, "never reviewed"
                         elif (
-                            github.fetch_commit_date(
-                                pull_request.repository, pull_request.head_sha
-                            )
-                            > last_review
-                        ):
-                            selected, reason = True, "new commits"
+                            recorded_sha := reviewed_sha(comments, reviewer_login)
+                        ) is None:
+                            selected, reason = True, "no recorded head"
+                        elif recorded_sha != pull_request.head_sha:
+                            selected, reason = True, "new head"
                         else:
                             selected, reason = False, "already up to date"
                         logger.debug(
@@ -212,7 +212,12 @@ def review_pull_requests(github: GitHubClient, client: LlmClient):
                     )
                 )
                 continue
-            reviews.append(Review(pull_request, review_body))
+            reviews.append(
+                Review(
+                    pull_request,
+                    f"{review_body}\n\n{review_marker(pull_request.head_sha)}",
+                )
+            )
         logger.info(
             "pull requests reviewed", extra={"context": {"count": len(reviews)}}
         )

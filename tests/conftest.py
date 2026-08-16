@@ -32,7 +32,6 @@ class FakeGitHubClient:
         self.diffs: dict[PullRequest, str] = {}
         self.issues: dict[str, list[Issue]] = {}
         self.comments: dict[PullRequest | Issue, list[Comment]] = {}
-        self.commit_dates: dict[str, str] = {}
         self.posted_comments: list[tuple[PullRequest | Issue, str]] = []
         self.labels: dict[PullRequest | Issue, set[str]] = {}
         self.ensure_label_calls: list[tuple[str, str, str]] = []
@@ -58,9 +57,6 @@ class FakeGitHubClient:
 
     def fetch_diff(self, pull_request: PullRequest) -> str:
         return self.diffs.get(pull_request, "")
-
-    def fetch_commit_date(self, repository: str, sha: str) -> str:
-        return self.commit_dates[sha]
 
     def list_open_issues(self, repository: str, label: str) -> list[Issue]:
         self.call_log.append(("list_open_issues", repository))

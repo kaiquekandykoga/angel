@@ -121,26 +121,6 @@ def test_list_open_issues_excludes_pull_requests_and_maps_updated_at(
     )
 
 
-def test_fetch_commit_date_returns_committer_date_not_author_date(
-    respx_mock: respx.MockRouter,
-    load_fixture: Callable[[str], Any],
-    client: HttpGitHubClient,
-):
-    sha = "9f1b0c4bd2a54a1e6e2b7dbb1a0dd4b13ec2f0a1"
-    route = respx_mock.get(
-        f"{GITHUB_BASE_URL}/repos/kaiquekandykoga/nishikihebi/commits/{sha}"
-    ).mock(return_value=httpx.Response(200, json=load_fixture("github/commit.json")))
-
-    date = client.fetch_commit_date("kaiquekandykoga/nishikihebi", sha)
-
-    assert date == "2026-08-14T10:58:12Z"
-    assert date != "2026-08-10T20:11:07Z"
-    assert (
-        route.calls.last.request.headers["authorization"]
-        == "Bearer token-for-kaiquekandykoga/nishikihebi"
-    )
-
-
 def test_list_comments_maps_login_body_and_created_at(
     respx_mock: respx.MockRouter,
     load_fixture: Callable[[str], Any],

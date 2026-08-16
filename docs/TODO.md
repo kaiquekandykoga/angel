@@ -122,18 +122,6 @@ no flags.
 Partial failures now exit non-zero, so a scheduler alerts for free — but nothing emits
 reviews-posted / items-skipped / API-errors / tokens-used anywhere a dashboard can read.
 
-### Re-review a PR on its pushed head, not its commit date
-**Where:** `agents/pr_review/nodes.py:53-59`, `clients/github.py::fetch_commit_date` (210)
-**Why:** freshness is `fetch_commit_date(head_sha) > last_review`, but that is the git *committer*
-date baked into the commit, not push time. Commit Monday, reviewed Wednesday, pushed Friday → the
-head's date predates the last review and the PR is silently never reviewed again; force-pushing to
-an earlier commit fails the same way. This loses work rather than wasting a call.
-**Do:** record the reviewed `head_sha` in the bot's own comment (`<!-- nishikihebi: sha=… -->`) and
-re-review when the current head differs — same marker as the issue-heuristic item, and it drops
-`fetch_commit_date` (one call per PR per run) entirely.
-**Done when:** a fixture PR whose head commit date precedes the bot's last comment, but whose
-`head_sha` differs from the recorded one, is selected for review.
-
 ### Add security tooling
 **Where:** `pyproject.toml`, `__ci__.py`
 **Do:** add `S` (flake8-bandit) to ruff `select`; add `pip-audit` (or uv's audit path) to `CHECKS`;
@@ -196,16 +184,16 @@ thorough review and truncates mid-sentence on large diffs — raise it for the r
   filters server-side — inconsistent, and the PR path downloads far more than it needs.
 - The whole repo loop could be one `GET /search/issues?q=is:open+label:nishikihebi+is:pr` instead
   of 2 + 2N requests. Worth it past a handful of repos.
-- `fetch_commit_date` is an extra call per PR per run. Don't swap it for `updated_at` — that bumps
-  on any comment. The P1 head-sha item removes the call outright.
+- `list_comments` is one call per labeled PR per run, made before the freshness check can skip it.
+  The search endpoint above cannot replace it — the head-sha marker lives in the comment bodies.
 
 ### Replace the issue freshness heuristic
 `issue.updated_at > last_review` re-fires on any mutation — label, assignment, reaction — costing a
 model call to say nothing new, and it depends on the bot's own comment not bumping `updated_at`
 past its own `created_at`, an undocumented GitHub timing detail.
-**Do:** record what was actually reviewed — a content hash, or a marker in the bot's own comment
-(`<!-- nishikihebi: sha=… -->`). Most review bots use the marker: it keeps state in the only place
-guaranteed to survive, the issue itself.
+**Do:** record what was actually reviewed in the bot's own comment, reusing `review_marker` /
+`reviewed_sha` in `agents/_shared.py` — the marker the PR path already writes. Issues have no head
+sha, so the recorded value is a hash of the reviewed title + body + comment bodies.
 
 ### De-duplicate the pr_review/issue_review node pairs
 **Where:** `agents/pr_review/nodes.py`, `agents/issue_review/nodes.py`

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import TYPE_CHECKING, NamedTuple
 
 from nishikihebi.clients.github import Comment, GitHubClient, Issue, PullRequest
@@ -34,6 +35,23 @@ def last_review_at(comments: list[Comment], reviewer_login: str) -> str | None:
         ),
         default=None,
     )
+
+
+_MARKER_PATTERN = re.compile(r"<!-- nishikihebi: sha=(\S+) -->")
+
+
+def review_marker(sha: str) -> str:
+    return f"<!-- nishikihebi: sha={sha} -->"
+
+
+def reviewed_sha(comments: list[Comment], reviewer_login: str) -> str | None:
+    matches = [
+        (comment.created_at, comment_matches[-1])
+        for comment in comments
+        if comment.author == reviewer_login
+        if (comment_matches := _MARKER_PATTERN.findall(comment.body))
+    ]
+    return max(matches)[1] if matches else None
 
 
 def render_comments(comments: list[Comment]) -> str:

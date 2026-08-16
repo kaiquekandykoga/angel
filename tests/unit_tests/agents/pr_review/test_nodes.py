@@ -2,7 +2,7 @@ import logging
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
-from nishikihebi.agents._shared import ItemFailure, Review
+from nishikihebi.agents._shared import ItemFailure, Review, review_marker
 from nishikihebi.agents.pr_review.nodes import fetch_pull_requests, review_pull_requests
 from nishikihebi.agents.pr_review.prompts import REVIEW_SYSTEM_PROMPT
 from nishikihebi.agents.pr_review.state import PullRequestContext
@@ -13,9 +13,7 @@ LABEL = "nishikihebi"
 LABEL_COLOR = "f709c2"
 
 
-def test_fetch_pull_requests_logs_start_per_repository_and_summary(
-    fake_github, caplog
-):
+def test_fetch_pull_requests_logs_start_per_repository_and_summary(fake_github, caplog):
     caplog.set_level(logging.DEBUG, logger="nishikihebi")
     pr = PullRequest("org/a", 1, "pr a", "body", "sha-a")
     fake_github.pull_requests = {"org/a": [pr]}
@@ -66,12 +64,13 @@ def test_fetch_pull_requests_includes_pr_with_only_other_author_comments(fake_gi
     }
 
 
-def test_fetch_pull_requests_includes_pr_with_newer_head_commit(fake_github):
-    pr = PullRequest("org/a", 1, "pr a", "body", "sha-a")
-    review_comment = Comment(REVIEWER_LOGIN, "reviewed", "2026-08-01T00:00:00Z")
+def test_fetch_pull_requests_includes_pr_with_new_head_sha(fake_github):
+    pr = PullRequest("org/a", 1, "pr a", "body", "sha-b")
+    review_comment = Comment(
+        REVIEWER_LOGIN, f"reviewed\n\n{review_marker('sha-a')}", "2026-08-01T00:00:00Z"
+    )
     fake_github.pull_requests = {"org/a": [pr]}
     fake_github.comments = {pr: [review_comment]}
-    fake_github.commit_dates = {"sha-a": "2026-08-02T00:00:00Z"}
     fake_github.label(pr, LABEL)
     node = fetch_pull_requests(fake_github, REVIEWER_LOGIN, LABEL, LABEL_COLOR)
 
@@ -83,12 +82,13 @@ def test_fetch_pull_requests_includes_pr_with_newer_head_commit(fake_github):
     }
 
 
-def test_fetch_pull_requests_excludes_pr_unchanged_since_review(fake_github):
+def test_fetch_pull_requests_excludes_pr_with_head_sha_already_reviewed(fake_github):
     pr = PullRequest("org/a", 1, "pr a", "body", "sha-a")
-    review_comment = Comment(REVIEWER_LOGIN, "reviewed", "2026-08-02T00:00:00Z")
+    review_comment = Comment(
+        REVIEWER_LOGIN, f"reviewed\n\n{review_marker('sha-a')}", "2026-08-01T00:00:00Z"
+    )
     fake_github.pull_requests = {"org/a": [pr]}
     fake_github.comments = {pr: [review_comment]}
-    fake_github.commit_dates = {"sha-a": "2026-08-01T00:00:00Z"}
     fake_github.label(pr, LABEL)
     node = fetch_pull_requests(fake_github, REVIEWER_LOGIN, LABEL, LABEL_COLOR)
 
@@ -97,18 +97,100 @@ def test_fetch_pull_requests_excludes_pr_unchanged_since_review(fake_github):
     assert result == {"pull_requests": [], "failures": []}
 
 
-def test_fetch_pull_requests_excludes_pr_with_head_commit_equal_to_review(fake_github):
+def test_fetch_pull_requests_includes_pr_when_bot_comment_predates_markers(fake_github):
     pr = PullRequest("org/a", 1, "pr a", "body", "sha-a")
-    review_comment = Comment(REVIEWER_LOGIN, "reviewed", "2026-08-01T00:00:00Z")
+    review_comment = Comment(
+        REVIEWER_LOGIN, "reviewed, no marker", "2026-08-01T00:00:00Z"
+    )
     fake_github.pull_requests = {"org/a": [pr]}
     fake_github.comments = {pr: [review_comment]}
-    fake_github.commit_dates = {"sha-a": "2026-08-01T00:00:00Z"}
     fake_github.label(pr, LABEL)
     node = fetch_pull_requests(fake_github, REVIEWER_LOGIN, LABEL, LABEL_COLOR)
 
     result = node({"pull_requests": [], "reviews": [], "failures": []})
 
-    assert result == {"pull_requests": [], "failures": []}
+    assert result == {
+        "pull_requests": [PullRequestContext(pr, [review_comment])],
+        "failures": [],
+    }
+
+
+def test_fetch_pull_requests_reports_selection_reasons(fake_github, caplog):
+    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+    never_reviewed = PullRequest("org/a", 1, "pr 1", "body", "sha-1")
+    no_recorded_head = PullRequest("org/a", 2, "pr 2", "body", "sha-2")
+    new_head = PullRequest("org/a", 3, "pr 3", "body", "sha-3-new")
+    up_to_date = PullRequest("org/a", 4, "pr 4", "body", "sha-4")
+    fake_github.pull_requests = {
+        "org/a": [never_reviewed, no_recorded_head, new_head, up_to_date]
+    }
+    fake_github.comments = {
+        no_recorded_head: [
+            Comment(REVIEWER_LOGIN, "reviewed, no marker", "2026-08-01T00:00:00Z")
+        ],
+        new_head: [
+            Comment(
+                REVIEWER_LOGIN,
+                f"reviewed\n\n{review_marker('sha-3-old')}",
+                "2026-08-01T00:00:00Z",
+            )
+        ],
+        up_to_date: [
+            Comment(
+                REVIEWER_LOGIN,
+                f"reviewed\n\n{review_marker('sha-4')}",
+                "2026-08-01T00:00:00Z",
+            )
+        ],
+    }
+    for pr in (never_reviewed, no_recorded_head, new_head, up_to_date):
+        fake_github.label(pr, LABEL)
+    node = fetch_pull_requests(fake_github, REVIEWER_LOGIN, LABEL, LABEL_COLOR)
+
+    result = node({"pull_requests": [], "reviews": [], "failures": []})
+
+    assert result == {
+        "pull_requests": [
+            PullRequestContext(never_reviewed, []),
+            PullRequestContext(
+                no_recorded_head, fake_github.comments[no_recorded_head]
+            ),
+            PullRequestContext(new_head, fake_github.comments[new_head]),
+        ],
+        "failures": [],
+    }
+    debug_records = [
+        r
+        for r in caplog.records
+        if r.levelname == "DEBUG" and "reason" in getattr(r, "context", {})
+    ]
+    reasons = {r.context["number"]: r.context["reason"] for r in debug_records}
+    assert reasons[1] == "never reviewed"
+    assert reasons[2] == "no recorded head"
+    assert reasons[3] == "new head"
+    assert reasons[4] == "already up to date"
+
+
+def test_fetch_pull_requests_selects_pr_by_head_sha_even_with_stale_commit_date(
+    fake_github,
+):
+    pr = PullRequest("org/a", 1, "pr a", "body", "old-force-pushed-sha")
+    review_comment = Comment(
+        REVIEWER_LOGIN,
+        f"reviewed\n\n{review_marker('newer-sha-that-was-reverted')}",
+        "2026-08-05T00:00:00Z",
+    )
+    fake_github.pull_requests = {"org/a": [pr]}
+    fake_github.comments = {pr: [review_comment]}
+    fake_github.label(pr, LABEL)
+    node = fetch_pull_requests(fake_github, REVIEWER_LOGIN, LABEL, LABEL_COLOR)
+
+    result = node({"pull_requests": [], "reviews": [], "failures": []})
+
+    assert result == {
+        "pull_requests": [PullRequestContext(pr, [review_comment])],
+        "failures": [],
+    }
 
 
 def test_fetch_pull_requests_covers_every_repository_of_the_installation(fake_github):
@@ -142,10 +224,11 @@ def test_fetch_pull_requests_excludes_unlabeled_pr_never_reviewed(fake_github):
 
 def test_fetch_pull_requests_excludes_labeled_pr_not_due_for_review(fake_github):
     pr = PullRequest("org/a", 1, "pr a", "body", "sha-a")
-    review_comment = Comment(REVIEWER_LOGIN, "reviewed", "2026-08-02T00:00:00Z")
+    review_comment = Comment(
+        REVIEWER_LOGIN, f"reviewed\n\n{review_marker('sha-a')}", "2026-08-02T00:00:00Z"
+    )
     fake_github.pull_requests = {"org/a": [pr]}
     fake_github.comments = {pr: [review_comment]}
-    fake_github.commit_dates = {"sha-a": "2026-08-01T00:00:00Z"}
     fake_github.label(pr, LABEL)
     node = fetch_pull_requests(fake_github, REVIEWER_LOGIN, LABEL, LABEL_COLOR)
 
@@ -229,8 +312,31 @@ def test_review_pull_requests_returns_one_review_per_pull_request(
 
     assert result == {
         "reviews": [
-            Review(pr_a, fake_client.reply),
-            Review(pr_b, fake_client.reply),
+            Review(pr_a, f"{fake_client.reply}\n\n{review_marker('sha-a')}"),
+            Review(pr_b, f"{fake_client.reply}\n\n{review_marker('sha-b')}"),
+        ],
+        "failures": [],
+    }
+
+
+def test_review_pull_requests_appends_head_sha_marker_to_the_body(
+    fake_client, fake_github
+):
+    pr_a = PullRequest("org/a", 1, "pr a", "body a", "sha-a")
+    fake_github.diffs = {pr_a: "diff a"}
+    node = review_pull_requests(fake_github, fake_client)
+
+    result = node(
+        {
+            "pull_requests": [PullRequestContext(pr_a, [])],
+            "reviews": [],
+            "failures": [],
+        }
+    )
+
+    assert result == {
+        "reviews": [
+            Review(pr_a, f"{fake_client.reply}\n\n{review_marker('sha-a')}")
         ],
         "failures": [],
     }

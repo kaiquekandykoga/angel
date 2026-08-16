@@ -6,6 +6,8 @@ from nishikihebi.agents._shared import (
     last_review_at,
     post_review_comments,
     render_comments,
+    review_marker,
+    reviewed_sha,
 )
 from nishikihebi.agents.issue_review.state import IssueContext
 from nishikihebi.agents.pr_review.state import PullRequestContext
@@ -26,6 +28,78 @@ def test_last_review_at_returns_most_recent_reviewer_comment():
     ]
 
     assert last_review_at(comments, "kandy-nishikihebi[bot]") == "2026-08-03T00:00:00Z"
+
+
+def test_review_marker_renders_sha():
+    assert review_marker("abc123") == "<!-- nishikihebi: sha=abc123 -->"
+
+
+def test_reviewed_sha_round_trips_through_review_marker():
+    comments = [
+        Comment("kandy-nishikihebi[bot]", review_marker("abc"), "2026-08-01T00:00:00Z")
+    ]
+
+    assert reviewed_sha(comments, "kandy-nishikihebi[bot]") == "abc"
+
+
+def test_reviewed_sha_returns_none_when_no_bot_comment():
+    comments = [Comment("someone-else", review_marker("abc"), "2026-08-01T00:00:00Z")]
+
+    assert reviewed_sha(comments, "kandy-nishikihebi[bot]") is None
+
+
+def test_reviewed_sha_returns_none_when_bot_commented_without_marker():
+    comments = [Comment("kandy-nishikihebi[bot]", "looks good", "2026-08-01T00:00:00Z")]
+
+    assert reviewed_sha(comments, "kandy-nishikihebi[bot]") is None
+
+
+def test_reviewed_sha_uses_most_recent_bot_comment_with_a_marker():
+    comments = [
+        Comment(
+            "kandy-nishikihebi[bot]",
+            f"first\n\n{review_marker('old-sha')}",
+            "2026-08-01T00:00:00Z",
+        ),
+        Comment("someone-else", "hi", "2026-08-02T00:00:00Z"),
+        Comment(
+            "kandy-nishikihebi[bot]",
+            f"second\n\n{review_marker('new-sha')}",
+            "2026-08-03T00:00:00Z",
+        ),
+    ]
+
+    assert reviewed_sha(comments, "kandy-nishikihebi[bot]") == "new-sha"
+
+
+def test_reviewed_sha_ignores_markers_from_other_authors():
+    comments = [
+        Comment(
+            "someone-else",
+            review_marker("attacker-sha"),
+            "2026-08-05T00:00:00Z",
+        ),
+        Comment(
+            "kandy-nishikihebi[bot]",
+            f"reviewed\n\n{review_marker('real-sha')}",
+            "2026-08-01T00:00:00Z",
+        ),
+    ]
+
+    assert reviewed_sha(comments, "kandy-nishikihebi[bot]") == "real-sha"
+
+
+def test_reviewed_sha_uses_last_marker_in_a_single_comment_body():
+    comments = [
+        Comment(
+            "kandy-nishikihebi[bot]",
+            f"quoting {review_marker('quoted')} in the middle\n\n"
+            f"{review_marker('real')}",
+            "2026-08-01T00:00:00Z",
+        ),
+    ]
+
+    assert reviewed_sha(comments, "kandy-nishikihebi[bot]") == "real"
 
 
 def test_render_comments_formats_author_and_body():
@@ -104,8 +178,7 @@ def test_post_review_comments_posts_comment_for_issue_target(fake_github):
 
 def test_post_review_comments_isolates_a_failing_post(fake_github):
     pull_requests = [
-        PullRequest(f"org/{i}", i, f"pr {i}", "body", f"sha-{i}")
-        for i in range(5)
+        PullRequest(f"org/{i}", i, f"pr {i}", "body", f"sha-{i}") for i in range(5)
     ]
     reviews = [Review(pr, f"review {pr.number}") for pr in pull_requests]
     failing_pr = pull_requests[2]

@@ -2,7 +2,7 @@ import logging
 
 from langchain_core.messages import AIMessage
 
-from nishikihebi.agents._shared import Review
+from nishikihebi.agents._shared import Review, review_marker
 from nishikihebi.agents.pr_review.graph import build_pr_review_graph
 from nishikihebi.clients.github import Comment, PullRequest
 
@@ -39,8 +39,9 @@ def test_graph_posts_comment_for_never_reviewed_pull_request(fake_client, fake_g
 
     result = graph.invoke({"pull_requests": [], "reviews": []})
 
-    assert result["reviews"] == [Review(pr_a, fake_client.reply)]
-    assert fake_github.posted_comments == [(pr_a, fake_client.reply)]
+    expected_body = f"{fake_client.reply}\n\n{review_marker('sha-a')}"
+    assert result["reviews"] == [Review(pr_a, expected_body)]
+    assert fake_github.posted_comments == [(pr_a, expected_body)]
     assert "diff a" in fake_client.calls[-1][-1].content
 
 
@@ -51,9 +52,14 @@ def test_graph_posts_no_comment_for_already_reviewed_unchanged_pull_request(
     review_comment_created_at = "2026-08-02T00:00:00Z"
     fake_github.pull_requests = {"kaiquekandykoga/nishikihebi": [pr_a]}
     fake_github.comments = {
-        pr_a: [Comment(REVIEWER_LOGIN, "reviewed", review_comment_created_at)]
+        pr_a: [
+            Comment(
+                REVIEWER_LOGIN,
+                f"reviewed\n\n{review_marker('sha-a')}",
+                review_comment_created_at,
+            )
+        ]
     }
-    fake_github.commit_dates = {"sha-a": "2026-08-01T00:00:00Z"}
     fake_github.label(pr_a, LABEL)
     graph = build_pr_review_graph(
         fake_client,

@@ -29,10 +29,6 @@ class SpyGitHubClient:
         self.calls.append(("fetch_diff", (pull_request,)))
         return "diff"
 
-    def fetch_commit_date(self, repository: str, sha: str) -> str:
-        self.calls.append(("fetch_commit_date", (repository, sha)))
-        return "2024-01-01T00:00:00Z"
-
     def list_open_issues(self, repository: str, label: str) -> list[Issue]:
         self.calls.append(("list_open_issues", (repository, label)))
         return [Issue(repository, 2, "title", "body", "2024-01-01T00:00:00Z")]
@@ -74,16 +70,6 @@ def test_fetch_diff_forwards_and_returns():
 
     assert result == "diff"
     assert inner.calls == [("fetch_diff", (pull_request,))]
-
-
-def test_fetch_commit_date_forwards_and_returns():
-    inner = SpyGitHubClient()
-    client = DryRunGitHubClient(inner)
-
-    result = client.fetch_commit_date("org/repo", "sha")
-
-    assert result == "2024-01-01T00:00:00Z"
-    assert inner.calls == [("fetch_commit_date", ("org/repo", "sha"))]
 
 
 def test_list_open_issues_forwards_and_returns():

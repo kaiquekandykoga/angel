@@ -68,11 +68,13 @@ reviews the open pull requests labeled `nishikihebi`.
 A labeled PR is reviewed when:
 
 - `kandy-nishikihebi[bot]` has **never** commented on it, or
-- its **head commit is newer** than that last bot comment — so it is re-reviewed only after
-  new commits land.
+- its **head sha differs** from the one recorded in that last bot comment — so it is
+  re-reviewed exactly when the head moves, force-pushes included.
 
 Otherwise it is skipped as already up to date. Each review is posted as one issue comment
-on the PR.
+on the PR, ending with a `<!-- nishikihebi: sha=<head sha> -->` marker. That marker is the
+only state the bot keeps: it records which head was reviewed, on the PR itself. Deleting it
+from a comment makes the next run review that PR again.
 
 > **The label is created for you.** Every scanned repository gets a pink `nishikihebi` label
 > if it lacks one — including repositories you never meant to review. Install the App only
@@ -163,14 +165,13 @@ over the file.
 
 [kandy-nishikihebi](https://github.com/apps/kandy-nishikihebi) is the App behind the
 reviews. The repositories it reviews are exactly the ones it is installed on — there is no
-list to maintain in the code. It needs four permissions and nothing more, so it cannot
+list to maintain in the code. It needs three permissions and nothing more, so it cannot
 approve, merge, or push:
 
 | Permission | Used for |
 |---|---|
 | **Pull requests: read** | listing PRs and fetching diffs |
 | **Issues: read and write** | reading issues and comments, creating the `nishikihebi` label, posting the review comment |
-| **Contents: read** | head commit dates, for the re-review check |
 | **Metadata: read** | required by the others |
 
 ## Testing

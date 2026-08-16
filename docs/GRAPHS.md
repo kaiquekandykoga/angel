@@ -42,8 +42,9 @@ set is discovered at run time from GitHub, so granting or revoking the App's acc
 repository is all it takes to add or drop it. Only PRs labeled `nishikihebi` are
 considered; the label is created on each repository if it doesn't already exist. A
 labeled pull request is picked up when `kandy-nishikihebi[bot]` has never commented on
-it, or when its head commit is newer than that last comment — so a PR is re-reviewed only
-after new commits land.
+it, or when its current head sha differs from the one recorded in that last comment —
+each review ends with a `<!-- nishikihebi: sha=… -->` marker naming the head it read, so
+a PR is re-reviewed exactly when its head has moved.
 
 ```
   START

@@ -61,7 +61,6 @@ class GitHubClient(Protocol):
         self, repository: str, label: str
     ) -> list[PullRequest]: ...
     def fetch_diff(self, pull_request: PullRequest) -> str: ...
-    def fetch_commit_date(self, repository: str, sha: str) -> str: ...
     def list_open_issues(self, repository: str, label: str) -> list[Issue]: ...
     def list_comments(self, target: PullRequest | Issue) -> list[Comment]: ...
     def post_comment(self, target: PullRequest | Issue, body: str) -> None: ...
@@ -207,14 +206,6 @@ class HttpGitHubClient:
         response.raise_for_status()
         return response.text
 
-    def fetch_commit_date(self, repository: str, sha: str) -> str:
-        response = self.http_client.get(
-            f"/repos/{repository}/commits/{sha}",
-            headers=self._auth_header(repository),
-        )
-        response.raise_for_status()
-        return response.json()["commit"]["committer"]["date"]
-
     def list_open_issues(self, repository: str, label: str) -> list[Issue]:
         items = _get_all(
             self.http_client,
@@ -279,9 +270,6 @@ class DryRunGitHubClient:
 
     def fetch_diff(self, pull_request: PullRequest) -> str:
         return self.inner.fetch_diff(pull_request)
-
-    def fetch_commit_date(self, repository: str, sha: str) -> str:
-        return self.inner.fetch_commit_date(repository, sha)
 
     def list_open_issues(self, repository: str, label: str) -> list[Issue]:
         return self.inner.list_open_issues(repository, label)
