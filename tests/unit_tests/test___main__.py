@@ -1,9 +1,12 @@
 import logging
 import re
+import time
 
 import pytest
+from langchain_core.messages import AIMessage
 
 import nishikihebi.__main__
+import nishikihebi.clients.llm
 from nishikihebi.clients.github import (
     DryRunGitHubClient,
     Issue,
@@ -95,7 +98,6 @@ def test_main_runs_pr_review_flow_and_prints_one_line_per_pr(
     nishikihebi.__main__.main(["pr_review"])
 
     out = capsys.readouterr().out
-    assert out.count("\n") == 1
     assert "kaiquekandykoga/nishikihebi" in out
     assert "1" in out
 
@@ -242,7 +244,7 @@ def test_main_prints_a_readable_failure_summary_to_stderr(
         nishikihebi.__main__.main(["pr_review"])
 
     captured = capsys.readouterr()
-    assert captured.out == "No pull requests to review\n"
+    assert "No pull requests to review" in captured.out
     assert f"{repository}#1" in captured.err
     assert "review_pull_requests" in captured.err
     assert "RuntimeError" in captured.err
@@ -354,7 +356,6 @@ def test_main_runs_issue_review_flow_and_prints_one_line_per_issue(
     nishikihebi.__main__.main(["issue_review"])
 
     out = capsys.readouterr().out
-    assert out.count("\n") == 1
     assert "kaiquekandykoga/nishikihebi" in out
     assert "1" in out
 
@@ -416,7 +417,7 @@ def test_main_dry_run_wraps_github_client_and_prints_review_body_for_pr_review(
 
     assert isinstance(captured["github"], DryRunGitHubClient)
     out = capsys.readouterr().out
-    assert "--- kaiquekandykoga/nishikihebi#1 ---" in out
+    assert "kaiquekandykoga/nishikihebi#1" in out.splitlines()
     assert "fake summary" in out
     assert "Commented on" not in out
     assert fake_github.posted_comments == []
@@ -446,7 +447,7 @@ def test_main_dry_run_before_command_parses_the_same_as_after(
 
     assert isinstance(captured["github"], DryRunGitHubClient)
     out = capsys.readouterr().out
-    assert "--- kaiquekandykoga/nishikihebi#1 ---" in out
+    assert "kaiquekandykoga/nishikihebi#1" in out.splitlines()
     assert "Commented on" not in out
 
 
@@ -475,7 +476,7 @@ def test_main_dry_run_wraps_github_client_and_prints_review_body_for_issue_revie
 
     assert isinstance(captured["github"], DryRunGitHubClient)
     out = capsys.readouterr().out
-    assert "--- kaiquekandykoga/nishikihebi#1 ---" in out
+    assert "kaiquekandykoga/nishikihebi#1" in out.splitlines()
     assert "Commented on" not in out
     assert fake_github.posted_comments == []
 
@@ -556,7 +557,10 @@ def test_main_dry_run_still_exits_nonzero_when_a_pull_request_review_fails(
 
     assert excinfo.value.code != 0
     out = capsys.readouterr().out
-    assert out.count("---") == 8
+    target_lines = [
+        line for line in out.splitlines() if line.startswith(f"{repository}#")
+    ]
+    assert len(target_lines) == 4
     assert "Commented on" not in out
     assert f"{repository}#1" not in out
 
@@ -696,3 +700,145 @@ def test_main_help_with_unknown_command_exits_one():
 def test_main_exits_when_dry_run_before_chat_is_also_rejected():
     with pytest.raises(SystemExit, match="--dry-run is not valid for chat"):
         nishikihebi.__main__.main(["--dry-run", "chat"])
+
+
+def _label_and_diff(fake_github, pr):
+    fake_github.pull_requests = {pr.repository: [pr]}
+    fake_github.diffs = {pr: "diff a"}
+    fake_github.label(pr, "nishikihebi")
+
+
+def test_main_prints_run_reviews_usage_sections_in_order(
+    monkeypatch, capsys, fake_client, fake_github
+):
+    pr_a = PullRequest("kaiquekandykoga/nishikihebi", 1, "pr a", "body a", "sha-a")
+    _label_and_diff(fake_github, pr_a)
+    monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
+    monkeypatch.setattr(
+        nishikihebi.__main__, "build_github_client", lambda: fake_github
+    )
+
+    nishikihebi.__main__.main(["pr_review"])
+
+    out = capsys.readouterr().out
+    assert out.index("Run") < out.index("Reviews") < out.index("Usage")
+
+
+def test_main_usage_section_reports_the_tally(
+    monkeypatch, capsys, fake_client, fake_github
+):
+    pr_a = PullRequest("kaiquekandykoga/nishikihebi", 1, "pr a", "body a", "sha-a")
+    _label_and_diff(fake_github, pr_a)
+    monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
+    monkeypatch.setattr(
+        nishikihebi.__main__, "build_github_client", lambda: fake_github
+    )
+    original_complete_structured = fake_client.complete_structured
+    calls = {"count": 0}
+
+    def instrumented(messages, schema):
+        result = original_complete_structured(messages, schema)
+        calls["count"] += 1
+        if calls["count"] == 1:
+            reply = AIMessage(
+                content="",
+                usage_metadata={
+                    "input_tokens": 100,
+                    "output_tokens": 20,
+                    "total_tokens": 120,
+                    "input_token_details": {},
+                    "output_token_details": {},
+                },
+            )
+            nishikihebi.clients.llm.log_model_call_completed(
+                time.monotonic(), call="test", reply=reply
+            )
+        return result
+
+    monkeypatch.setattr(fake_client, "complete_structured", instrumented)
+
+    nishikihebi.__main__.main(["pr_review"])
+
+    out = capsys.readouterr().out
+    assert "input_tokens" in out
+    assert "100" in out
+    assert "output_tokens" in out
+    assert "20" in out
+    assert "total_tokens" in out
+    assert "120" in out
+    assert "duration_ms" in out
+
+
+def test_main_prints_usage_section_before_exiting_on_failure(
+    monkeypatch, capsys, fake_client, fake_github
+):
+    repository = "kaiquekandykoga/nishikihebi"
+    pull_requests = [
+        PullRequest(
+            repository, number, f"pr {number}", f"body {number}", f"sha-{number}"
+        )
+        for number in range(1, 6)
+    ]
+    fake_github.pull_requests = {repository: pull_requests}
+    fake_github.diffs = {pr: f"diff {pr.number}" for pr in pull_requests}
+    for pr in pull_requests:
+        fake_github.label(pr, "nishikihebi")
+    calls = {"count": 0}
+    original_complete_structured = fake_client.complete_structured
+
+    def flaky_complete_structured(messages, schema):
+        calls["count"] += 1
+        if calls["count"] == 3:
+            raise RuntimeError("llm exploded")
+        return original_complete_structured(messages, schema)
+
+    monkeypatch.setattr(fake_client, "complete_structured", flaky_complete_structured)
+    monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
+    monkeypatch.setattr(
+        nishikihebi.__main__, "build_github_client", lambda: fake_github
+    )
+
+    with pytest.raises(SystemExit):
+        nishikihebi.__main__.main(["pr_review"])
+
+    out = capsys.readouterr().out
+    assert "Usage" in out
+    assert "calls" in out
+
+
+def test_main_colors_output_when_nishikihebi_color_is_always(
+    monkeypatch, capsys, fake_client, fake_github
+):
+    pr_a = PullRequest("kaiquekandykoga/nishikihebi", 1, "pr a", "body a", "sha-a")
+    _label_and_diff(fake_github, pr_a)
+    monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
+    monkeypatch.setattr(
+        nishikihebi.__main__, "build_github_client", lambda: fake_github
+    )
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.setenv("NISHIKIHEBI_COLOR", "always")
+
+    nishikihebi.__main__.main(["pr_review"])
+
+    out = capsys.readouterr().out
+    assert "\x1b" in out
+    stripped = re.sub(r"\x1b\[[0-9;]*m", "", out)
+    assert "Commented on kaiquekandykoga/nishikihebi#1" in stripped
+    assert stripped.index("Run") < stripped.index("Reviews") < stripped.index("Usage")
+
+
+def test_main_does_not_color_output_when_nishikihebi_color_is_never(
+    monkeypatch, capsys, fake_client, fake_github
+):
+    pr_a = PullRequest("kaiquekandykoga/nishikihebi", 1, "pr a", "body a", "sha-a")
+    _label_and_diff(fake_github, pr_a)
+    monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
+    monkeypatch.setattr(
+        nishikihebi.__main__, "build_github_client", lambda: fake_github
+    )
+    monkeypatch.setenv("NISHIKIHEBI_COLOR", "never")
+
+    nishikihebi.__main__.main(["pr_review"])
+
+    out = capsys.readouterr().out
+    assert "\x1b" not in out

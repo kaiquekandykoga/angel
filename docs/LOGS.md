@@ -5,7 +5,7 @@ Every run logs to two places at once, configured in `src/nishikihebi/logs.py` by
 
 | Destination | Level | Format |
 |---|---|---|
-| Console (stderr) | `INFO` | `LEVEL   message` — high-level progress, meant to be read while it runs |
+| Console (stderr) | `INFO` | `LEVEL   message` — high-level progress, meant to be read while it runs. `ColorFormatter` colors the level name only (`DEBUG` dim, `INFO` cyan, `WARNING` yellow, `ERROR` red, `CRITICAL` bold red); padding is computed on the plain name, so the columns line up either way. Color follows the same `NISHIKIHEBI_COLOR` / `NO_COLOR` rules as the rest of the console — see [`USAGE.md`](USAGE.md#color) |
 | `log/nishikihebi-<timestamp>.jsonl` | `DEBUG` | one JSON object per line, carrying every structured field the nodes attach |
 
 The file is the detailed one: it keeps the `DEBUG` records the console drops, which is where
@@ -134,6 +134,21 @@ logs nothing here; it is the failure record that names it.
 jq -s 'map(select(.message == "model call completed") | .total_tokens // 0) | add' log/nishikihebi-*.jsonl
 jq 'select(.message == "model call completed") | {call, schema, total_tokens, duration_ms}' log/nishikihebi-*.jsonl
 ```
+
+### The run total on the console
+
+`log_model_call_completed` also accumulates these four fields into a per-run tally in
+`clients/llm.py`, which `__main__` prints as the `Usage` section when the run ends — the
+same numbers the first `jq` above recovers, without needing the log:
+
+| Function | Purpose |
+|---|---|
+| `usage_totals()` | a snapshot of `calls`, `input_tokens`, `output_tokens`, `total_tokens`, `duration_ms`; later calls do not mutate a snapshot already taken |
+| `reset_usage()` | zeroes the tally; `main()` calls it once before the command runs |
+
+A call whose reply carries no `usage_metadata` still increments `calls` and `duration_ms`,
+so the call count on the console always matches the number of `model call completed`
+records in the log. The section's layout is in [`USAGE.md`](USAGE.md#the-usage-section).
 
 Dollars are not logged — see the token and cost accounting item in [`TODO.md`](TODO.md).
 

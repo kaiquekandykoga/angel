@@ -2,6 +2,30 @@ import json
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import TextIO
+
+from nishikihebi.console import BOLD, CYAN, DIM, RED, YELLOW, color_enabled, style
+
+_LEVEL_CODES: dict[str, tuple[str, ...]] = {
+    "DEBUG": (DIM,),
+    "INFO": (CYAN,),
+    "WARNING": (YELLOW,),
+    "ERROR": (RED,),
+    "CRITICAL": (BOLD, RED),
+}
+
+
+class ColorFormatter(logging.Formatter):
+    def __init__(self, stream: TextIO) -> None:
+        super().__init__()
+        self.stream = stream
+
+    def format(self, record: logging.LogRecord) -> str:
+        levelname = f"{record.levelname:<7}"
+        codes = _LEVEL_CODES.get(record.levelname, ())
+        if codes and color_enabled(self.stream):
+            levelname = style(levelname, *codes, stream=self.stream)
+        return f"{levelname} {record.getMessage()}"
 
 
 class JsonLinesFormatter(logging.Formatter):
@@ -29,7 +53,7 @@ def configure_logging(
 
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.INFO)
-    console_handler.setFormatter(logging.Formatter("%(levelname)-7s %(message)s"))
+    console_handler.setFormatter(ColorFormatter(console_handler.stream))
     logger.addHandler(console_handler)
 
     file_handler = logging.FileHandler(path)

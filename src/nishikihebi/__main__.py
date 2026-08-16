@@ -1,6 +1,7 @@
 import argparse
 import sys
 from collections.abc import Sequence
+from pathlib import Path
 from typing import NoReturn
 
 from nishikihebi.agents._shared import ItemFailure, Review
@@ -20,7 +21,10 @@ from nishikihebi.clients.llm import (
     LlmClient,
     MissingApiKeyError,
     build_llm_client,
+    reset_usage,
+    usage_totals,
 )
+from nishikihebi.console import BOLD, DIM, GREEN, RED, section, style
 from nishikihebi.logs import configure_logging, get_logger
 
 COMMANDS = ("chat", "pr_review", "issue_review")
@@ -98,11 +102,14 @@ def run_chat(client: LlmClient) -> None:
     graph = build_chat_graph(client)
     session = start_session(graph)
     repl.run(session)
+    _print_usage_section()
 
 
 def report_failures(failures: list[ItemFailure], succeeded: int) -> None:
     if not failures:
         return
+    section("Failures", stream=sys.stderr)
+    print(file=sys.stderr)
     for failure in failures:
         target = (
             failure.repository
@@ -110,8 +117,12 @@ def report_failures(failures: list[ItemFailure], succeeded: int) -> None:
             else f"{failure.repository}#{failure.number}"
         )
         print(
-            f"Failed {failure.stage} for {target}: "
-            f"{failure.error_type}: {failure.error}",
+            style(
+                f"Failed {failure.stage} for {target}: "
+                f"{failure.error_type}: {failure.error}",
+                RED,
+                stream=sys.stderr,
+            ),
             file=sys.stderr,
         )
     never_reviewed = sum(
@@ -121,13 +132,40 @@ def report_failures(failures: list[ItemFailure], succeeded: int) -> None:
     sys.exit(f"{len(failures)} of {total} items failed")
 
 
-def _print_review(review: Review, dry_run: bool) -> None:
-    target = review.target
-    if dry_run:
-        print(f"--- {target.repository}#{target.number} ---")
-        print(review.body)
-    else:
-        print(f"Commented on {target.repository}#{target.number}")
+def _print_run_section(command: str, dry_run: bool, log_path: Path) -> None:
+    section("Run", stream=sys.stdout)
+    print()
+    print(f"  {'command':<7}   {command}")
+    print(f"  {'dry run':<7}   {'yes' if dry_run else 'no'}")
+    print(f"  {'log':<7}   {log_path}")
+
+
+def _print_usage_section() -> None:
+    totals = usage_totals()
+    section("Usage", stream=sys.stdout)
+    print()
+    print(f"  {'calls':<13}{totals.calls:>9,}")
+    print(f"  {'input_tokens':<13}{totals.input_tokens:>9,}")
+    print(f"  {'output_tokens':<13}{totals.output_tokens:>9,}")
+    print(f"  {'total_tokens':<13}{totals.total_tokens:>9,}")
+    print(f"  {'duration_ms':<13}{totals.duration_ms:>9.1f}")
+
+
+def _print_reviews(reviews: list[Review], dry_run: bool, nothing_message: str) -> None:
+    section("Reviews", stream=sys.stdout)
+    print()
+    if not reviews:
+        print(style(nothing_message, DIM, stream=sys.stdout))
+        return
+    for review in reviews:
+        target = review.target
+        label = f"{target.repository}#{target.number}"
+        if dry_run:
+            print(style(label, BOLD, stream=sys.stdout))
+            print(review.body)
+            print()
+        else:
+            print(style(f"  Commented on {label}", GREEN, stream=sys.stdout))
 
 
 def run_pr_review(
@@ -135,11 +173,8 @@ def run_pr_review(
 ) -> None:
     graph = build_pr_review_graph(client, github)
     result = graph.invoke({"pull_requests": [], "reviews": [], "failures": []})
-    if not result["reviews"]:
-        print("No pull requests to review")
-    else:
-        for review in result["reviews"]:
-            _print_review(review, dry_run)
+    _print_reviews(result["reviews"], dry_run, "No pull requests to review")
+    _print_usage_section()
     report_failures(result["failures"], len(result["reviews"]))
 
 
@@ -148,11 +183,8 @@ def run_issue_review(
 ) -> None:
     graph = build_issue_review_graph(client, github)
     result = graph.invoke({"issues": [], "reviews": [], "failures": []})
-    if not result["reviews"]:
-        print("No issues to review")
-    else:
-        for review in result["reviews"]:
-            _print_review(review, dry_run)
+    _print_reviews(result["reviews"], dry_run, "No issues to review")
+    _print_usage_section()
     report_failures(result["failures"], len(result["reviews"]))
 
 
@@ -185,6 +217,8 @@ def main(argv: Sequence[str] | None = None) -> None:
         log_path=str(log_path),
         dry_run=dry_run,
     )
+    reset_usage()
+    _print_run_section(command, dry_run, log_path)
 
     try:
         client = build_llm_client()

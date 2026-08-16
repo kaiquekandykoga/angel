@@ -6,7 +6,7 @@ runs once and exits — there is no daemon and nothing schedules them.
 - [Quick start](#quick-start)
 - [Commands](#commands) · [`chat`](#chat) · [`pr_review`](#pr_review) · [`issue_review`](#issue_review)
 - [Options](#options) — `--dry-run`, `--help`
-- [Output and exit codes](#output-and-exit-codes)
+- [Output and exit codes](#output-and-exit-codes) — sections, the `Usage` totals, color
 - [Configuration](#configuration)
 - [Known gaps](#known-gaps)
 
@@ -119,10 +119,12 @@ proposed acceptance criteria and a suggested approach.
 The run is identical up to the point of writing: repositories are discovered, labeled items
 are selected, diffs are fetched, and the model is called — so it costs the same tokens.
 Only the two writes are suppressed: creating the `nishikihebi` label, and posting the review
-comment. Each review body is printed instead:
+comment. Each review body is printed instead, under its target:
 
 ```
---- owner/repo#12 ---
+Reviews ────────────────────────────────────────────────────────────────
+
+owner/repo#12
 The change looks correct, but one branch is untested.
 
 ### Findings
@@ -130,6 +132,9 @@ The change looks correct, but one branch is untested.
 **[major] New branch in `parse()` is untested** — `src/parse.py:42`
 The early return added here is not covered by any case in `tests/test_parse.py`.
 ```
+
+The target line is bold; the body is printed unindented and unstyled so it can be copied
+straight into a comment as markdown.
 
 Every suppressed write is also logged; see [`LOGS.md`](LOGS.md). Exit codes are unchanged —
 a fetch or model failure still reports and exits `1`.
@@ -160,28 +165,73 @@ it is `uv run nishikihebi bogus` or `uv run nishikihebi help bogus`.
 
 ## Output and exit codes
 
-A review run prints one line per posted review, or a single line when nothing was due:
+A run prints three sections to stdout — what it is doing, what it produced, and what it
+cost:
 
 ```
-Commented on owner/repo#12
-Commented on owner/other#3
+Run ────────────────────────────────────────────────────────────────────
+
+  command   pr_review
+  dry run   no
+  log       log/nishikihebi-20260816T101010Z.jsonl
+
+Reviews ────────────────────────────────────────────────────────────────
+
+  Commented on owner/repo#12
+  Commented on owner/other#3
+
+Usage ──────────────────────────────────────────────────────────────────
+
+  calls                6
+  input_tokens    12,345
+  output_tokens    2,048
+  total_tokens    14,393
+  duration_ms     8213.4
 ```
-```
-No pull requests to review
-```
+
+When nothing was due, the `Reviews` section holds the one line it always did —
+`No pull requests to review` or `No issues to review` — and `Usage` still prints.
+
+### The `Usage` section
+
+The per-run total of every call into the model, summed from the same numbers the
+`model call completed` records carry in the log — see [`LOGS.md`](LOGS.md) for the per-call
+detail. The field names match those records exactly:
+
+| Field | Meaning |
+|---|---|
+| `calls` | how many times the model was called, `complete` and `complete_structured` together |
+| `input_tokens` / `output_tokens` / `total_tokens` | summed across those calls; a provider that returns no usage metadata contributes `0` while still counting toward `calls` |
+| `duration_ms` | wall time inside the provider calls, milliseconds — not the run's total wall time |
+
+`chat` prints the same section when the session ends. The section is printed **before** the
+process exits non-zero, so a failed run still reports what it spent.
+
+### Color
+
+Colored when stdout is a terminal, plain otherwise — so piping or redirecting is unaffected.
+`NISHIKIHEBI_COLOR` overrides the terminal check in either direction, and a non-empty
+`NO_COLOR` always wins. Only the section headings and the status lines are styled; review
+bodies are never colored.
+
+### Failures
 
 Each repository and each item is isolated, so one failure never discards the rest of the
 work — a model error on the fifth pull request still leaves the other nine reviewed and
-posted. What failed prints to stderr, one line each, followed by a count:
+posted. What failed prints to stderr under its own heading, one line each, followed by a
+count:
 
 ```
+Failures ───────────────────────────────────────────────────────────────
+
 Failed review_pull_requests for owner/repo#12: HTTPStatusError: 500 Server Error
 Failed post_review_comments for owner/other: TimeoutError:
 2 of 5 items failed
 ```
 
 Repository-level failures — one repository of thirty unreachable during the scan — carry no
-item number and print as `owner/repo`.
+item number and print as `owner/repo`. Because failures go to stderr and the three sections
+above go to stdout, `2> /dev/null` keeps the report and drops the errors.
 
 | Exit code | Meaning |
 |---|---|
@@ -202,6 +252,7 @@ Copy `.env.example` to `.env` and fill in these variables.
 | `NISHIKIHEBI_GITHUB_APP_ID` | `pr_review`, `issue_review` | ID of the GitHub App to authenticate as. |
 | `NISHIKIHEBI_GITHUB_PRIVATE_KEY_PATH` | `pr_review`, `issue_review` | Path to that App's private key (`.pem`). |
 | `NISHIKIHEBI_NVIDIA_MAX_COMPLETION_TOKENS` | optional, all three commands | Output tokens allowed per model call, default `32768`. Counts the model's reasoning as well as its answer, so a value sized to the review text alone truncates the reply mid-object and the item fails. A non-integer or non-positive value exits `1` rather than falling back to the default. |
+| `NISHIKIHEBI_COLOR` | optional, all three commands | `auto` (default) colors the console only when the stream is a terminal; `always` keeps color when piping or redirecting; `never` disables it. An unrecognised value is treated as `auto`. A non-empty `NO_COLOR` disables color whatever this is set to. |
 
 A missing *required* variable exits `1` with `<NAME> environment variable is not set.` before
 any work starts. `.env` is loaded automatically and searched from the current directory *upward*, so

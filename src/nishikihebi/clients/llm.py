@@ -1,5 +1,6 @@
 import time
 from collections.abc import Sequence
+from dataclasses import dataclass, replace
 from typing import Protocol, cast
 
 from langchain_core.language_models import BaseChatModel
@@ -33,6 +34,27 @@ class TruncatedCompletionError(RuntimeError):
     pass
 
 
+@dataclass
+class UsageTotals:
+    calls: int = 0
+    input_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
+    duration_ms: float = 0.0
+
+
+_usage_totals = UsageTotals()
+
+
+def usage_totals() -> UsageTotals:
+    return replace(_usage_totals)
+
+
+def reset_usage() -> None:
+    global _usage_totals
+    _usage_totals = UsageTotals()
+
+
 def log_model_call_completed(
     started: float, *, call: str, reply: AIMessage, schema: str | None = None
 ) -> None:
@@ -46,6 +68,13 @@ def log_model_call_completed(
     fields["total_tokens"] = usage["total_tokens"] if usage is not None else None
     fields["duration_ms"] = round((time.monotonic() - started) * 1000, 1)
     log.debug("model call completed", **fields)
+
+    _usage_totals.calls += 1
+    _usage_totals.duration_ms += cast("float", fields["duration_ms"])
+    if usage is not None:
+        _usage_totals.input_tokens += usage["input_tokens"]
+        _usage_totals.output_tokens += usage["output_tokens"]
+        _usage_totals.total_tokens += usage["total_tokens"]
 
 
 NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"

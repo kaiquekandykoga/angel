@@ -13,6 +13,8 @@ from nishikihebi.clients.llm import (
     NvidiaClient,
     TruncatedCompletionError,
     build_llm_client,
+    reset_usage,
+    usage_totals,
 )
 
 
@@ -358,6 +360,96 @@ def test_build_llm_client_raises_when_max_completion_tokens_not_an_integer(monke
         match="NISHIKIHEBI_NVIDIA_MAX_COMPLETION_TOKENS",
     ):
         build_llm_client()
+
+
+@pytest.fixture
+def clean_usage():
+    reset_usage()
+    yield
+    reset_usage()
+
+
+def test_reset_usage_zeroes_every_field(clean_usage):
+    reply = AIMessage(
+        content="hi there",
+        response_metadata={"finish_reason": "stop"},
+        usage_metadata={"input_tokens": 5, "output_tokens": 2, "total_tokens": 7},
+    )
+    chat_model = FakeChatModel(reply="unused")
+    chat_model.invoke = lambda messages: reply  # type: ignore[method-assign]
+    client = NvidiaClient(cast("BaseChatModel", chat_model), max_completion_tokens=8192)
+    client.complete([HumanMessage(content="hello")])
+
+    reset_usage()
+
+    totals = usage_totals()
+    assert totals.calls == 0
+    assert totals.input_tokens == 0
+    assert totals.output_tokens == 0
+    assert totals.total_tokens == 0
+    assert totals.duration_ms == 0.0
+
+
+def test_usage_totals_accumulate_across_complete_and_complete_structured(clean_usage):
+    complete_reply = AIMessage(
+        content="hi there",
+        response_metadata={"finish_reason": "stop"},
+        usage_metadata={"input_tokens": 5, "output_tokens": 2, "total_tokens": 7},
+    )
+    chat_model = FakeChatModel(reply="unused")
+    chat_model.invoke = lambda messages: complete_reply  # type: ignore[method-assign]
+    client = NvidiaClient(cast("BaseChatModel", chat_model), max_completion_tokens=8192)
+    client.complete([HumanMessage(content="hello")])
+
+    structured_reply = AIMessage(
+        content='{"text": "hi"}',
+        response_metadata={"finish_reason": "stop"},
+        usage_metadata={"input_tokens": 3, "output_tokens": 4, "total_tokens": 7},
+    )
+    chat_model2 = FakeChatModel(reply="unused", bound_reply=structured_reply)
+    client2 = NvidiaClient(
+        cast("BaseChatModel", chat_model2), max_completion_tokens=8192
+    )
+    client2.complete_structured([HumanMessage(content="hello")], Answer)
+
+    totals = usage_totals()
+    assert totals.calls == 2
+    assert totals.input_tokens == 8
+    assert totals.output_tokens == 6
+    assert totals.total_tokens == 14
+
+
+def test_usage_totals_ignores_none_usage_metadata_but_counts_call(clean_usage):
+    reply = AIMessage(content="hi there")
+    chat_model = FakeChatModel(reply="unused")
+    chat_model.invoke = lambda messages: reply  # type: ignore[method-assign]
+    client = NvidiaClient(cast("BaseChatModel", chat_model), max_completion_tokens=8192)
+
+    client.complete([HumanMessage(content="hello")])
+
+    totals = usage_totals()
+    assert totals.calls == 1
+    assert totals.input_tokens == 0
+    assert totals.output_tokens == 0
+    assert totals.total_tokens == 0
+    assert totals.duration_ms >= 0
+
+
+def test_usage_totals_returns_a_snapshot_that_does_not_mutate(clean_usage):
+    reply = AIMessage(
+        content="hi there",
+        response_metadata={"finish_reason": "stop"},
+        usage_metadata={"input_tokens": 5, "output_tokens": 2, "total_tokens": 7},
+    )
+    chat_model = FakeChatModel(reply="unused")
+    chat_model.invoke = lambda messages: reply  # type: ignore[method-assign]
+    client = NvidiaClient(cast("BaseChatModel", chat_model), max_completion_tokens=8192)
+
+    snapshot = usage_totals()
+    client.complete([HumanMessage(content="hello")])
+
+    assert snapshot.calls == 0
+    assert usage_totals().calls == 1
 
 
 def test_build_llm_client_raises_when_max_completion_tokens_not_positive(monkeypatch):
