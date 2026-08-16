@@ -41,6 +41,28 @@ jq 'select(.selected == false) | {repository, number, reason}' log/nishikihebi-*
 The second one answers "why didn't it review this PR?" — `fetch_pull_requests` and
 `fetch_issues` log a `selected` / `reason` pair for every labeled item they evaluate.
 
+## Failure records
+
+Every isolated failure — a repository or item skipped while fetching, a review the model
+failed to produce, a comment that could not be posted — is logged at `WARNING` with a
+fixed set of context keys, so failures across all three nodes read the same way:
+
+| Key | Meaning |
+|---|---|
+| `repository` | `owner/name` of the repository the failure belongs to |
+| `number` | the PR or issue number; `0` for a repository-level failure |
+| `stage` | the node that caught it — `fetch_pull_requests`, `fetch_issues`, `review_pull_requests`, `review_issues`, `post_review_comments` |
+| `error_type` | the exception class name |
+| `error` | `str(exception)` |
+
+```bash
+jq 'select(.level == "WARNING") | {stage, repository, number, error_type, error}' log/nishikihebi-*.jsonl
+```
+
+These are the same records the run collects into `failures` in graph state and reports
+before exiting non-zero. No traceback is logged — `JsonLinesFormatter` drops `exc_info`,
+which is why the exception type and message are structured fields instead.
+
 ## Where the files go
 
 `configure_logging()` writes to `log/` **relative to the current working directory**, so

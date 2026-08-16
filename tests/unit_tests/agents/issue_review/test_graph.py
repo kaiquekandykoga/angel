@@ -1,5 +1,7 @@
 import logging
 
+from langchain_core.messages import AIMessage
+
 from nishikihebi.agents._shared import Review
 from nishikihebi.agents.issue_review.graph import build_issue_review_graph
 from nishikihebi.clients.github import Comment, Issue
@@ -84,3 +86,43 @@ def test_graph_covers_every_repository_of_the_installation(fake_client, fake_git
 
     assert {review.target for review in result["reviews"]} == {issue_a, issue_b}
     assert {target for target, _ in fake_github.posted_comments} == {issue_a, issue_b}
+
+
+def test_graph_nodes_carry_a_retry_policy(fake_client, fake_github):
+    graph = build_issue_review_graph(
+        fake_client, fake_github, reviewer_login=REVIEWER_LOGIN
+    )
+
+    for name in ("fetch_issues", "review_issues", "post_review_comments"):
+        retry_policy = graph.nodes[name].retry_policy
+        assert retry_policy is not None
+        assert retry_policy[0].max_attempts == 3
+
+
+def test_graph_isolates_a_review_failure_and_posts_the_rest(fake_github):
+    issues = [
+        Issue("org/a", n, f"issue {n}", "body", "2026-08-01T00:00:00Z")
+        for n in range(1, 6)
+    ]
+    fake_github.issues = {"org/a": issues}
+    for issue in issues:
+        fake_github.label(issue, LABEL)
+
+    class RaisingOnThirdClient:
+        def __init__(self):
+            self.calls = 0
+
+        def complete(self, messages):
+            self.calls += 1
+            if self.calls == 3:
+                raise RuntimeError("model boom")
+            return AIMessage(content="ok")
+
+    graph = build_issue_review_graph(
+        RaisingOnThirdClient(), fake_github, reviewer_login=REVIEWER_LOGIN
+    )
+
+    result = graph.invoke({"issues": [], "reviews": [], "failures": []})
+
+    assert len(fake_github.posted_comments) == 4
+    assert len(result["failures"]) == 1

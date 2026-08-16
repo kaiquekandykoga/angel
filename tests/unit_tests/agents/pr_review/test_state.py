@@ -1,5 +1,8 @@
+import operator
+from typing import get_args
+
 from nishikihebi.agents._shared import Review
-from nishikihebi.agents.pr_review.state import PullRequestContext
+from nishikihebi.agents.pr_review.state import PrReviewState, PullRequestContext
 from nishikihebi.clients.github import Comment, PullRequest
 
 
@@ -20,3 +23,9 @@ def test_pull_request_context_pairs_pull_request_with_comments():
 
     assert context.pull_request == pull_request
     assert context.comments == [comment]
+
+
+def test_failures_annotation_carries_operator_add_reducer():
+    _, reducer = get_args(PrReviewState.__annotations__["failures"])
+
+    assert reducer is operator.add

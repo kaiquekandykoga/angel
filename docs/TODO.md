@@ -35,14 +35,6 @@ approval."
 **Done when:** an injection fixture produces no policy-violating comment, enforced by a test on the
 validation layer.
 
-### Isolate per-item failures; add a retry policy
-**Where:** `agents/{pr,issue}_review/nodes.py`, both `graph.py`
-**Why:** all reviews are generated, then all posted. A model error on item 5 of 10 discards four
-paid-for reviews; one GitHub 500 kills a 30-repo scan.
-**Do:** per-item `try/except` with context logging, continue, record failures in state; add
-`RetryPolicy(max_attempts=3)` on review nodes (LangGraph 1.2, unused today).
-**Done when:** a fake client failing on item 3 of 5 still posts the other 4 and exits non-zero.
-
 ### Cap and filter the diff sent to the model
 **Where:** `agents/pr_review/nodes.py`, `clients/github.py::fetch_diff`
 **Why:** the full diff goes in with no cap or filter. A lockfile touch (this repo's `uv.lock` is
@@ -135,9 +127,9 @@ no flags.
 **Do:** `argparse` or `typer`, then add `--dry-run` (P0), `--repo owner/name`, `--limit N`,
 `--log-level`, `--log-file`, `--version`.
 
-### Exit non-zero on partial failure
-Nothing emits reviews-posted / items-skipped / API-errors / tokens-used anywhere a dashboard can
-read. A non-zero exit at least makes the scheduler's failure notification do the alerting for free.
+### Emit run metrics
+Partial failures now exit non-zero, so a scheduler alerts for free — but nothing emits
+reviews-posted / items-skipped / API-errors / tokens-used anywhere a dashboard can read.
 
 ### Re-review a PR on its pushed head, not its commit date
 **Where:** `agents/pr_review/nodes.py:41-46`, `clients/github.py::fetch_commit_date` (185)
@@ -169,8 +161,10 @@ requirement) and an LLM-as-judge rubric (found it? specific? hallucinated files?
 citations are checkable mechanically, no judge needed.
 
 ### `Send` fan-out and async
-Reviews run strictly sequentially. `Send` gives per-item parallelism, retry, and failure isolation
-in one move; `ainvoke` + `httpx.AsyncClient` matter once fan-out exists.
+Reviews run strictly sequentially. Failures are already isolated per item, but `RetryPolicy` is
+node-granular, so a single flaky review cannot be retried without re-running the whole node. `Send`
+gives per-item parallelism *and* per-item retry in one move; `ainvoke` + `httpx.AsyncClient` matter
+once fan-out exists.
 
 ### Durable checkpointer on the review graphs
 `build_pr_review_graph` compiles without one, so a mid-run crash loses everything and there is no
@@ -271,5 +265,5 @@ CLI, a leak in anything long-running, and a `ResourceWarning` once warnings are 
   absent (removed in `2c27db5`); writing it down is the difference between a decision and an
   omission — and note that a second contributor ends "green on my machine".
 - **No limitations section in `README.md`.** `GRAPHS.md`, `LOGS.md`, and `USAGE.md` each carry a
-  "Known gaps"; the entry point doesn't, so a reader opens three files to learn there are no
-  retries and no rate-limit handling. Add a short one, plus a LICENSE badge.
+  "Known gaps"; the entry point doesn't, so a reader opens three files to learn there is no
+  rate-limit handling. Add a short one, plus a LICENSE badge.

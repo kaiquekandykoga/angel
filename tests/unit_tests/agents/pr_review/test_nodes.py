@@ -1,8 +1,8 @@
 import logging
 
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
-from nishikihebi.agents._shared import Review
+from nishikihebi.agents._shared import ItemFailure, Review
 from nishikihebi.agents.pr_review.nodes import fetch_pull_requests, review_pull_requests
 from nishikihebi.agents.pr_review.prompts import REVIEW_SYSTEM_PROMPT
 from nishikihebi.agents.pr_review.state import PullRequestContext
@@ -22,7 +22,7 @@ def test_fetch_pull_requests_logs_start_per_repository_and_summary(
     fake_github.label(pr, LABEL)
     node = fetch_pull_requests(fake_github, REVIEWER_LOGIN, LABEL, LABEL_COLOR)
 
-    node({"pull_requests": [], "reviews": []})
+    node({"pull_requests": [], "reviews": [], "failures": []})
 
     info_records = [r for r in caplog.records if r.levelname == "INFO"]
     debug_records = [r for r in caplog.records if r.levelname == "DEBUG"]
@@ -45,9 +45,9 @@ def test_fetch_pull_requests_includes_pr_with_no_comments(fake_github):
     fake_github.label(pr, LABEL)
     node = fetch_pull_requests(fake_github, REVIEWER_LOGIN, LABEL, LABEL_COLOR)
 
-    result = node({"pull_requests": [], "reviews": []})
+    result = node({"pull_requests": [], "reviews": [], "failures": []})
 
-    assert result == {"pull_requests": [PullRequestContext(pr, [])]}
+    assert result == {"pull_requests": [PullRequestContext(pr, [])], "failures": []}
 
 
 def test_fetch_pull_requests_includes_pr_with_only_other_author_comments(fake_github):
@@ -58,9 +58,12 @@ def test_fetch_pull_requests_includes_pr_with_only_other_author_comments(fake_gi
     fake_github.label(pr, LABEL)
     node = fetch_pull_requests(fake_github, REVIEWER_LOGIN, LABEL, LABEL_COLOR)
 
-    result = node({"pull_requests": [], "reviews": []})
+    result = node({"pull_requests": [], "reviews": [], "failures": []})
 
-    assert result == {"pull_requests": [PullRequestContext(pr, [other_comment])]}
+    assert result == {
+        "pull_requests": [PullRequestContext(pr, [other_comment])],
+        "failures": [],
+    }
 
 
 def test_fetch_pull_requests_includes_pr_with_newer_head_commit(fake_github):
@@ -72,9 +75,12 @@ def test_fetch_pull_requests_includes_pr_with_newer_head_commit(fake_github):
     fake_github.label(pr, LABEL)
     node = fetch_pull_requests(fake_github, REVIEWER_LOGIN, LABEL, LABEL_COLOR)
 
-    result = node({"pull_requests": [], "reviews": []})
+    result = node({"pull_requests": [], "reviews": [], "failures": []})
 
-    assert result == {"pull_requests": [PullRequestContext(pr, [review_comment])]}
+    assert result == {
+        "pull_requests": [PullRequestContext(pr, [review_comment])],
+        "failures": [],
+    }
 
 
 def test_fetch_pull_requests_excludes_pr_unchanged_since_review(fake_github):
@@ -86,9 +92,9 @@ def test_fetch_pull_requests_excludes_pr_unchanged_since_review(fake_github):
     fake_github.label(pr, LABEL)
     node = fetch_pull_requests(fake_github, REVIEWER_LOGIN, LABEL, LABEL_COLOR)
 
-    result = node({"pull_requests": [], "reviews": []})
+    result = node({"pull_requests": [], "reviews": [], "failures": []})
 
-    assert result == {"pull_requests": []}
+    assert result == {"pull_requests": [], "failures": []}
 
 
 def test_fetch_pull_requests_excludes_pr_with_head_commit_equal_to_review(fake_github):
@@ -100,9 +106,9 @@ def test_fetch_pull_requests_excludes_pr_with_head_commit_equal_to_review(fake_g
     fake_github.label(pr, LABEL)
     node = fetch_pull_requests(fake_github, REVIEWER_LOGIN, LABEL, LABEL_COLOR)
 
-    result = node({"pull_requests": [], "reviews": []})
+    result = node({"pull_requests": [], "reviews": [], "failures": []})
 
-    assert result == {"pull_requests": []}
+    assert result == {"pull_requests": [], "failures": []}
 
 
 def test_fetch_pull_requests_covers_every_repository_of_the_installation(fake_github):
@@ -113,13 +119,14 @@ def test_fetch_pull_requests_covers_every_repository_of_the_installation(fake_gi
     fake_github.label(pr_b, LABEL)
     node = fetch_pull_requests(fake_github, REVIEWER_LOGIN, LABEL, LABEL_COLOR)
 
-    result = node({"pull_requests": [], "reviews": []})
+    result = node({"pull_requests": [], "reviews": [], "failures": []})
 
     assert result == {
         "pull_requests": [
             PullRequestContext(pr_a, []),
             PullRequestContext(pr_b, []),
-        ]
+        ],
+        "failures": [],
     }
 
 
@@ -128,9 +135,9 @@ def test_fetch_pull_requests_excludes_unlabeled_pr_never_reviewed(fake_github):
     fake_github.pull_requests = {"org/a": [pr]}
     node = fetch_pull_requests(fake_github, REVIEWER_LOGIN, LABEL, LABEL_COLOR)
 
-    result = node({"pull_requests": [], "reviews": []})
+    result = node({"pull_requests": [], "reviews": [], "failures": []})
 
-    assert result == {"pull_requests": []}
+    assert result == {"pull_requests": [], "failures": []}
 
 
 def test_fetch_pull_requests_excludes_labeled_pr_not_due_for_review(fake_github):
@@ -142,9 +149,9 @@ def test_fetch_pull_requests_excludes_labeled_pr_not_due_for_review(fake_github)
     fake_github.label(pr, LABEL)
     node = fetch_pull_requests(fake_github, REVIEWER_LOGIN, LABEL, LABEL_COLOR)
 
-    result = node({"pull_requests": [], "reviews": []})
+    result = node({"pull_requests": [], "reviews": [], "failures": []})
 
-    assert result == {"pull_requests": []}
+    assert result == {"pull_requests": [], "failures": []}
 
 
 def test_fetch_pull_requests_calls_ensure_label_once_per_repository(fake_github):
@@ -155,7 +162,7 @@ def test_fetch_pull_requests_calls_ensure_label_once_per_repository(fake_github)
     fake_github.label(pr_b, LABEL)
     node = fetch_pull_requests(fake_github, REVIEWER_LOGIN, LABEL, LABEL_COLOR)
 
-    node({"pull_requests": [], "reviews": []})
+    node({"pull_requests": [], "reviews": [], "failures": []})
 
     assert fake_github.ensure_label_calls == [
         ("org/a", LABEL, LABEL_COLOR),
@@ -177,7 +184,13 @@ def test_review_pull_requests_logs_start_per_item_and_end(
     fake_github.diffs = {pr_a: "diff a"}
     node = review_pull_requests(fake_github, fake_client)
 
-    node({"pull_requests": [PullRequestContext(pr_a, [])], "reviews": []})
+    node(
+        {
+            "pull_requests": [PullRequestContext(pr_a, [])],
+            "reviews": [],
+            "failures": [],
+        }
+    )
 
     info_records = [r for r in caplog.records if r.levelname == "INFO"]
     debug_records = [r for r in caplog.records if r.levelname == "DEBUG"]
@@ -210,6 +223,7 @@ def test_review_pull_requests_returns_one_review_per_pull_request(
                 PullRequestContext(pr_b, []),
             ],
             "reviews": [],
+            "failures": [],
         }
     )
 
@@ -217,7 +231,8 @@ def test_review_pull_requests_returns_one_review_per_pull_request(
         "reviews": [
             Review(pr_a, fake_client.reply),
             Review(pr_b, fake_client.reply),
-        ]
+        ],
+        "failures": [],
     }
 
 
@@ -232,7 +247,13 @@ def test_review_pull_requests_sends_title_body_comments_and_diff(
     ]
     node = review_pull_requests(fake_github, fake_client)
 
-    node({"pull_requests": [PullRequestContext(pr_a, comments)], "reviews": []})
+    node(
+        {
+            "pull_requests": [PullRequestContext(pr_a, comments)],
+            "reviews": [],
+            "failures": [],
+        }
+    )
 
     sent = fake_client.calls[-1]
     assert isinstance(sent[0], SystemMessage)
@@ -253,7 +274,167 @@ def test_review_pull_requests_renders_no_comments_fallback(fake_client, fake_git
     fake_github.diffs = {pr_a: "diff a"}
     node = review_pull_requests(fake_github, fake_client)
 
-    node({"pull_requests": [PullRequestContext(pr_a, [])], "reviews": []})
+    node(
+        {
+            "pull_requests": [PullRequestContext(pr_a, [])],
+            "reviews": [],
+            "failures": [],
+        }
+    )
 
     sent = fake_client.calls[-1]
     assert "(none)" in sent[1].content
+
+
+def test_fetch_pull_requests_isolates_item_failure_within_a_repository(fake_github):
+    pr_1 = PullRequest("org/a", 1, "pr 1", "body", "sha-1")
+    pr_2 = PullRequest("org/a", 2, "pr 2", "body", "sha-2")
+    pr_3 = PullRequest("org/a", 3, "pr 3", "body", "sha-3")
+    fake_github.pull_requests = {"org/a": [pr_1, pr_2, pr_3]}
+    for pr in (pr_1, pr_2, pr_3):
+        fake_github.label(pr, LABEL)
+    original_list_comments = fake_github.list_comments
+
+    def list_comments(target):
+        if target == pr_2:
+            raise RuntimeError("boom")
+        return original_list_comments(target)
+
+    fake_github.list_comments = list_comments
+    node = fetch_pull_requests(fake_github, REVIEWER_LOGIN, LABEL, LABEL_COLOR)
+
+    result = node({"pull_requests": [], "reviews": [], "failures": []})
+
+    assert result["pull_requests"] == [
+        PullRequestContext(pr_1, []),
+        PullRequestContext(pr_3, []),
+    ]
+    assert result["failures"] == [
+        ItemFailure(
+            repository="org/a",
+            number=2,
+            stage="fetch_pull_requests",
+            error_type="RuntimeError",
+            error="boom",
+        )
+    ]
+
+
+def test_fetch_pull_requests_isolates_repository_failure(fake_github):
+    pr_a = PullRequest("org/a", 1, "pr a", "body a", "sha-a")
+    pr_b = PullRequest("org/b", 2, "pr b", "body b", "sha-b")
+    fake_github.pull_requests = {"org/a": [pr_a], "org/b": [pr_b]}
+    fake_github.label(pr_a, LABEL)
+    fake_github.label(pr_b, LABEL)
+    original_list_open_pull_requests = fake_github.list_open_pull_requests
+
+    def list_open_pull_requests(repository, label):
+        if repository == "org/a":
+            raise RuntimeError("repo boom")
+        return original_list_open_pull_requests(repository, label)
+
+    fake_github.list_open_pull_requests = list_open_pull_requests
+    node = fetch_pull_requests(fake_github, REVIEWER_LOGIN, LABEL, LABEL_COLOR)
+
+    result = node({"pull_requests": [], "reviews": [], "failures": []})
+
+    assert result["pull_requests"] == [PullRequestContext(pr_b, [])]
+    assert result["failures"] == [
+        ItemFailure(
+            repository="org/a",
+            number=0,
+            stage="fetch_pull_requests",
+            error_type="RuntimeError",
+            error="repo boom",
+        )
+    ]
+
+
+def test_fetch_pull_requests_logs_failure_at_warning(fake_github, caplog):
+    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+    pr = PullRequest("org/a", 1, "pr a", "body", "sha-a")
+    fake_github.pull_requests = {"org/a": [pr]}
+    fake_github.label(pr, LABEL)
+
+    def list_comments(target):
+        raise RuntimeError("boom")
+
+    fake_github.list_comments = list_comments
+    node = fetch_pull_requests(fake_github, REVIEWER_LOGIN, LABEL, LABEL_COLOR)
+
+    node({"pull_requests": [], "reviews": [], "failures": []})
+
+    warning_records = [r for r in caplog.records if r.levelname == "WARNING"]
+    assert len(warning_records) == 1
+    assert warning_records[0].context["repository"] == "org/a"
+    assert warning_records[0].context["number"] == 1
+    assert warning_records[0].context["error"] == "boom"
+
+
+def test_review_pull_requests_isolates_item_failure(fake_github):
+    pr_1 = PullRequest("org/a", 1, "pr 1", "body", "sha-1")
+    pr_2 = PullRequest("org/a", 2, "pr 2", "body", "sha-2")
+    pr_3 = PullRequest("org/a", 3, "pr 3", "body", "sha-3")
+    pr_4 = PullRequest("org/a", 4, "pr 4", "body", "sha-4")
+    pr_5 = PullRequest("org/a", 5, "pr 5", "body", "sha-5")
+    fake_github.diffs = dict.fromkeys((pr_1, pr_2, pr_3, pr_4, pr_5), "diff")
+
+    class RaisingOnThirdClient:
+        def __init__(self):
+            self.calls = 0
+
+        def complete(self, messages):
+            self.calls += 1
+            if self.calls == 3:
+                raise RuntimeError("model boom")
+            return AIMessage(content="ok")
+
+    client = RaisingOnThirdClient()
+    node = review_pull_requests(fake_github, client)
+
+    result = node(
+        {
+            "pull_requests": [
+                PullRequestContext(pr, []) for pr in (pr_1, pr_2, pr_3, pr_4, pr_5)
+            ],
+            "reviews": [],
+            "failures": [],
+        }
+    )
+
+    assert len(result["reviews"]) == 4
+    assert result["failures"] == [
+        ItemFailure(
+            repository="org/a",
+            number=3,
+            stage="review_pull_requests",
+            error_type="RuntimeError",
+            error="model boom",
+        )
+    ]
+
+
+def test_review_pull_requests_logs_failure_at_warning(fake_github, caplog):
+    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+    pr_a = PullRequest("org/a", 1, "pr a", "body", "sha-a")
+    fake_github.diffs = {pr_a: "diff a"}
+
+    class RaisingClient:
+        def complete(self, messages):
+            raise RuntimeError("model boom")
+
+    node = review_pull_requests(fake_github, RaisingClient())
+
+    node(
+        {
+            "pull_requests": [PullRequestContext(pr_a, [])],
+            "reviews": [],
+            "failures": [],
+        }
+    )
+
+    warning_records = [r for r in caplog.records if r.levelname == "WARNING"]
+    assert len(warning_records) == 1
+    assert warning_records[0].context["repository"] == "org/a"
+    assert warning_records[0].context["number"] == 1
+    assert warning_records[0].context["error"] == "model boom"

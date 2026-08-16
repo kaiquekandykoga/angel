@@ -2,6 +2,7 @@ import logging
 
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
+from langgraph.types import RetryPolicy
 
 from nishikihebi.agents._shared import post_review_comments
 from nishikihebi.agents.pr_review.nodes import fetch_pull_requests, review_pull_requests
@@ -11,6 +12,8 @@ from nishikihebi.clients.llm import LlmClient
 from nishikihebi.settings import LABEL, LABEL_COLOR, REVIEWER_LOGIN
 
 logger = logging.getLogger(__name__)
+
+_RETRY_POLICY = RetryPolicy(max_attempts=3)
 
 
 def build_pr_review_graph(
@@ -28,9 +31,18 @@ def build_pr_review_graph(
     graph.add_node(
         "fetch_pull_requests",
         fetch_pull_requests(github, reviewer_login, label, label_color),
+        retry_policy=_RETRY_POLICY,
     )
-    graph.add_node("review_pull_requests", review_pull_requests(github, client))
-    graph.add_node("post_review_comments", post_review_comments(github))
+    graph.add_node(
+        "review_pull_requests",
+        review_pull_requests(github, client),
+        retry_policy=_RETRY_POLICY,
+    )
+    graph.add_node(
+        "post_review_comments",
+        post_review_comments(github),
+        retry_policy=_RETRY_POLICY,
+    )
     graph.add_edge(START, "fetch_pull_requests")
     graph.add_edge("fetch_pull_requests", "review_pull_requests")
     graph.add_edge("review_pull_requests", "post_review_comments")

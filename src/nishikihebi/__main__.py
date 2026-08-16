@@ -2,6 +2,7 @@ import logging
 import sys
 from collections.abc import Sequence
 
+from nishikihebi.agents._shared import ItemFailure
 from nishikihebi.agents.chat import repl
 from nishikihebi.agents.chat.graph import build_chat_graph
 from nishikihebi.agents.chat.repl import start_session
@@ -26,26 +27,49 @@ def run_chat(client: LlmClient) -> None:
     repl.run(session)
 
 
+def report_failures(failures: list[ItemFailure], succeeded: int) -> None:
+    if not failures:
+        return
+    for failure in failures:
+        target = (
+            failure.repository
+            if failure.number == 0
+            else f"{failure.repository}#{failure.number}"
+        )
+        print(
+            f"Failed {failure.stage} for {target}: "
+            f"{failure.error_type}: {failure.error}",
+            file=sys.stderr,
+        )
+    never_reviewed = sum(
+        1 for failure in failures if failure.stage != "post_review_comments"
+    )
+    total = succeeded + never_reviewed
+    sys.exit(f"{len(failures)} of {total} items failed")
+
+
 def run_pr_review(client: LlmClient, github: GitHubClient) -> None:
     graph = build_pr_review_graph(client, github)
-    result = graph.invoke({"pull_requests": [], "reviews": []})
+    result = graph.invoke({"pull_requests": [], "reviews": [], "failures": []})
     if not result["reviews"]:
         print("No pull requests to review")
-        return
-    for review in result["reviews"]:
-        pull_request = review.target
-        print(f"Commented on {pull_request.repository}#{pull_request.number}")
+    else:
+        for review in result["reviews"]:
+            pull_request = review.target
+            print(f"Commented on {pull_request.repository}#{pull_request.number}")
+    report_failures(result["failures"], len(result["reviews"]))
 
 
 def run_issue_review(client: LlmClient, github: GitHubClient) -> None:
     graph = build_issue_review_graph(client, github)
-    result = graph.invoke({"issues": [], "reviews": []})
+    result = graph.invoke({"issues": [], "reviews": [], "failures": []})
     if not result["reviews"]:
         print("No issues to review")
-        return
-    for review in result["reviews"]:
-        issue = review.target
-        print(f"Commented on {issue.repository}#{issue.number}")
+    else:
+        for review in result["reviews"]:
+            issue = review.target
+            print(f"Commented on {issue.repository}#{issue.number}")
+    report_failures(result["failures"], len(result["reviews"]))
 
 
 def main(argv: Sequence[str] | None = None) -> None:

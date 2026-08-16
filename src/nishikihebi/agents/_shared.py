@@ -17,6 +17,14 @@ class Review(NamedTuple):
     body: str
 
 
+class ItemFailure(NamedTuple):
+    repository: str
+    number: int
+    stage: str
+    error_type: str
+    error: str
+
+
 def last_review_at(comments: list[Comment], reviewer_login: str) -> str | None:
     return max(
         (
@@ -38,6 +46,7 @@ def post_review_comments(github: GitHubClient):
     def node(state: PrReviewState | IssueReviewState) -> dict:
         reviews = state["reviews"]
         logger.info(f"posting {len(reviews)} review comments")
+        failures: list[ItemFailure] = []
         for review in reviews:
             target = review.target
             logger.debug(
@@ -50,8 +59,32 @@ def post_review_comments(github: GitHubClient):
                     }
                 },
             )
-            github.post_comment(target, review.body)
+            try:
+                github.post_comment(target, review.body)
+            except Exception as error:
+                logger.warning(
+                    "failed to post comment",
+                    extra={
+                        "context": {
+                            "repository": target.repository,
+                            "number": target.number,
+                            "stage": "post_review_comments",
+                            "error_type": type(error).__name__,
+                            "error": str(error),
+                        }
+                    },
+                )
+                failures.append(
+                    ItemFailure(
+                        repository=target.repository,
+                        number=target.number,
+                        stage="post_review_comments",
+                        error_type=type(error).__name__,
+                        error=str(error),
+                    )
+                )
+                continue
             logger.info(f"posted {target.repository}#{target.number}")
-        return {}
+        return {"failures": failures}
 
     return node

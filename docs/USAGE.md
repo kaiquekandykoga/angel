@@ -32,6 +32,30 @@ without posting it.
 
 What each run writes to the console and to disk is documented in [`LOGS.md`](LOGS.md).
 
+### Exit codes
+
+A review run isolates each repository and each item, so one failure never discards the rest
+of the work — a model error on the fifth pull request still leaves the other nine reviewed
+and posted. What failed is then reported and the run exits non-zero, which is what makes a
+scheduler notice:
+
+| Exit code | Meaning |
+|---|---|
+| `0` | every item that was due for review was reviewed and posted (including the case where nothing was due) |
+| `1` | at least one repository or item failed, or the command was invalid, or credentials were missing |
+
+Failures print to stderr, one line each, followed by a count:
+
+```
+Failed review_pull_requests for owner/repo#12: HTTPStatusError: 500 Server Error
+Failed post_review_comments for owner/other: TimeoutError:
+2 of 5 items failed
+```
+
+Repository-level failures — one repository of thirty unreachable during the scan — carry no
+item number and print as `owner/repo`. The same failures appear as `WARNING` records in the
+JSON log with structured `stage` / `error_type` fields; see [`LOGS.md`](LOGS.md).
+
 ## Testing
 
 `uv run ci` runs the whole suite. The tests are split in two:

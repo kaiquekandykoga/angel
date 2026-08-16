@@ -1,6 +1,7 @@
 import logging
 
 from nishikihebi.agents._shared import (
+    ItemFailure,
     Review,
     last_review_at,
     post_review_comments,
@@ -49,6 +50,7 @@ def test_post_review_comments_logs_count_per_comment_and_posted(fake_github, cap
         {
             "pull_requests": [PullRequestContext(pr_a, [])],
             "reviews": [Review(pr_a, "review a")],
+            "failures": [],
         }
     )
 
@@ -76,10 +78,11 @@ def test_post_review_comments_posts_one_comment_per_review(fake_github):
                 PullRequestContext(pr_b, []),
             ],
             "reviews": [Review(pr_a, "review a"), Review(pr_b, "review b")],
+            "failures": [],
         }
     )
 
-    assert result == {}
+    assert result == {"failures": []}
     assert fake_github.posted_comments == [(pr_a, "review a"), (pr_b, "review b")]
 
 
@@ -91,8 +94,79 @@ def test_post_review_comments_posts_comment_for_issue_target(fake_github):
         {
             "issues": [IssueContext(issue_a, [])],
             "reviews": [Review(issue_a, "review a")],
+            "failures": [],
         }
     )
 
-    assert result == {}
+    assert result == {"failures": []}
     assert fake_github.posted_comments == [(issue_a, "review a")]
+
+
+def test_post_review_comments_isolates_a_failing_post(fake_github):
+    pull_requests = [
+        PullRequest(f"org/{i}", i, f"pr {i}", "body", f"sha-{i}")
+        for i in range(5)
+    ]
+    reviews = [Review(pr, f"review {pr.number}") for pr in pull_requests]
+    failing_pr = pull_requests[2]
+    error = ValueError("boom")
+    original_post_comment = fake_github.post_comment
+
+    def post_comment(target, body):
+        if target == failing_pr:
+            raise error
+        original_post_comment(target, body)
+
+    fake_github.post_comment = post_comment
+    node = post_review_comments(fake_github)
+
+    result = node(
+        {
+            "pull_requests": [PullRequestContext(pr, []) for pr in pull_requests],
+            "reviews": reviews,
+            "failures": [],
+        }
+    )
+
+    assert fake_github.posted_comments == [
+        (pr, f"review {pr.number}") for pr in pull_requests if pr != failing_pr
+    ]
+    assert result == {
+        "failures": [
+            ItemFailure(
+                repository="org/2",
+                number=2,
+                stage="post_review_comments",
+                error_type="ValueError",
+                error="boom",
+            )
+        ]
+    }
+
+
+def test_post_review_comments_logs_failure_at_warning(fake_github, caplog):
+    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+    pr_a = PullRequest("org/a", 1, "pr a", "body a", "sha-a")
+    error = RuntimeError("nope")
+
+    def post_comment(target, body):
+        raise error
+
+    fake_github.post_comment = post_comment
+    node = post_review_comments(fake_github)
+
+    node(
+        {
+            "pull_requests": [PullRequestContext(pr_a, [])],
+            "reviews": [Review(pr_a, "review a")],
+            "failures": [],
+        }
+    )
+
+    warning_records = [r for r in caplog.records if r.levelname == "WARNING"]
+    assert any(
+        r.context["repository"] == "org/a"
+        and r.context["number"] == 1
+        and r.context["error"] == "nope"
+        for r in warning_records
+    )

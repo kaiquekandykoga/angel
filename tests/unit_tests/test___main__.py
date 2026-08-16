@@ -94,6 +94,213 @@ def test_main_reports_when_there_is_nothing_to_review_for_pr_review(
     assert fake_github.posted_comments == []
 
 
+def test_main_exits_nonzero_when_a_pull_request_review_fails(
+    monkeypatch, capsys, fake_client, fake_github
+):
+    repository = "kaiquekandykoga/nishikihebi"
+    pull_requests = [
+        PullRequest(
+            repository, number, f"pr {number}", f"body {number}", f"sha-{number}"
+        )
+        for number in range(1, 6)
+    ]
+    fake_github.pull_requests = {repository: pull_requests}
+    fake_github.diffs = {pr: f"diff {pr.number}" for pr in pull_requests}
+    for pr in pull_requests:
+        fake_github.label(pr, "nishikihebi")
+    calls = {"count": 0}
+    original_complete = fake_client.complete
+
+    def flaky_complete(messages):
+        calls["count"] += 1
+        if calls["count"] == 3:
+            raise RuntimeError("llm exploded")
+        return original_complete(messages)
+
+    monkeypatch.setattr(fake_client, "complete", flaky_complete)
+    monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
+    monkeypatch.setattr(
+        nishikihebi.__main__, "build_github_client", lambda: fake_github
+    )
+
+    with pytest.raises(SystemExit) as excinfo:
+        nishikihebi.__main__.main(["pr_review"])
+
+    assert excinfo.value.code != 0
+    out = capsys.readouterr().out
+    assert out.count("Commented on") == 4
+    assert f"{repository}#3" not in out
+
+
+def test_main_exits_nonzero_when_an_issue_review_fails(
+    monkeypatch, capsys, fake_client, fake_github
+):
+    repository = "kaiquekandykoga/nishikihebi"
+    issues = [
+        Issue(
+            repository,
+            number,
+            f"issue {number}",
+            f"body {number}",
+            "2026-08-01T00:00:00Z",
+        )
+        for number in range(1, 6)
+    ]
+    fake_github.issues = {repository: issues}
+    for issue in issues:
+        fake_github.label(issue, "nishikihebi")
+    calls = {"count": 0}
+    original_complete = fake_client.complete
+
+    def flaky_complete(messages):
+        calls["count"] += 1
+        if calls["count"] == 3:
+            raise RuntimeError("llm exploded")
+        return original_complete(messages)
+
+    monkeypatch.setattr(fake_client, "complete", flaky_complete)
+    monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
+    monkeypatch.setattr(
+        nishikihebi.__main__, "build_github_client", lambda: fake_github
+    )
+
+    with pytest.raises(SystemExit) as excinfo:
+        nishikihebi.__main__.main(["issue_review"])
+
+    assert excinfo.value.code != 0
+    out = capsys.readouterr().out
+    assert out.count("Commented on") == 4
+    assert f"{repository}#3" not in out
+
+
+def test_main_exits_nonzero_when_every_pull_request_fails_with_none_reviewed(
+    monkeypatch, capsys, fake_client, fake_github
+):
+    repository = "kaiquekandykoga/nishikihebi"
+    pr = PullRequest(repository, 1, "pr", "body", "sha-1")
+    fake_github.pull_requests = {repository: [pr]}
+    fake_github.label(pr, "nishikihebi")
+
+    def raise_on_list_comments(target):
+        raise RuntimeError("github exploded")
+
+    monkeypatch.setattr(fake_github, "list_comments", raise_on_list_comments)
+    monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
+    monkeypatch.setattr(
+        nishikihebi.__main__, "build_github_client", lambda: fake_github
+    )
+
+    with pytest.raises(SystemExit) as excinfo:
+        nishikihebi.__main__.main(["pr_review"])
+
+    assert excinfo.value.code != 0
+    out = capsys.readouterr().out
+    assert "No pull requests to review" in out
+
+
+def test_main_prints_a_readable_failure_summary_to_stderr(
+    monkeypatch, capsys, fake_client, fake_github
+):
+    repository = "kaiquekandykoga/nishikihebi"
+    pr = PullRequest(repository, 1, "pr", "body", "sha-1")
+    fake_github.pull_requests = {repository: [pr]}
+    fake_github.diffs = {pr: "diff"}
+    fake_github.label(pr, "nishikihebi")
+
+    def raise_llm_error(messages):
+        raise RuntimeError("llm exploded")
+
+    monkeypatch.setattr(fake_client, "complete", raise_llm_error)
+    monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
+    monkeypatch.setattr(
+        nishikihebi.__main__, "build_github_client", lambda: fake_github
+    )
+
+    with pytest.raises(SystemExit):
+        nishikihebi.__main__.main(["pr_review"])
+
+    captured = capsys.readouterr()
+    assert captured.out == "No pull requests to review\n"
+    assert f"{repository}#1" in captured.err
+    assert "review_pull_requests" in captured.err
+    assert "RuntimeError" in captured.err
+    assert "llm exploded" in captured.err
+
+
+def test_main_does_not_double_count_a_post_stage_failure_in_the_summary(
+    monkeypatch, capsys, fake_client, fake_github
+):
+    repository = "kaiquekandykoga/nishikihebi"
+    pull_requests = [
+        PullRequest(
+            repository, number, f"pr {number}", f"body {number}", f"sha-{number}"
+        )
+        for number in range(1, 6)
+    ]
+    fake_github.pull_requests = {repository: pull_requests}
+    fake_github.diffs = {pr: f"diff {pr.number}" for pr in pull_requests}
+    for pr in pull_requests:
+        fake_github.label(pr, "nishikihebi")
+    original_post_comment = fake_github.post_comment
+
+    def flaky_post_comment(target, body):
+        if target.number == 3:
+            raise RuntimeError("github exploded")
+        original_post_comment(target, body)
+
+    monkeypatch.setattr(fake_github, "post_comment", flaky_post_comment)
+    monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
+    monkeypatch.setattr(
+        nishikihebi.__main__, "build_github_client", lambda: fake_github
+    )
+
+    with pytest.raises(SystemExit, match=re.escape("1 of 5 items failed")):
+        nishikihebi.__main__.main(["pr_review"])
+
+    out = capsys.readouterr().out
+    assert out.count("Commented on") == 5
+    assert len(fake_github.posted_comments) == 4
+
+
+def test_main_counts_each_item_once_across_review_and_post_failures(
+    monkeypatch, capsys, fake_client, fake_github
+):
+    repository = "kaiquekandykoga/nishikihebi"
+    pull_requests = [
+        PullRequest(
+            repository, number, f"pr {number}", f"body {number}", f"sha-{number}"
+        )
+        for number in range(1, 6)
+    ]
+    fake_github.pull_requests = {repository: pull_requests}
+    fake_github.diffs = {pr: f"diff {pr.number}" for pr in pull_requests}
+    for pr in pull_requests:
+        fake_github.label(pr, "nishikihebi")
+    original_complete = fake_client.complete
+
+    def flaky_complete(messages):
+        if "Pull request #2" in messages[1].content:
+            raise RuntimeError("llm exploded")
+        return original_complete(messages)
+
+    original_post_comment = fake_github.post_comment
+
+    def flaky_post_comment(target, body):
+        if target.number == 4:
+            raise RuntimeError("github exploded")
+        original_post_comment(target, body)
+
+    monkeypatch.setattr(fake_client, "complete", flaky_complete)
+    monkeypatch.setattr(fake_github, "post_comment", flaky_post_comment)
+    monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
+    monkeypatch.setattr(
+        nishikihebi.__main__, "build_github_client", lambda: fake_github
+    )
+
+    with pytest.raises(SystemExit, match=re.escape("2 of 5 items failed")):
+        nishikihebi.__main__.main(["pr_review"])
+
+
 def test_main_exits_when_github_token_missing_for_pr_review(monkeypatch, fake_client):
     message = "NISHIKIHEBI_GITHUB_APP_ID environment variable is not set."
     monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)

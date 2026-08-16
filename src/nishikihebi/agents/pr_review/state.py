@@ -1,6 +1,7 @@
-from typing import NamedTuple, TypedDict
+import operator
+from typing import Annotated, NamedTuple, TypedDict
 
-from nishikihebi.agents._shared import Review
+from nishikihebi.agents._shared import ItemFailure, Review
 from nishikihebi.clients.github import Comment, PullRequest
 
 
@@ -12,3 +13,4 @@ class PullRequestContext(NamedTuple):
 class PrReviewState(TypedDict):
     pull_requests: list[PullRequestContext]
     reviews: list[Review]
+    failures: Annotated[list[ItemFailure], operator.add]

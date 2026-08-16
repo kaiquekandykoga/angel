@@ -6,8 +6,8 @@ each one owns a directory under `src/nishikihebi/agents/` — `agents/chat/`,
 `state.py` declares the state threaded between them, `prompts.py` holds the system prompt,
 and `nodes.py` holds the nodes themselves: factories that take their dependencies (LLM
 client, GitHub client) and return the node function, so a graph can be built against fakes
-in tests. Anything two agents share — the `Review` record, the `post_review_comments` node,
-the comment helpers — lives in `agents/_shared.py`. Those dependencies sit behind
+in tests. Anything two agents share — the `Review` record, the `ItemFailure` record, the
+`post_review_comments` node, the comment helpers — lives in `agents/_shared.py`. Those dependencies sit behind
 `Protocol` seams in `src/nishikihebi/clients/`, and the reviewer login, label, and label
 colour in `src/nishikihebi/settings.py`.
 
@@ -111,10 +111,32 @@ which covers both an edited description and new comments.
 | `review_issues` | Asks the model for one review comment, given the title, description, and existing comments |
 | `post_review_comments` | Shared with `pr_review` — posts each review as an issue comment |
 
+## Failure isolation and retries
+
+Both review graphs carry a `failures` key alongside `reviews`, holding `ItemFailure`
+records (repository, number, stage, error type, error message). Every node writes to it, so
+it uses the `operator.add` reducer to accumulate across nodes instead of clobbering.
+
+Each unit of work is isolated. `fetch_*` catches per repository — a GitHub error on one
+repository of thirty is recorded (with `number` 0, since there is no item) and the scan
+moves to the next — and again per item inside it. `review_*` catches per item, so a model
+error on the fifth pull request of ten still leaves the other nine reviewed and posted.
+`post_review_comments` catches per comment. In every case the failure is logged at
+`WARNING`, appended to `failures`, and the loop continues; `KeyboardInterrupt` still
+propagates, because the handlers catch `Exception`, not `BaseException`.
+
+Every node is registered with `RetryPolicy(max_attempts=3)`. That policy is node-granular,
+so with the per-item handling above it acts as a backstop for errors that escape a loop
+rather than as a per-review retry. Transient per-call backoff (`Retry-After`, 5xx) belongs
+in the clients, and true per-item retry needs `Send` fan-out — both are in
+[`TODO.md`](TODO.md).
+
+A run that recorded any failure exits non-zero; see [`USAGE.md`](USAGE.md).
+
 ## Known gaps
 
 The three graphs are linear and sequential, and [`TODO.md`](TODO.md) lists what that leaves
-on the table: no `Send` fan-out, so ten PRs mean ten serial model calls with no per-item
-failure isolation; no checkpointer on the review graphs, so a crash mid-run loses
-everything; no structured output, so a review body is an unvalidated `str`; and no
-streaming in the chat REPL.
+on the table: no `Send` fan-out, so ten PRs mean ten serial model calls and no per-item
+retry; no checkpointer on the review graphs, so a crash mid-run loses everything; no
+structured output, so a review body is an unvalidated `str`; and no streaming in the chat
+REPL.
