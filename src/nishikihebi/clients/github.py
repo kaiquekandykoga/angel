@@ -1,4 +1,3 @@
-import logging
 import time
 from collections.abc import Callable
 from pathlib import Path
@@ -8,8 +7,9 @@ import httpx
 import jwt
 
 from nishikihebi.env import load_env_var
+from nishikihebi.logs import get_logger
 
-logger = logging.getLogger(__name__)
+log = get_logger(__name__)
 
 
 def _get_all(
@@ -254,15 +254,11 @@ class DryRunGitHubClient:
         return self.inner.list_repositories()
 
     def ensure_label(self, repository: str, label: str, color: str) -> None:
-        logger.info(
+        log.info(
             "dry run: skipping ensure_label",
-            extra={
-                "context": {
-                    "dry_run": True,
-                    "repository": repository,
-                    "label": label,
-                }
-            },
+            dry_run=True,
+            repository=repository,
+            label=label,
         )
 
     def list_open_pull_requests(self, repository: str, label: str) -> list[PullRequest]:
@@ -278,16 +274,12 @@ class DryRunGitHubClient:
         return self.inner.list_comments(target)
 
     def post_comment(self, target: PullRequest | Issue, body: str) -> None:
-        logger.info(
+        log.info(
             "dry run: skipping post_comment",
-            extra={
-                "context": {
-                    "dry_run": True,
-                    "repository": target.repository,
-                    "number": target.number,
-                    "body_length": len(body),
-                }
-            },
+            dry_run=True,
+            repository=target.repository,
+            number=target.number,
+            body_length=len(body),
         )
 
 

@@ -1,19 +1,21 @@
 from __future__ import annotations
 
-import logging
 import re
+from collections.abc import Generator
+from contextlib import contextmanager
 from enum import StrEnum
 from typing import TYPE_CHECKING, NamedTuple
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from nishikihebi.clients.github import Comment, GitHubClient, Issue, PullRequest
+from nishikihebi.logs import ContextLogger, get_logger
 
 if TYPE_CHECKING:
     from nishikihebi.agents.issue_review.state import IssueReviewState
     from nishikihebi.agents.pr_review.state import PrReviewState
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class Severity(StrEnum):
@@ -109,6 +111,67 @@ class ItemFailure(NamedTuple):
     error: str
 
 
+class FailureScope:
+    def __init__(self) -> None:
+        self.failed = False
+
+
+@contextmanager
+def collect_failures(
+    failures: list[ItemFailure],
+    message: str,
+    *,
+    stage: str,
+    repository: str,
+    number: int,
+) -> Generator[FailureScope]:
+    scope = FailureScope()
+    try:
+        yield scope
+    except Exception as error:
+        logger.warning(
+            message,
+            repository=repository,
+            number=number,
+            stage=stage,
+            error_type=type(error).__name__,
+            error=str(error),
+        )
+        failures.append(
+            ItemFailure(
+                repository=repository,
+                number=number,
+                stage=stage,
+                error_type=type(error).__name__,
+                error=str(error),
+            )
+        )
+        scope.failed = True
+
+
+def log_review_produced(
+    log: ContextLogger,
+    *,
+    repository: str,
+    number: int,
+    review: str,
+    findings: list[Finding],
+) -> None:
+    severity_counts: dict[str, int] = {}
+    for finding in findings:
+        severity_counts[finding.severity.value] = (
+            severity_counts.get(finding.severity.value, 0) + 1
+        )
+    log.debug(
+        "review produced",
+        repository=repository,
+        number=number,
+        review=review,
+        finding_count=len(findings),
+        severity_counts=severity_counts,
+    )
+
+
 def last_review_at(comments: list[Comment], reviewer_login: str) -> str | None:
     return max(
         (
@@ -152,40 +215,19 @@ def post_review_comments(github: GitHubClient):
             target = review.target
             logger.debug(
                 "posting comment",
-                extra={
-                    "context": {
-                        "repository": target.repository,
-                        "number": target.number,
-                        "body_length": len(review.body),
-                    }
-                },
+                repository=target.repository,
+                number=target.number,
+                body_length=len(review.body),
             )
-            try:
+            with collect_failures(
+                failures,
+                "failed to post comment",
+                stage="post_review_comments",
+                repository=target.repository,
+                number=target.number,
+            ):
                 github.post_comment(target, review.body)
-            except Exception as error:
-                logger.warning(
-                    "failed to post comment",
-                    extra={
-                        "context": {
-                            "repository": target.repository,
-                            "number": target.number,
-                            "stage": "post_review_comments",
-                            "error_type": type(error).__name__,
-                            "error": str(error),
-                        }
-                    },
-                )
-                failures.append(
-                    ItemFailure(
-                        repository=target.repository,
-                        number=target.number,
-                        stage="post_review_comments",
-                        error_type=type(error).__name__,
-                        error=str(error),
-                    )
-                )
-                continue
-            logger.info(f"posted {target.repository}#{target.number}")
+                logger.info(f"posted {target.repository}#{target.number}")
         return {"failures": failures}
 
     return node

@@ -42,3 +42,4 @@ markers = ["integration: exercises client code over recorded HTTP payloads"]
 
 [tool.basedpyright]
 typeCheckingMode = "standard"
+reportDeprecated = "error"

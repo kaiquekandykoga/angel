@@ -31,6 +31,57 @@ call site attaches is merged in at the top level alongside them:
 {"time": "2026-08-15T09:24:43.605278+00:00", "level": "INFO", "logger": "nishikihebi.agents.chat.graph", "message": "chat graph ready"}
 ```
 
+## How call sites log
+
+Call sites do not touch `logging` directly. `nishikihebi.logs.get_logger()` returns a
+`ContextLogger` whose `debug` / `info` / `warning` / `error` take the structured fields as
+keyword arguments and pack them into the `context` dict for you:
+
+```python
+from nishikihebi.logs import get_logger
+
+log = get_logger(__name__)
+
+log.debug(
+    "evaluated pull request",
+    repository=pull_request.repository,
+    number=pull_request.number,
+    selected=selected,
+    reason=reason,
+)
+```
+
+The stdlib logger is still underneath — `ContextLogger.logger` reaches it — so the record
+that lands in the file is exactly the one an `extra={"context": {...}}` call would have
+produced, `logger` name included.
+
+### Failure records write themselves
+
+The five failure sites all log the same five keys and then append a matching `ItemFailure`
+to graph state. `nishikihebi.agents._shared.collect_failures()` is a context manager that
+does both, so the node body holds the work rather than the bookkeeping:
+
+```python
+with collect_failures(
+    failures,
+    "failed to review pull request",
+    stage="review_pull_requests",
+    repository=pull_request.repository,
+    number=pull_request.number,
+):
+    ...
+    reviews.append(Review(pull_request, body))
+```
+
+It catches `Exception` (never `BaseException`), logs the `WARNING` described under
+[Failure records](#failure-records), appends the `ItemFailure`, and suppresses the error so
+the loop continues. Work on the success path goes inside the `with` body. Where that is not
+possible, the yielded scope carries a `.failed` flag to branch on.
+
+`log_review_produced()` in the same module owns the `review produced` record, including the
+`severity_counts` tally — which is why that arithmetic no longer appears in the review nodes.
+It takes the calling module's `log`, so the record still names the node that produced it.
+
 Because every line is self-contained JSON, `jq` is the natural way to read a run:
 
 ```bash
@@ -112,8 +163,8 @@ Logging is not production-shaped yet, and [`TODO.md`](TODO.md) tracks the specif
   retention, one file per run, and the path depends on cwd. The 12-factor answer is JSON to
   stdout with the file handler behind an opt-in flag. Also missing: a run-id to group one
   run's lines, and `exc_info` capture — nothing currently logs a traceback.
-- Under that same item — `review_issues` / `review_pull_requests` log the **entire rendered
-  review body** at `DEBUG`, so model output derived from untrusted input lands on disk
-  unbounded.
+- Under that same item — `log_review_produced()` logs the **entire rendered review body** at
+  `DEBUG`, so model output derived from untrusted input lands on disk unbounded. Both review
+  nodes now share that one helper, so capping the body is a change in a single place.
   Combined with no retention, that is a slow disk-fill and a data-handling question.
 - Nothing redacts secrets; the formatter dumps whatever is in `context`.

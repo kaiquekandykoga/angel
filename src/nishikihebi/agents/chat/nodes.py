@@ -1,4 +1,3 @@
-import logging
 from typing import cast
 
 from langchain_core.messages import AnyMessage, SystemMessage
@@ -6,8 +5,9 @@ from langchain_core.messages import AnyMessage, SystemMessage
 from nishikihebi.agents.chat.prompts import SYSTEM_PROMPT
 from nishikihebi.agents.chat.state import ChatState
 from nishikihebi.clients.llm import LlmClient
+from nishikihebi.logs import get_logger
 
-logger = logging.getLogger(__name__)
+log = get_logger(__name__)
 
 
 def call_llm(client: LlmClient):
@@ -15,14 +15,10 @@ def call_llm(client: LlmClient):
         messages = [SystemMessage(content=SYSTEM_PROMPT), *state["messages"]]
         reply = client.complete(messages)
         reply_length = len(cast("str", reply.content))
-        logger.debug(
+        log.debug(
             "call_llm completed",
-            extra={
-                "context": {
-                    "message_count": len(messages),
-                    "reply_length": reply_length,
-                }
-            },
+            message_count=len(messages),
+            reply_length=reply_length,
         )
         return {"messages": [reply]}
 

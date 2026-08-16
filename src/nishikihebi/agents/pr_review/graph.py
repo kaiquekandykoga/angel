@@ -1,5 +1,3 @@
-import logging
-
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import RetryPolicy
@@ -9,9 +7,10 @@ from nishikihebi.agents.pr_review.nodes import fetch_pull_requests, review_pull_
 from nishikihebi.agents.pr_review.state import PrReviewState
 from nishikihebi.clients.github import GitHubClient
 from nishikihebi.clients.llm import LlmClient
+from nishikihebi.logs import get_logger
 from nishikihebi.settings import LABEL, LABEL_COLOR, REVIEWER_LOGIN
 
-logger = logging.getLogger(__name__)
+log = get_logger(__name__)
 
 _RETRY_POLICY = RetryPolicy(max_attempts=3)
 
@@ -23,9 +22,10 @@ def build_pr_review_graph(
     label: str = LABEL,
     label_color: str = LABEL_COLOR,
 ) -> CompiledStateGraph:
-    logger.debug(
+    log.debug(
         "wiring pr_review graph nodes",
-        extra={"context": {"reviewer_login": reviewer_login, "label": label}},
+        reviewer_login=reviewer_login,
+        label=label,
     )
     graph = StateGraph(PrReviewState)
     graph.add_node(
@@ -48,5 +48,5 @@ def build_pr_review_graph(
     graph.add_edge("review_pull_requests", "post_review_comments")
     graph.add_edge("post_review_comments", END)
     compiled = graph.compile()
-    logger.info("pr_review graph ready")
+    log.info("pr_review graph ready")
     return compiled

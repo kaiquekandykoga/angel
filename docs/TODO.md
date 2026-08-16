@@ -95,8 +95,9 @@ location depends on invocation directory. No rotation, no retention, one file pe
 scheduling means 8,760 files a year.
 **Do:** 12-factor it — JSON to stdout, file handler behind an opt-in `--log-file`; add a run-id and
 `exc_info` to every record (no traceback is logged anywhere today).
-**Also:** stop logging whole review bodies at DEBUG (`agents/*/nodes.py`) — model output derived
-from untrusted input lands on disk unbounded. Log a hash and length; full bodies only behind
+**Also:** stop logging whole review bodies at DEBUG (`agents/_shared.py::log_review_produced`,
+now the single site for both review nodes) — model output derived from untrusted input lands on
+disk unbounded. Log a hash and length; full bodies only behind
 `--verbose`, with a redaction filter in front.
 
 ### Pick a deployment story

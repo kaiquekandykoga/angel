@@ -38,3 +38,24 @@ def configure_logging(
     logger.addHandler(file_handler)
 
     return path
+
+
+class ContextLogger:
+    def __init__(self, logger: logging.Logger) -> None:
+        self.logger = logger
+
+    def debug(self, message: str, **fields: object) -> None:
+        self.logger.debug(message, extra={"context": fields}, stacklevel=2)
+
+    def info(self, message: str, **fields: object) -> None:
+        self.logger.info(message, extra={"context": fields}, stacklevel=2)
+
+    def warning(self, message: str, **fields: object) -> None:
+        self.logger.warning(message, extra={"context": fields}, stacklevel=2)
+
+    def error(self, message: str, **fields: object) -> None:
+        self.logger.error(message, extra={"context": fields}, stacklevel=2)
+
+
+def get_logger(name: str) -> ContextLogger:
+    return ContextLogger(logging.getLogger(name))

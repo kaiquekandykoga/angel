@@ -1,5 +1,4 @@
 import argparse
-import logging
 import sys
 from collections.abc import Sequence
 from typing import NoReturn
@@ -22,13 +21,13 @@ from nishikihebi.clients.llm import (
     MissingApiKeyError,
     build_llm_client,
 )
-from nishikihebi.logs import configure_logging
+from nishikihebi.logs import configure_logging, get_logger
 
 COMMANDS = ("chat", "pr_review", "issue_review")
 
 DRY_RUN_HELP = "Print each review to stdout and make zero GitHub writes"
 
-logger = logging.getLogger(__name__)
+log = get_logger(__name__)
 
 
 class _ArgumentParser(argparse.ArgumentParser):
@@ -180,15 +179,11 @@ def main(argv: Sequence[str] | None = None) -> None:
         sys.exit("--dry-run is not valid for chat: chat makes no GitHub writes")
 
     log_path = configure_logging()
-    logger.info(
+    log.info(
         f"running {command}",
-        extra={
-            "context": {
-                "command": command,
-                "log_path": str(log_path),
-                "dry_run": dry_run,
-            }
-        },
+        command=command,
+        log_path=str(log_path),
+        dry_run=dry_run,
     )
 
     try:
