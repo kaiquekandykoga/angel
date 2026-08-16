@@ -5,7 +5,7 @@ runs once and exits — there is no daemon and nothing schedules them.
 
 - [Quick start](#quick-start)
 - [Commands](#commands) · [`chat`](#chat) · [`pr_review`](#pr_review) · [`issue_review`](#issue_review)
-- [Options](#options) — `--dry-run`
+- [Options](#options) — `--dry-run`, `--help`
 - [Output and exit codes](#output-and-exit-codes)
 - [Configuration](#configuration)
 - [Known gaps](#known-gaps)
@@ -40,8 +40,8 @@ uv run nishikihebi <command> [--dry-run]
 ```
 
 The command may be given before or after the flag. Anything else exits `1` with
-`Unknown command: … Valid commands: chat, pr_review, issue_review`. There is no `--help`
-and no `--version` yet.
+`Unknown command: … Valid commands: chat, pr_review, issue_review`. There is no `--version`
+yet.
 
 How each command is wired internally, node by node, is in [`GRAPHS.md`](GRAPHS.md).
 
@@ -102,6 +102,7 @@ proposed acceptance criteria and a suggested approach.
 | Option | Works with | Effect |
 |---|---|---|
 | `--dry-run` | `pr_review`, `issue_review` | Print each review to stdout and make zero GitHub writes |
+| `--help` | every command, and on its own | Print usage and exit `0` |
 
 ### `--dry-run`
 
@@ -122,6 +123,28 @@ The early return added here is not covered by any case in `tests/test_parse.py`.
 
 Every suppressed write is also logged; see [`LOGS.md`](LOGS.md). Exit codes are unchanged —
 a fetch or model failure still reports and exits `1`.
+
+### `--help`
+
+Each command's options, printed either way — nothing runs, no credentials are read:
+
+```bash
+uv run nishikihebi pr_review --help
+uv run nishikihebi help pr_review
+```
+
+```
+usage: nishikihebi pr_review [-h] [--dry-run]
+
+Review open pull requests labeled nishikihebi.
+
+options:
+  -h, --help  show this help message and exit
+  --dry-run   Print each review to stdout and make zero GitHub writes
+```
+
+`uv run nishikihebi --help`, or a bare `help`, lists the three commands instead. `help` with
+an unknown name exits `1` with the usual `Unknown command: …`.
 
 ## Output and exit codes
 
@@ -202,8 +225,8 @@ in [`TESTING.md`](TESTING.md).
 
 - **Nothing schedules a run.** Both review commands are one-shot; see [`TODO.md`](TODO.md),
   "Pick a deployment story".
-- **The CLI is hand-rolled** — no `--help`, no `--version`, and no `--repo owner/name`,
-  `--limit N`, `--log-level`, or `--log-file`. See "Replace the hand-rolled CLI".
+- **The CLI has no scoping flags** — no `--version`, and no `--repo owner/name`, `--limit N`,
+  `--log-level`, or `--log-file`. See "Finish the CLI flags".
 - **Some failures still print a traceback** rather than a message — a bad private-key path,
   an expired key, or Ctrl-C out of `chat`. See "Fail with a message, not a traceback".
 - **No rate-limit or backoff handling.** A run that hits GitHub's secondary limit fails the

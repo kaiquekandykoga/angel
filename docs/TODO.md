@@ -115,12 +115,13 @@ violation that gets Apps uninstalled in orgs.
 **Do:** `--ensure-label` or a one-shot `nishikihebi setup`; otherwise treat "no label" as "nothing
 to review here".
 
-### Replace the hand-rolled CLI
+### Finish the CLI flags
 **Where:** `__main__.py`
-**Why:** `main()` is `if len(argv) != 1 or argv[0] not in COMMANDS`. No `--help`, no `--version`,
-no flags.
-**Do:** `argparse` or `typer`, folding in the hand-parsed `--dry-run`, then add
-`--repo owner/name`, `--limit N`, `--log-level`, `--log-file`, `--version`.
+**Why:** the parser is `argparse` now — subcommands, `--help`, `help <command>`, `--dry-run` —
+but a run is still all-or-nothing: no way to target one repository, cap the work, or redirect
+the log, and no `--version` to put in a bug report.
+**Do:** add `--repo owner/name`, `--limit N`, `--log-level`, `--log-file`, and `--version`
+(from package metadata), threading the scoping ones into the graph state.
 
 ### Emit run metrics
 Partial failures now exit non-zero, so a scheduler alerts for free — but nothing emits

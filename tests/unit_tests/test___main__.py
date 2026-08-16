@@ -594,3 +594,65 @@ def test_main_exits_when_no_command_given():
 def test_main_exits_when_too_many_arguments_given():
     with pytest.raises(SystemExit, match="Unknown command"):
         nishikihebi.__main__.main(["chat", "pr_review"])
+
+
+def test_main_pr_review_help_exits_zero_and_mentions_dry_run(monkeypatch, capsys):
+    def fail(*args, **kwargs):
+        raise AssertionError("should not be called")
+
+    monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", fail)
+    monkeypatch.setattr(nishikihebi.__main__, "build_github_client", fail)
+    monkeypatch.setattr(nishikihebi.__main__, "configure_logging", fail)
+
+    with pytest.raises(SystemExit) as excinfo:
+        nishikihebi.__main__.main(["pr_review", "--help"])
+
+    assert excinfo.value.code == 0
+    out = capsys.readouterr().out
+    assert "--dry-run" in out
+    assert "Print each review to stdout and make zero GitHub writes" in out
+
+
+def test_main_help_pr_review_matches_pr_review_help(capsys):
+    with pytest.raises(SystemExit):
+        nishikihebi.__main__.main(["pr_review", "--help"])
+    from_flag = capsys.readouterr().out
+
+    with pytest.raises(SystemExit):
+        nishikihebi.__main__.main(["help", "pr_review"])
+    from_help_command = capsys.readouterr().out
+
+    assert from_flag == from_help_command
+
+
+def test_main_top_level_help_lists_all_commands(capsys):
+    with pytest.raises(SystemExit) as excinfo:
+        nishikihebi.__main__.main(["--help"])
+
+    assert excinfo.value.code == 0
+    out = capsys.readouterr().out
+    assert "chat" in out
+    assert "pr_review" in out
+    assert "issue_review" in out
+
+
+def test_main_bare_help_matches_top_level_help(capsys):
+    with pytest.raises(SystemExit):
+        nishikihebi.__main__.main(["--help"])
+    from_flag = capsys.readouterr().out
+
+    with pytest.raises(SystemExit):
+        nishikihebi.__main__.main(["help"])
+    from_help_command = capsys.readouterr().out
+
+    assert from_flag == from_help_command
+
+
+def test_main_help_with_unknown_command_exits_one():
+    with pytest.raises(SystemExit, match="Unknown command: help bogus"):
+        nishikihebi.__main__.main(["help", "bogus"])
+
+
+def test_main_exits_when_dry_run_before_chat_is_also_rejected():
+    with pytest.raises(SystemExit, match="--dry-run is not valid for chat"):
+        nishikihebi.__main__.main(["--dry-run", "chat"])

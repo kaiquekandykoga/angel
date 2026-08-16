@@ -1,6 +1,8 @@
+import argparse
 import logging
 import sys
 from collections.abc import Sequence
+from typing import NoReturn
 
 from nishikihebi.agents._shared import ItemFailure, Review
 from nishikihebi.agents.chat import repl
@@ -19,7 +21,73 @@ from nishikihebi.logs import configure_logging
 
 COMMANDS = ("chat", "pr_review", "issue_review")
 
+DRY_RUN_HELP = "Print each review to stdout and make zero GitHub writes"
+
 logger = logging.getLogger(__name__)
+
+
+class _ArgumentParser(argparse.ArgumentParser):
+    def __init__(self, *args, unknown_command_message: str, **kwargs) -> None:
+        self._unknown_command_message = unknown_command_message
+        super().__init__(*args, **kwargs)
+
+    def error(self, message: str) -> NoReturn:
+        sys.exit(self._unknown_command_message)
+
+
+def _build_parser(unknown_command_message: str) -> _ArgumentParser:
+    parser = _ArgumentParser(
+        prog="nishikihebi",
+        description="Chat with the model, or review labeled pull requests and issues.",
+        epilog=(
+            "Run 'nishikihebi help <command>' or 'nishikihebi <command> --help' "
+            "for the options of one command."
+        ),
+        unknown_command_message=unknown_command_message,
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", default=False, help=DRY_RUN_HELP
+    )
+    subparsers = parser.add_subparsers(dest="command", metavar="<command>",
+                                       required=True)
+
+    chat = subparsers.add_parser(
+        "chat",
+        prog="nishikihebi chat",
+        description="Start an interactive chat session with the model.",
+        help="Interactive REPL against the model",
+        unknown_command_message=unknown_command_message,
+    )
+    chat.add_argument(
+        "--dry-run",
+        action="store_true",
+        default=argparse.SUPPRESS,
+        help=argparse.SUPPRESS,
+    )
+
+    pr_review = subparsers.add_parser(
+        "pr_review",
+        prog="nishikihebi pr_review",
+        description="Review open pull requests labeled nishikihebi.",
+        help="Review open pull requests labeled nishikihebi",
+        unknown_command_message=unknown_command_message,
+    )
+    pr_review.add_argument(
+        "--dry-run", action="store_true", default=argparse.SUPPRESS, help=DRY_RUN_HELP
+    )
+
+    issue_review = subparsers.add_parser(
+        "issue_review",
+        prog="nishikihebi issue_review",
+        description="Review open issues labeled nishikihebi.",
+        help="Review open issues labeled nishikihebi",
+        unknown_command_message=unknown_command_message,
+    )
+    issue_review.add_argument(
+        "--dry-run", action="store_true", default=argparse.SUPPRESS, help=DRY_RUN_HELP
+    )
+
+    return parser
 
 
 def run_chat(client: LlmClient) -> None:
@@ -86,13 +154,23 @@ def run_issue_review(
 
 def main(argv: Sequence[str] | None = None) -> None:
     argv = list(sys.argv[1:] if argv is None else argv)
-    dry_run = "--dry-run" in argv
-    remaining = [arg for arg in argv if arg != "--dry-run"]
-    if len(remaining) != 1 or remaining[0] not in COMMANDS:
-        given = " ".join(argv) or "(none)"
-        sys.exit(f"Unknown command: {given}. Valid commands: {', '.join(COMMANDS)}")
+    given = " ".join(argv) or "(none)"
+    unknown_command_message = (
+        f"Unknown command: {given}. Valid commands: {', '.join(COMMANDS)}"
+    )
+    parser = _build_parser(unknown_command_message)
 
-    command = remaining[0]
+    if argv[:1] == ["help"]:
+        rest = argv[1:]
+        if not rest:
+            parser.parse_args(["--help"])
+        if len(rest) != 1 or rest[0] not in COMMANDS:
+            sys.exit(unknown_command_message)
+        parser.parse_args([rest[0], "--help"])
+
+    args = parser.parse_args(argv)
+    command = args.command
+    dry_run = args.dry_run
     if dry_run and command == "chat":
         sys.exit("--dry-run is not valid for chat: chat makes no GitHub writes")
 
