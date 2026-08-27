@@ -56,4 +56,9 @@ token: the recorded installation token is a redacted placeholder.
 and typecheck and build once on Linux, then the test suite across a matrix of Linux and
 macOS on Node 22 and 24 — four jobs, none of which fail fast. Nothing there needs a secret,
 since neither suite touches the network.
+
+`.github/dependabot.yml` keeps the inputs to those jobs current: weekly npm and
+GitHub Actions checks, with updates grouped (`@langchain/*`, dev dependencies, production
+minor/patch, all actions) so a week's bumps arrive as a few pull requests instead of a dozen.
+Each one runs the full matrix above, so CI is what says whether a bump is safe.
 </content>

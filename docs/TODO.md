@@ -156,8 +156,10 @@ reviews-posted / items-skipped / API-errors / tokens-used anywhere a dashboard c
 
 ### Add supply-chain tooling
 **Where:** `.github/workflows/`, `package.json`
-**Do:** add `npm audit --audit-level=high` to the CI job; enable Dependabot or Renovate for
-`package-lock.json` and the workflow actions; pin the actions by SHA.
+**Done:** `.github/dependabot.yml` watches `package-lock.json` and the workflow actions
+weekly, grouped so a week's bumps land as a few pull requests.
+**Do:** add `npm audit --audit-level=high` to the CI job; pin the actions by SHA (Dependabot
+updates pinned SHAs too).
 
 ---
 
