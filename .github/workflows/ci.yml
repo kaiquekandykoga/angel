@@ -28,11 +28,12 @@ jobs:
       - run: npm run build
 
   test:
-    name: Test on Node ${{ matrix.node }}
-    runs-on: ubuntu-latest
+    name: Test on ${{ matrix.os }} / Node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, macos-latest]
         node: [22, 24]
     steps:
       - uses: actions/checkout@v7
