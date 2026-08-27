@@ -7,6 +7,9 @@ Maximize token efficiency — never at the cost of correctness, safety, or verif
 * **Minimal output:** brief, scannable, bullets over paragraphs.
 * **Targeted context:** no speculative whole-file or tree reads; use `Grep` and line ranges.
 
+## Open Source
+* Repo is public — never commit secrets, credentials, or personal/sensitive data.
+
 ## Quality
 * **Complete code:** fewer lines via precision, never by dropping error boundaries, validation, or edge cases.
 * **No comments** unless requested; delete stale ones rather than updating.
