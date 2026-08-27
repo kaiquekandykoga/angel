@@ -8,24 +8,36 @@ runs once and exits — there is no daemon and nothing schedules them.
 - [Options](#options) — `--dry-run`, `--help`
 - [Output and exit codes](#output-and-exit-codes) — sections, the `Usage` totals, color
 - [Configuration](#configuration)
+- [Testing](#testing)
 - [Known gaps](#known-gaps)
 
 ## Quick start
 
-Python 3.14 or newer.
+Node 22 or newer.
 
 ```bash
-uv sync                  # install
+npm install              # install
 cp .env.example .env     # then fill in the three variables — see Configuration
-uv run angel chat  # talk to the model; no GitHub credentials needed
+npm run angel chat       # talk to the model; no GitHub credentials needed
+```
+
+`npm run angel` runs the TypeScript sources through [`tsx`](https://tsx.is). To run the
+compiled build instead — the same thing an install of the package gives you:
+
+```bash
+npm run build
+node dist/bin.js chat
 ```
 
 Once the GitHub App variables are set, see what a review run *would* post, without posting
 anything:
 
 ```bash
-uv run angel pr_review --dry-run
+npm run angel pr_review -- --dry-run
 ```
+
+> `npm run` swallows flags unless you separate them with `--`. Running `node dist/bin.js
+> pr_review --dry-run`, or an installed `angel pr_review --dry-run`, needs no separator.
 
 ## Commands
 
@@ -36,7 +48,7 @@ uv run angel pr_review --dry-run
 | [`issue_review`](#issue_review) | Same, over open issues labeled `angel` | NVIDIA key + GitHub App |
 
 ```bash
-uv run angel <command> [--dry-run]
+angel <command> [--dry-run]
 ```
 
 The command may be given before or after the flag. Anything else exits `1` with
@@ -48,7 +60,7 @@ How each command is wired internally, node by node, is in [`GRAPHS.md`](GRAPHS.m
 ### `chat`
 
 ```bash
-uv run angel chat
+angel chat
 ```
 
 Reads a line at a time at a `>` prompt and prints the reply. Blank lines are ignored. Leave
@@ -58,7 +70,7 @@ it is gone when you leave — nothing is written to GitHub, and `--dry-run` is r
 ### `pr_review`
 
 ```bash
-uv run angel pr_review [--dry-run]
+angel pr_review [--dry-run]
 ```
 
 Scans every repository the GitHub App is installed on — the list is discovered at run time,
@@ -98,11 +110,11 @@ more often than they used to — though nothing about a hosted model guarantees 
 ### `issue_review`
 
 ```bash
-uv run angel issue_review [--dry-run]
+angel issue_review [--dry-run]
 ```
 
 The same pass over open issues labeled `angel`. An issue is reviewed when the bot has
-never commented on it, or when the issue's `updated_at` is newer than that last comment —
+never commented on it, or when the issue's `updatedAt` is newer than that last comment —
 which covers an edited description and new comments alike. The label caveat above applies
 here too. The comment follows the same rendered-from-schema shape, with two extra sections:
 proposed acceptance criteria and a suggested approach.
@@ -112,7 +124,7 @@ proposed acceptance criteria and a suggested approach.
 | Option | Works with | Effect |
 |---|---|---|
 | `--dry-run` | `pr_review`, `issue_review` | Print each review to stdout and make zero GitHub writes |
-| `--help` | every command, and on its own | Print usage and exit `0` — also what a bare `uv run angel` does |
+| `--help` | every command, and on its own | Print usage and exit `0` — also what a bare `angel` does |
 
 ### `--dry-run`
 
@@ -129,8 +141,8 @@ The change looks correct, but one branch is untested.
 
 ### Findings
 
-**[major] New branch in `parse()` is untested** — `src/parse.py:42`
-The early return added here is not covered by any case in `tests/test_parse.py`.
+**[major] New branch in `parse()` is untested** — `src/parse.ts:42`
+The early return added here is not covered by any case in `tests/unit/parse.test.ts`.
 ```
 
 The target line is bold; the body is printed unindented and unstyled so it can be copied
@@ -144,8 +156,8 @@ a fetch or model failure still reports and exits `1`.
 Each command's options, printed either way — nothing runs, no credentials are read:
 
 ```bash
-uv run angel pr_review --help
-uv run angel help pr_review
+angel pr_review --help
+angel help pr_review
 ```
 
 ```
@@ -158,10 +170,10 @@ options:
   --dry-run   Print each review to stdout and make zero GitHub writes
 ```
 
-`uv run angel --help`, a bare `help`, or `uv run angel` with no arguments at all
-lists the three commands instead — the same output and the same exit `0` from each. Naming
-something that is not a command still exits `1` with the usual `Unknown command: …`, whether
-it is `uv run angel bogus` or `uv run angel help bogus`.
+`angel --help`, a bare `help`, or `angel` with no arguments at all lists the three commands
+instead — the same output and the same exit `0` from each. Naming something that is not a
+command still exits `1` with the usual `Unknown command: …`, whether it is `angel bogus` or
+`angel help bogus`.
 
 ## Output and exit codes
 
@@ -200,7 +212,7 @@ detail. The field names match those records exactly:
 
 | Field | Meaning |
 |---|---|
-| `calls` | how many times the model was called, `complete` and `complete_structured` together |
+| `calls` | how many times the model was called, `complete` and `completeStructured` together |
 | `input_tokens` / `output_tokens` / `total_tokens` | summed across those calls; a provider that returns no usage metadata contributes `0` while still counting toward `calls` |
 | `duration_ms` | wall time inside the provider calls, milliseconds — not the run's total wall time |
 
@@ -224,8 +236,8 @@ count:
 ```
 Failures ───────────────────────────────────────────────────────────────
 
-Failed review_pull_requests for owner/repo#12: HTTPStatusError: 500 Server Error
-Failed post_review_comments for owner/other: TimeoutError:
+Failed review_pull_requests for owner/repo#12: HttpStatusError: 500 response from GET …
+Failed post_review_comments for owner/other: TypeError: fetch failed
 2 of 5 items failed
 ```
 
@@ -250,7 +262,7 @@ Copy `.env.example` to `.env` and fill in these variables.
 |---|---|---|
 | `ANGEL_NVIDIA_API_KEY` | all three commands | NVIDIA API key from https://build.nvidia.com — used for every model call. |
 | `ANGEL_GITHUB_APP_ID` | `pr_review`, `issue_review` | ID of the GitHub App to authenticate as. |
-| `ANGEL_GITHUB_PRIVATE_KEY_PATH` | `pr_review`, `issue_review` | Path to that App's private key (`.pem`). |
+| `ANGEL_GITHUB_PRIVATE_KEY_PATH` | `pr_review`, `issue_review` | Path to that App's private key (`.pem`). A leading `~/` is expanded. |
 | `ANGEL_NVIDIA_MAX_COMPLETION_TOKENS` | optional, all three commands | Output tokens allowed per model call, default `32768`. Counts the model's reasoning as well as its answer, so a value sized to the review text alone truncates the reply mid-object and the item fails. A non-integer or non-positive value exits `1` rather than falling back to the default. |
 | `ANGEL_COLOR` | optional, all three commands | `auto` (default) colors the console only when the stream is a terminal; `always` keeps color when piping or redirecting; `never` disables it. An unrecognised value is treated as `auto`. A non-empty `NO_COLOR` disables color whatever this is set to. |
 
@@ -274,16 +286,18 @@ approve, merge, or push:
 
 ## Testing
 
-`uv run ci` runs the whole gate — `ruff check`, then `basedpyright`, then `pytest`:
+`npm run ci` runs the whole gate — `biome ci`, then `tsc --noEmit`, then `vitest run`:
 
 ```bash
-uv run ci
-uv run pytest -m "not integration"   # fakes only, fastest
-uv run pytest -m integration         # client code over recorded GitHub payloads
+npm run ci
+npm run test:unit          # fakes only, fastest
+npm run test:integration   # client code over recorded GitHub payloads
+npm run coverage           # the same tests, with a coverage report
 ```
 
 Neither suite touches the network. How the two trees differ, and how to add a fixture, is
-in [`TESTING.md`](TESTING.md).
+in [`TESTING.md`](TESTING.md). The same three checks run in GitHub Actions
+(`.github/workflows/ci.yml`) on every push and pull request, on Node 22 and 24.
 
 ## Known gaps
 
@@ -291,7 +305,7 @@ in [`TESTING.md`](TESTING.md).
   "Pick a deployment story".
 - **The CLI has no scoping flags** — no `--version`, and no `--repo owner/name`, `--limit N`,
   `--log-level`, or `--log-file`. See "Finish the CLI flags".
-- **Some failures still print a traceback** rather than a message — a bad private-key path,
-  an expired key, or Ctrl-C out of `chat`. See "Fail with a message, not a traceback".
+- **Some failures still print a stack trace** rather than a message — a bad private-key path,
+  an expired key, or Ctrl-C out of `chat`. See "Fail with a message, not a stack trace".
 - **No rate-limit or backoff handling.** A run that hits GitHub's secondary limit fails the
   affected items instead of waiting.

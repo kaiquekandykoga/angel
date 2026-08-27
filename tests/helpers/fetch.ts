@@ -1,0 +1,86 @@
+import type { FetchLike } from "../../src/clients/http.js";
+
+export interface RecordedRequest {
+  readonly method: string;
+  readonly url: URL;
+  readonly headers: Headers;
+  readonly body: string | undefined;
+}
+
+export type Responder = (request: RecordedRequest) => Response;
+
+interface Route {
+  readonly method: string;
+  readonly pathname: string;
+  readonly respond: Responder;
+}
+
+/** Serves recorded payloads in place of the network, and records every call. */
+export class FakeFetch {
+  readonly calls: RecordedRequest[] = [];
+  private readonly routes: Route[] = [];
+
+  /** Routes `METHOD pathname` to a responder. Later routes win over earlier ones. */
+  on(method: string, pathname: string, respond: Responder | Response): this {
+    this.routes.unshift({
+      method,
+      pathname,
+      respond: typeof respond === "function" ? respond : () => respond.clone(),
+    });
+    return this;
+  }
+
+  /** Routes a path to a JSON body, optionally with headers such as `Link`. */
+  onJson(
+    method: string,
+    pathname: string,
+    body: unknown,
+    init: ResponseInit = {},
+  ): this {
+    return this.on(
+      method,
+      pathname,
+      () =>
+        new Response(JSON.stringify(body), {
+          status: 200,
+          ...init,
+          headers: { "content-type": "application/json", ...init.headers },
+        }),
+    );
+  }
+
+  callsTo(method: string, pathname: string): RecordedRequest[] {
+    return this.calls.filter(
+      (call) => call.method === method && call.url.pathname === pathname,
+    );
+  }
+
+  get lastCall(): RecordedRequest {
+    const call = this.calls.at(-1);
+    if (call === undefined) {
+      throw new Error("no request was made");
+    }
+    return call;
+  }
+
+  readonly fetch: FetchLike = async (url, init) => {
+    const method = (init?.method ?? "GET").toUpperCase();
+    const parsed = new URL(url);
+    const request: RecordedRequest = {
+      method,
+      url: parsed,
+      headers: new Headers(init?.headers),
+      body: typeof init?.body === "string" ? init.body : undefined,
+    };
+    this.calls.push(request);
+
+    const route = this.routes.find(
+      (candidate) =>
+        candidate.method === method && candidate.pathname === parsed.pathname,
+    );
+    if (route === undefined) {
+      throw new Error(`unexpected request: ${method} ${parsed.pathname}`);
+    }
+    return route.respond(request);
+  };
+}

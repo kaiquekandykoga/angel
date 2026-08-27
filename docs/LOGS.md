@@ -1,11 +1,11 @@
 # Logs
 
-Every run logs to two places at once, configured in `src/angel/logs.py` by
-`configure_logging()`, which `__main__.main()` calls before anything else happens.
+Every run logs to two places at once, configured in `src/logs.ts` by
+`configureLogging()`, which `main()` calls before anything else happens.
 
 | Destination | Level | Format |
 |---|---|---|
-| Console (stderr) | `INFO` | `LEVEL   message` — high-level progress, meant to be read while it runs. `ColorFormatter` colors the level name only (`DEBUG` dim, `INFO` cyan, `WARNING` yellow, `ERROR` red, `CRITICAL` bold red); padding is computed on the plain name, so the columns line up either way. Color follows the same `ANGEL_COLOR` / `NO_COLOR` rules as the rest of the console — see [`USAGE.md`](USAGE.md#color) |
+| Console (stderr) | `INFO` | `LEVEL   message` — high-level progress, meant to be read while it runs. The console handler colors the level name only (`DEBUG` dim, `INFO` cyan, `WARNING` yellow, `ERROR` red, `CRITICAL` bold red); padding is computed on the plain name, so the columns line up either way. Color follows the same `ANGEL_COLOR` / `NO_COLOR` rules as the rest of the console — see [`USAGE.md`](USAGE.md#color) |
 | `log/angel-<timestamp>.jsonl` | `DEBUG` | one JSON object per line, carrying every structured field the nodes attach |
 
 The file is the detailed one: it keeps the `DEBUG` records the console drops, which is where
@@ -15,71 +15,76 @@ milliseconds.
 
 ## Record shape
 
-Each line is a single JSON object. Four keys are always present, and the `context` dict a
+Each line is a single JSON object. Four keys are always present, and the context object a
 call site attaches is merged in at the top level alongside them:
 
 | Key | Meaning |
 |---|---|
 | `time` | UTC ISO-8601 timestamp |
 | `level` | `DEBUG`, `INFO`, … |
-| `logger` | the module that emitted it — e.g. `angel.agents.pr_review.nodes` |
+| `logger` | the module that emitted it — e.g. `angel.agents.pr-review.nodes` |
 | `message` | the human-readable message |
-| …rest | whatever the call site put in `extra={"context": {...}}` |
+| …rest | whatever the call site passed as the context object |
 
 ```json
-{"time": "2026-08-15T09:24:43.602447+00:00", "level": "INFO", "logger": "angel.__main__", "message": "running chat", "command": "chat", "log_path": "log/angel-20260815T092443Z.jsonl"}
-{"time": "2026-08-15T09:24:43.604300+00:00", "level": "DEBUG", "logger": "angel.agents.chat.graph", "message": "wiring call_llm node"}
-{"time": "2026-08-15T09:24:43.605278+00:00", "level": "INFO", "logger": "angel.agents.chat.graph", "message": "chat graph ready"}
+{"time": "2026-08-15T09:24:43.602Z", "level": "INFO", "logger": "angel.main", "message": "running chat", "command": "chat", "log_path": "log/angel-20260815T092443Z.jsonl", "dry_run": false}
+{"time": "2026-08-15T09:24:43.604Z", "level": "DEBUG", "logger": "angel.agents.chat.graph", "message": "wiring call_llm node"}
+{"time": "2026-08-15T09:24:43.605Z", "level": "INFO", "logger": "angel.agents.chat.graph", "message": "chat graph ready"}
 ```
 
 ## How call sites log
 
-Call sites do not touch `logging` directly. `angel.logs.get_logger()` returns a
-`ContextLogger` whose `debug` / `info` / `warning` / `error` take the structured fields as
-keyword arguments and pack them into the `context` dict for you:
+`logs.ts` exports `getLogger(name)`, which returns a `ContextLogger` whose `debug` / `info` /
+`warning` / `error` take the message and an object of structured fields:
 
-```python
-from angel.logs import get_logger
+```ts
+import { getLogger } from "../../logs.js";
 
-log = get_logger(__name__)
+const log = getLogger("angel.agents.pr-review.nodes");
 
-log.debug(
-    "evaluated pull request",
-    repository=pull_request.repository,
-    number=pull_request.number,
-    selected=selected,
-    reason=reason,
-)
+log.debug("evaluated pull request", {
+  repository: pullRequest.repository,
+  number: pullRequest.number,
+  selected,
+  reason,
+});
 ```
 
-The stdlib logger is still underneath — `ContextLogger.logger` reaches it — so the record
-that lands in the file is exactly the one an `extra={"context": {...}}` call would have
-produced, `logger` name included.
+Field names in the context object are `snake_case`, so a run's log reads the same whichever
+module wrote it, and `jq` filters do not have to know which one did.
+
+Handlers are module state: `configureLogging()` installs the console and file handlers and
+returns the file path, and a process that never calls it drops records rather than failing.
+Tests install a capturing handler instead — see [`TESTING.md`](TESTING.md).
 
 ### Failure records write themselves
 
 The five failure sites all log the same five keys and then append a matching `ItemFailure`
-to graph state. `angel.agents._shared.collect_failures()` is a context manager that
-does both, so the node body holds the work rather than the bookkeeping:
+to graph state. `collectFailures()` in `src/agents/shared.ts` does both, so the node body
+holds the work rather than the bookkeeping:
 
-```python
-with collect_failures(
-    failures,
-    "failed to review pull request",
-    stage="review_pull_requests",
-    repository=pull_request.repository,
-    number=pull_request.number,
-):
-    ...
-    reviews.append(Review(pull_request, body))
+```ts
+await collectFailures(
+  failures,
+  "failed to review pull request",
+  {
+    stage: "review_pull_requests",
+    repository: pullRequest.repository,
+    number: pullRequest.number,
+  },
+  async () => {
+    // ...
+    reviews.push({ target: pullRequest, body });
+  },
+);
 ```
 
-It catches `Exception` (never `BaseException`), logs the `WARNING` described under
-[Failure records](#failure-records), appends the `ItemFailure`, and suppresses the error so
-the loop continues. Work on the success path goes inside the `with` body. Where that is not
-possible, the yielded scope carries a `.failed` flag to branch on.
+It catches whatever the callback throws, logs the `WARNING` described under
+[Failure records](#failure-records), appends the `ItemFailure`, and swallows the error so
+the loop continues. Work on the success path goes inside the callback. Where a caller needs
+to branch on the outcome, `collectFailures` returns `false` when it caught something.
 
-`log_review_produced()` in the same module owns the `review produced` record, including the
+`logReviewProduced()` in the same module owns the `review produced` record, including the
 `severity_counts` tally — which is why that arithmetic no longer appears in the review nodes.
 It takes the calling module's `log`, so the record still names the node that produced it.
 
@@ -121,13 +126,13 @@ Every call into the model logs one `DEBUG` record from `angel.clients.llm`, mess
 |---|---|
 | `call` | `complete` or `complete_structured` — which client method made it |
 | `schema` | the schema the reply had to match; only on `complete_structured` |
-| `finish_reason` | what the provider said ended the reply — `stop`, `length`, `None` if absent |
+| `finish_reason` | what the provider said ended the reply — `stop`, `length`, `null` if absent |
 | `input_tokens` / `output_tokens` / `total_tokens` | from the reply's `usage_metadata`; all three are `null` when the provider returns none |
 | `duration_ms` | wall time around the provider call, milliseconds |
 
 The record is written before the truncation check, so a call that hits the
-`max_completion_tokens` ceiling is still accounted for — it shows up as `finish_reason:
-"length"` next to the `WARNING` for the item it cost. A call that raises before returning
+`maxCompletionTokens` ceiling is still accounted for — it shows up as `finish_reason:
+"length"` next to the `WARNING` for the item it cost. A call that throws before returning
 logs nothing here; it is the failure record that names it.
 
 ```bash
@@ -137,16 +142,16 @@ jq 'select(.message == "model call completed") | {call, schema, total_tokens, du
 
 ### The run total on the console
 
-`log_model_call_completed` also accumulates these four fields into a per-run tally in
-`clients/llm.py`, which `__main__` prints as the `Usage` section when the run ends — the
+`logModelCallCompleted` also accumulates these four fields into a per-run tally in
+`clients/llm.ts`, which `main` prints as the `Usage` section when the run ends — the
 same numbers the first `jq` above recovers, without needing the log:
 
 | Function | Purpose |
 |---|---|
-| `usage_totals()` | a snapshot of `calls`, `input_tokens`, `output_tokens`, `total_tokens`, `duration_ms`; later calls do not mutate a snapshot already taken |
-| `reset_usage()` | zeroes the tally; `main()` calls it once before the command runs |
+| `usageTotals()` | a snapshot of `calls`, `inputTokens`, `outputTokens`, `totalTokens`, `durationMs`; later calls do not mutate a snapshot already taken |
+| `resetUsage()` | zeroes the tally; `main()` calls it once before the command runs |
 
-A call whose reply carries no `usage_metadata` still increments `calls` and `duration_ms`,
+A call whose reply carries no `usage_metadata` still increments `calls` and `durationMs`,
 so the call count on the console always matches the number of `model call completed`
 records in the log. The section's layout is in [`USAGE.md`](USAGE.md#the-usage-section).
 
@@ -180,20 +185,21 @@ fixed set of context keys, so failures across all three nodes read the same way:
 | `repository` | `owner/name` of the repository the failure belongs to |
 | `number` | the PR or issue number; `0` for a repository-level failure |
 | `stage` | the node that caught it — `fetch_pull_requests`, `fetch_issues`, `review_pull_requests`, `review_issues`, `post_review_comments` |
-| `error_type` | the exception class name |
-| `error` | `str(exception)` |
+| `error_type` | the error's `name` — `HttpStatusError`, `TruncatedCompletionError`, `TypeError`, … — or the `typeof` for a thrown non-error |
+| `error` | the error's `message` |
 
 ```bash
 jq 'select(.level == "WARNING") | {stage, repository, number, error_type, error}' log/angel-*.jsonl
 ```
 
 These are the same records the run collects into `failures` in graph state and reports
-before exiting non-zero. No traceback is logged — `JsonLinesFormatter` drops `exc_info`,
-which is why the exception type and message are structured fields instead.
+before exiting non-zero. No stack trace is logged — the JSON handler writes only the four
+fixed keys and the context, which is why the error type and message are structured fields
+instead.
 
 ## Where the files go
 
-`configure_logging()` writes to `log/` **relative to the current working directory**, so
+`configureLogging()` writes to `log/` **relative to the current working directory**, so
 where logs land depends on where you invoked the command from. One file per run, named for
 the UTC start time. `log/` is gitignored.
 
@@ -204,9 +210,11 @@ Logging is not production-shaped yet, and [`TODO.md`](TODO.md) tracks the specif
 - **"Log JSON to stdout by default"** — logging is file-first with no rotation and no
   retention, one file per run, and the path depends on cwd. The 12-factor answer is JSON to
   stdout with the file handler behind an opt-in flag. Also missing: a run-id to group one
-  run's lines, and `exc_info` capture — nothing currently logs a traceback.
-- Under that same item — `log_review_produced()` logs the **entire rendered review body** at
+  run's lines, and stack-trace capture — nothing currently logs one.
+- Under that same item — `logReviewProduced()` logs the **entire rendered review body** at
   `DEBUG`, so model output derived from untrusted input lands on disk unbounded. Both review
   nodes now share that one helper, so capping the body is a change in a single place.
   Combined with no retention, that is a slow disk-fill and a data-handling question.
-- Nothing redacts secrets; the formatter dumps whatever is in `context`.
+- Writes are synchronous `appendFileSync` calls, one per record — fine for a short CLI run,
+  wrong for anything long-lived.
+- Nothing redacts secrets; the handler serialises whatever is in the context object.

@@ -1,6 +1,6 @@
 # Angel — TODO
 
-Open work only. Goal: a Python/LangGraph service that is safe against untrusted input,
+Open work only. Goal: a TypeScript/LangGraph service that is safe against untrusted input,
 observable, resumable, deployable, and typed. When an item lands, delete it.
 
 ## Conventions (also: instructions for AI)
@@ -11,18 +11,18 @@ Item shape: `### <imperative title>` + **Where** / **Why** (concrete failure, no
 **P0** blocker for unattended running · **P1** required for production-ready · **P2** excellence.
 
 Rules: one item = one deliverable; verify against the code before adding or deleting (an item is
-done only when its *Done when* holds and `uv run ci` is green); promote on impact; keep it short —
+done only when its *Done when* holds and `npm run ci` is green); promote on impact; keep it short —
 non-actionable rationale belongs elsewhere in `docs/`.
 
 New work comes from: real-run bugs, unused LangGraph capabilities (checkpointers, `Send`,
-structured output, `interrupt`), unadopted Python/tooling practice, or operational gaps.
+structured output, `interrupt`), unadopted TypeScript/tooling practice, or operational gaps.
 
 ---
 
 ## P0
 
 ### Harden against prompt injection; validate output before posting
-**Where:** `agents/*/prompts.py`, `agents/*/nodes.py`, `agents/_shared.py`
+**Where:** `agents/*/prompts.ts`, `agents/*/nodes.ts`, `agents/shared.ts`
 **Why:** attacker-controlled text (PR/issue bodies, comments, diffs) is interpolated undelimited,
 and output is published under the App's identity. A crafted PR can post fabricated approval or
 links signed `kandy-angel[bot]` on every watched repo.
@@ -30,17 +30,17 @@ links signed `kandy-angel[bot]` on every watched repo.
 data, never instructions; (2) refusal clause — never follow reviewed-content instructions, claim
 approval authority, or emit links absent from the diff; (3) validate before posting — reviews now
 arrive as `PullRequestReviewOutput` / `IssueReviewOutput`, so the shape check is done; enforce the
-length cap and strip external links in `render_*_review` (this is the layer that actually saves
-you);
+length cap and strip external links in the renderers (this is the layer that actually saves you);
 (4) keep App permissions comments-only; (5) footer: "Automated review by angel — not a human
 approval."
 **Done when:** an injection fixture produces no policy-violating comment, enforced by a test on the
 validation layer.
 
 ### Cap and filter the diff sent to the model
-**Where:** `agents/pr_review/nodes.py`, `clients/github.py::fetch_diff`
-**Why:** the full diff goes in with no cap or filter. A lockfile touch (this repo's `uv.lock` is
-196 KB) blows the context window — a hard API error killing the run — and costs money otherwise.
+**Where:** `agents/pr-review/nodes.ts`, `clients/github.ts::fetchDiff`
+**Why:** the full diff goes in with no cap or filter. A lockfile touch (this repo's
+`package-lock.json` is hundreds of KB) blows the context window — a hard API error killing the
+run — and costs money otherwise.
 **Do:** cap total diff bytes (~100 KB) and say so in the prompt when truncated; skip lockfiles,
 `dist/`, minified assets, binaries, files over N KB; prefer tokens over bytes. `/pulls/{n}/files`
 lets you drop whole files instead of truncating mid-hunk.
@@ -51,7 +51,7 @@ lets you drop whole files instead of truncating mid-hunk.
 ## P1
 
 ### Add a verification judge node to `pr_review`
-**Where:** `agents/pr_review/{graph,nodes,prompts,state}.py`
+**Where:** `agents/pr-review/{graph,nodes,prompts,state}.ts`
 **Why:** repeated runs over the same PR return different reviews. Temperature is pinned at `0`
 and the three lens prompts narrow the mandate, but nothing checks a finding against the diff
 before it is published — a finding citing a file or line the diff never touched, or restating
@@ -65,38 +65,42 @@ model call, so do that pass before spending a call.
 a body without it, and the drop is logged with the reason.
 
 ### Rate-limit and backoff handling (GitHub, NVIDIA)
-**Where:** `clients/{github,llm}.py`
-**Why:** `raise_for_status()` and nothing else. Production hits 403 + `x-ratelimit-remaining: 0`,
+**Where:** `clients/{github,http,llm}.ts`
+**Why:** `ensureOk()` and nothing else. Production hits 403 + `x-ratelimit-remaining: 0`,
 403/429 + `Retry-After` (comment loops trigger the secondary limit), routine 5xx, NVIDIA 429/503.
-A pull request review is also three long non-streaming calls — one per lens, ~48 s each measured
-against a 8.7 KB diff — so a read timeout at `NVIDIA_TIMEOUT_SECONDS` on any one of them loses the
-whole item with no second attempt, and the two lenses already paid for are thrown away.
-**Do:** `httpx.HTTPTransport(retries=3)` for connection-level, plus a response hook reading
-`Retry-After` / `x-ratelimit-reset` and sleeping. `tenacity` is the usual backoff dependency.
+A pull request review is also three long non-streaming calls — one per lens — so a timeout at
+`NVIDIA_TIMEOUT_MS` on any one of them loses the whole item with no second attempt, and the two
+lenses already paid for are thrown away.
+**Do:** a retry wrapper in `HttpClient.request` reading `Retry-After` / `x-ratelimit-reset` and
+sleeping, with jittered backoff on connection errors and 5xx; the same for the model client.
+**Done when:** a fixture serving 429 + `Retry-After: 0` then 200 completes the call, and the wait
+is logged.
 
 ### Expire and refresh installation tokens
-**Where:** `clients/github.py::InstallationTokenProvider.tokens` (~94)
+**Where:** `clients/github.ts::InstallationTokenProvider.tokens`
 **Why:** tokens are cached per repo forever; GitHub installation tokens live 1 hour, so a long run
 401s halfway through with no recovery.
-**Do:** store `(token, expires_at)`, treat as expired ~5 min early, re-mint; invalidate and retry
-once on any 401.
+**Do:** store `{ token, expiresAt }` — `/access_tokens` already returns `expires_at`, which the
+provider currently drops — treat as expired ~5 min early, re-mint; invalidate and retry once on
+any 401.
 
-### Turn `settings.py` into real settings
-**Where:** `settings.py`, `clients/llm.py:19–21`, `logs.py`
+### Turn `settings.ts` into real settings
+**Where:** `settings.ts`, `clients/llm.ts`, `logs.ts`
 **Why:** `REVIEWER_LOGIN`, `LABEL`, `LABEL_COLOR`, `NVIDIA_*`, and the log directory are scattered
 module constants. `REVIEWER_LOGIN = "kandy-angel[bot]"` hardcodes *your* App — nobody else
 can run this without editing source.
-**Do:** a `pydantic-settings` model with env overrides and startup validation; fold in every
-remaining constant so each knob has one documented place.
+**Do:** one zod-validated settings object parsed from the environment at startup; fold in every
+remaining constant so each knob has one documented place, and fail with the field path when a
+value is wrong.
 
 ### Accept private key material, not just a path
-**Where:** `clients/github.py`, `env.py`
+**Where:** `clients/github.ts`, `env.ts`
 **Why:** `ANGEL_GITHUB_PRIVATE_KEY_PATH` is path-only; containers and secrets managers hand
 you material, not a file — a hard blocker for containerised deployment.
 **Do:** support `ANGEL_GITHUB_PRIVATE_KEY` (raw or base64); warn if the `.pem` is
-group/world-readable; load `.env` once at startup from a known location — `env.py` calls
-`load_dotenv(find_dotenv(usecwd=True))` per lookup and `usecwd=True` walks *up*, so running from a
-subdirectory of an unrelated project can pick up a stranger's `.env`.
+group/world-readable; load `.env` once at startup from a known location — `env.ts` walks *up*
+from the cwd, so running from a subdirectory of an unrelated project can pick up a stranger's
+`.env`.
 
 ### Enable LangSmith tracing
 `langsmith` is already installed transitively; `LANGSMITH_TRACING` / `LANGSMITH_API_KEY` /
@@ -104,16 +108,16 @@ subdirectory of an unrelated project can pick up a stranger's `.env`.
 leaves only JSON logs of *lengths*. Highest value-per-effort item in the file.
 
 ### Log JSON to stdout by default
-**Where:** `logs.py`
-**Why:** `configure_logging` writes `log/angel-<timestamp>.jsonl` relative to cwd, so log
+**Where:** `logs.ts`
+**Why:** `configureLogging` writes `log/angel-<timestamp>.jsonl` relative to cwd, so log
 location depends on invocation directory. No rotation, no retention, one file per run — hourly
-scheduling means 8,760 files a year.
+scheduling means 8,760 files a year. Records are written with `appendFileSync`, one syscall each.
 **Do:** 12-factor it — JSON to stdout, file handler behind an opt-in `--log-file`; add a run-id and
-`exc_info` to every record (no traceback is logged anywhere today).
-**Also:** stop logging whole review bodies at DEBUG (`agents/_shared.py::log_review_produced`,
-now the single site for both review nodes) — model output derived from untrusted input lands on
-disk unbounded. Log a hash and length; full bodies only behind
-`--verbose`, with a redaction filter in front.
+error stacks to every record (no stack trace is logged anywhere today); buffer the file writes.
+**Also:** stop logging whole review bodies at DEBUG (`agents/shared.ts::logReviewProduced`,
+the single site for both review nodes) — model output derived from untrusted input lands on
+disk unbounded. Log a hash and length; full bodies only behind `--verbose`, with a redaction
+filter in front.
 
 ### Pick a deployment story
 **Why:** `pr_review` is a one-shot CLI invoked by hand; nothing schedules, restarts, or alerts.
@@ -121,10 +125,11 @@ disk unbounded. Log a hash and length; full bodies only behind
 latency is the poll interval) or webhook-driven (HTTP service on `pull_request`/`issues`/`label`
 with `X-Hub-Signature-256` verification). Webhooks are what App auth is *for* — you already have it
 and are merely polling — and they mostly dissolve the freshness heuristics. Either way add a
-`Dockerfile` (~15 lines on `ghcr.io/astral-sh/uv` with `uv.lock`).
+`Dockerfile` (multi-stage: `npm ci` + `npm run build`, then `npm ci --omit=dev` into a
+`node:22-slim` runtime).
 
-### Make `ensure_label` opt-in
-**Where:** `agents/{issue,pr}_review/nodes.py:33`
+### Make `ensureLabel` opt-in
+**Where:** `agents/{issue,pr}-review/nodes.ts`
 **Why:** the label is created in every repo on every run — two wasted calls per repo per run, and
 installing the App to review *one* repo silently adds a pink label to all of them, a least-surprise
 violation that gets Apps uninstalled in orgs.
@@ -132,61 +137,62 @@ violation that gets Apps uninstalled in orgs.
 to review here".
 
 ### Finish the CLI flags
-**Where:** `__main__.py`
-**Why:** the parser is `argparse` now — subcommands, `--help`, `help <command>`, `--dry-run` —
-but a run is still all-or-nothing: no way to target one repository, cap the work, or redirect
-the log, and no `--version` to put in a bug report.
+**Where:** `cli.ts`, `main.ts`
+**Why:** the parser handles subcommands, `--help`, `help <command>`, and `--dry-run` — but a run is
+still all-or-nothing: no way to target one repository, cap the work, or redirect the log, and no
+`--version` to put in a bug report.
 **Do:** add `--repo owner/name`, `--limit N`, `--log-level`, `--log-file`, and `--version`
-(from package metadata), threading the scoping ones into the graph state.
+(read from `package.json`), threading the scoping ones into the graph state.
 
 ### Emit run metrics
 Partial failures now exit non-zero, so a scheduler alerts for free — but nothing emits
 reviews-posted / items-skipped / API-errors / tokens-used anywhere a dashboard can read.
 
-### Add security tooling
-**Where:** `pyproject.toml`, `__ci__.py`
-**Do:** add `S` (flake8-bandit) to ruff `select`; add `pip-audit` (or uv's audit path) to `CHECKS`;
-enable Dependabot or Renovate for the lockfile.
+### Add supply-chain tooling
+**Where:** `.github/workflows/`, `package.json`
+**Do:** add `npm audit --audit-level=high` to the CI job; enable Dependabot or Renovate for
+`package-lock.json` and the workflow actions; pin the actions by SHA.
 
 ---
 
 ## P2
 
 ### Build an eval harness for review quality
-**Why:** all 145 tests assert plumbing; zero assert review quality — so the prompt, the component
+**Why:** every test asserts plumbing; zero assert review quality — so the prompt, the component
 with the most influence on whether this is good, is the only one with no regression protection.
 **Do:** 10–20 fixture PRs/issues with known findings (planted bug, missing test, ambiguous
-requirement) and an LLM-as-judge rubric (found it? specific? hallucinated files?). Run via
-`pytest -m eval`, excluded by default — costs money, nondeterministic. Hallucinated file/line
-citations are checkable mechanically, no judge needed. Sampling is pinned at `temperature=0`
-(`clients/llm.py`), so run-to-run drift is now the prompt's, not the sampler's — the harness
-measures whether a prompt change helped rather than whether the dice fell differently.
+requirement) and an LLM-as-judge rubric (found it? specific? hallucinated files?). Put them under
+`tests/eval/`, excluded from the default `vitest run` — they cost money and are nondeterministic.
+Hallucinated file/line citations are checkable mechanically, no judge needed. Sampling is pinned at
+`temperature=0` (`clients/llm.ts`), so run-to-run drift is now the prompt's, not the sampler's —
+the harness measures whether a prompt change helped rather than whether the dice fell differently.
 
-### `Send` fan-out and async
-Reviews run strictly sequentially. Failures are already isolated per item, but `RetryPolicy` is
-node-granular, so a single flaky review cannot be retried without re-running the whole node. `Send`
-gives per-item parallelism *and* per-item retry in one move; `ainvoke` + `httpx.AsyncClient` matter
-once fan-out exists.
+### `Send` fan-out and concurrency
+Reviews run strictly sequentially — every `await` in the fetch and review loops is serial, even
+though nothing shares state between items. Failures are already isolated per item, but
+`retryPolicy` is node-granular, so a single flaky review cannot be retried without re-running the
+whole node. `Send` gives per-item parallelism *and* per-item retry in one move; a bounded
+concurrency limit matters the moment fan-out exists.
 
 ### Durable checkpointer on the review graphs
-`build_pr_review_graph` compiles without one, so a mid-run crash loses everything and there is no
-resume — `SqliteSaver` locally, `PostgresSaver` deployed. Durable execution is the main reason to
-be on LangGraph at all. Chat uses `MemorySaver`, so conversations die with the process;
-`SqliteSaver` + `--thread-id` makes them resumable cheaply.
+`buildPrReviewGraph` compiles without one, so a mid-run crash loses everything and there is no
+resume — `@langchain/langgraph-checkpoint-sqlite` locally, `-postgres` deployed. Durable execution
+is the main reason to be on LangGraph at all. Chat uses `MemorySaver`, so conversations die with
+the process; SQLite + `--thread-id` makes them resumable cheaply.
 
 ### Streaming chat REPL
-`session.ask()` blocks for the full reply. `graph.stream(..., stream_mode="messages")` — small
+`session.ask()` blocks for the full reply. `graph.stream(..., { streamMode: "messages" })` — small
 change, biggest perceived-quality delta here.
 
 ### `langgraph.json` for LangGraph Studio
-~10 lines unlocking `langgraph dev` → visual stepping, high value for a project whose
-`docs/GRAPHS.md` hand-draws ASCII. Needs real work: it wants module-level `graph` objects, but
-`build_*_graph` takes credentialed clients, so a bare `graph = build_pr_review_graph(...)` fails at
-import without `.env`. Keep the factories; add a guarded Studio entry point.
+~10 lines unlocking `langgraphjs dev` → visual stepping, high value for a project whose
+`docs/GRAPHS.md` hand-draws ASCII. Needs real work: it wants module-level `graph` exports, but
+`build*Graph` takes credentialed clients, so a bare `export const graph = buildPrReviewGraph(...)`
+fails at import without `.env`. Keep the factories; add a guarded Studio entry point.
 
 ### Dollar cost and a budget ceiling
-**Where:** `clients/llm.py`
-**Why:** a run now reports its own token total (`usage_totals()`, printed as the `Usage` section),
+**Where:** `clients/llm.ts`
+**Why:** a run now reports its own token total (`usageTotals()`, printed as the `Usage` section),
 but a bot reading unbounded diffs across unbounded repos still has no dollar figure and nothing
 that stops it — the tally counts spend, it does not cap it.
 **Do:** dollars once there is a pricing source worth trusting for the configured model; a budget
@@ -194,7 +200,7 @@ ceiling checked against the running tally that aborts cleanly when crossed.
 **Done when:** a run that exceeds the ceiling stops instead of spending past it.
 
 ### Version the prompts
-Prompts are diffable in `agents/<name>/prompts.py` but unversioned — no constant, no changelog, no
+Prompts are diffable in `agents/<name>/prompts.ts` but unversioned — no constant, no changelog, no
 A/B path. Add a version constant per prompt and log it per run so a trace ties back to its prompt.
 
 ### Make model choice configurable
@@ -202,30 +208,38 @@ A/B path. Add a version constant per prompt and log it per run so a trace ties b
 Make it configurable, log it per run, pin it — the completion ceiling next to it already reads
 from the environment, so follow that shape.
 
+### Validate GitHub payloads at the boundary
+**Where:** `clients/http.ts::HttpResponse.json`, `clients/github.ts`
+**Why:** `json<T>()` casts; the `Api*` interfaces describe what GitHub is believed to return and
+nothing checks it. A renamed or missing field surfaces as `undefined` deep in a node rather than
+as an error naming the endpoint.
+**Do:** parse each list payload through a narrow zod schema at the client boundary, keeping the
+schemas permissive about extra fields.
+
 ### Fix the listing inefficiencies
-- `list_open_pull_requests` filters by label client-side (github.py:196) while `list_open_issues`
-  filters server-side — inconsistent, and the PR path downloads far more than it needs.
+- `listOpenPullRequests` filters by label client-side while `listOpenIssues` filters server-side —
+  inconsistent, and the PR path downloads far more than it needs.
 - The whole repo loop could be one `GET /search/issues?q=is:open+label:angel+is:pr` instead
   of 2 + 2N requests. Worth it past a handful of repos.
-- `list_comments` is one call per labeled PR per run, made before the freshness check can skip it.
+- `listComments` is one call per labeled PR per run, made before the freshness check can skip it.
   The search endpoint above cannot replace it — the head-sha marker lives in the comment bodies.
 
 ### Replace the issue freshness heuristic
-`issue.updated_at > last_review` re-fires on any mutation — label, assignment, reaction — costing a
+`issue.updatedAt > lastReview` re-fires on any mutation — label, assignment, reaction — costing a
 model call to say nothing new, and it depends on the bot's own comment not bumping `updated_at`
 past its own `created_at`, an undocumented GitHub timing detail.
-**Do:** record what was actually reviewed in the bot's own comment, reusing `review_marker` /
-`reviewed_sha` in `agents/_shared.py` — the marker the PR path already writes. Issues have no head
+**Do:** record what was actually reviewed in the bot's own comment, reusing `reviewMarker` /
+`reviewedSha` in `agents/shared.ts` — the marker the PR path already writes. Issues have no head
 sha, so the recorded value is a hash of the reviewed title + body + comment bodies.
 
-### De-duplicate the pr_review/issue_review node pairs
-**Where:** `agents/pr_review/nodes.py`, `agents/issue_review/nodes.py`
-**Why:** `fetch_pull_requests`/`fetch_issues` and `review_pull_requests`/`review_issues` are ~90%
-identical line-for-line — same try/except nesting, logging shape, and failure bookkeeping, differing
+### De-duplicate the pr-review/issue-review node pairs
+**Where:** `agents/pr-review/nodes.ts`, `agents/issue-review/nodes.ts`
+**Why:** `fetchPullRequests`/`fetchIssues` and `reviewPullRequests`/`reviewIssues` are ~90%
+identical line-for-line — same nesting, logging shape, and failure bookkeeping, differing
 only in field names and the freshness check. Any fix to error handling or logging has to be made
 twice and can silently drift (the two freshness checks already diverge more than the domain
 requires).
-**Do:** extract the shared shape into a generic `_fetch_labeled_items` / `_review_items` helper
+**Do:** extract the shared shape into a generic `fetchLabeledItems` / `reviewItems` helper
 parameterized by small per-agent functions (list call, freshness predicate, prompt renderer),
 keeping PR- and issue-specific bits injected rather than copy-pasted.
 **Done when:** the fetch/review control flow exists once, with PR- and issue-specific behavior
@@ -235,50 +249,34 @@ isolated to injected functions, and both agents' existing tests pass unchanged i
 `interrupt()` gives a `--require-approval` mode pausing before posting — genuinely useful for a bot
 commenting publicly under your identity.
 
-### Fail with a message, not a traceback
-**Where:** `__main__.py:111-115`, `agents/chat/repl.py:35-39`
-**Why:** `main()` catches only `MissingApiKeyError` and `MissingGitHubCredentialsError`. A typo in
-`ANGEL_GITHUB_PRIVATE_KEY_PATH` isn't a missing variable, so `build_github_client`
-(github.py:249) raises bare `FileNotFoundError`; an expired key gives `httpx.HTTPStatusError`. Both
-print a stack trace. `repl.run` catches `EOFError` but not `KeyboardInterrupt`, so Ctrl-C out of
-`chat` — the documented sibling of Ctrl-D — also tracebacks.
-**Do:** one `try/except` in `main()` for `OSError` / `httpx.HTTPStatusError` / `KeyboardInterrupt`,
-logging with `exc_info` and exiting via `sys.exit(message)`; catch `KeyboardInterrupt` alongside
-`EOFError` in `repl.run`.
-**Done when:** a missing private-key file exits with a one-line message and no traceback, and
+### Fail with a message, not a stack trace
+**Where:** `main.ts::buildClients`, `agents/chat/repl.ts`
+**Why:** `main()` maps only `MissingApiKeyError`, `InvalidMaxCompletionTokensError`, and
+`MissingGitHubCredentialsError` to an exit message. A typo in `ANGEL_GITHUB_PRIVATE_KEY_PATH`
+isn't a missing variable, so `buildGithubClient` throws a bare `ENOENT`; an expired key gives an
+`HttpStatusError`. Both print a stack trace. The REPL returns cleanly at end of input but has no
+`SIGINT` handling, so Ctrl-C out of `chat` — the documented sibling of Ctrl-D — kills the process
+mid-run.
+**Do:** one `catch` in `cli()` mapping `NodeJS.ErrnoException` / `HttpStatusError` to an
+`ExitError` with a one-line message, logging the stack at `ERROR`; handle `SIGINT` in `repl.run`.
+**Done when:** a missing private-key file exits with a one-line message and no stack trace, and
 Ctrl-C in the REPL returns cleanly.
 
-### Close the `httpx.Client`
-`build_github_client` (github.py:324) creates a client nobody closes — harmless for a short-lived
-CLI, a leak in anything long-running, and a `ResourceWarning` once warnings are enabled in tests.
-
 ### Typing and lint strictness
-- Node factories annotate parameters but not returns (`def call_llm(client: LlmClient):`,
-  `def post_review_comments(github: GitHubClient):`); the closure's type is inferred and
-  `post_review_comments`'s node returns bare `dict`. basedpyright at `standard` permits this — move
-  toward `strict` (or ruff `ANN`) and declare `Callable[[State], dict[...]]` returns.
-- f-strings in log calls defeat lazy formatting and lose the structured argument, while
-  `extra={"context": {...}}` is already used elsewhere — an internal inconsistency.
-- Ruff has no `target-version`, no `line-length`. Consider `ANN`, `TRY`, `LOG`/`G`, `PTH`, `ARG`,
-  `DTZ`, `ERA`, `A`.
-- `__ci__.py`'s `CHECKS` runs `ruff check`, `basedpyright`, `pytest` — no `ruff format --check`.
-  Since `uv run ci` is deliberately the only gate, formatting is the one thing nothing enforces.
+- Node factories annotate their returned function's state and result, but the factories
+  themselves have inferred return types; declaring them makes the node contract explicit at the
+  call site.
+- Biome's type-aware rules are limited compared to `typescript-eslint`'s `strictTypeChecked` —
+  weigh adding the latter alongside Biome for the rules that need the type checker
+  (`no-unnecessary-condition`, `no-unsafe-argument`, exhaustive switch).
+- Template literals in log messages (`` log.info(`reviewed ${repo}#${n}`) ``) duplicate what the
+  context object already carries structurally — an internal inconsistency.
 
 ### Packaging and repo polish
-- **Rename `__ci__.py`** — dunder names are conventionally the runtime's (`__main__`, `__init__`).
-  `tasks.py`, `scripts/ci.py`, or a `Makefile`/`justfile` target is expected.
-- **Thin `pyproject.toml` metadata** — no `classifiers`, `[project.urls]`, keywords.
 - **Static `0.1.0`** with no tags, no `CHANGELOG.md`, no `--version`. Pick SemVer or CalVer and tag.
-- **Inaccurate description** — "Multi-Agent System using Python" is three linear single-agent
-  graphs. Fix it, or build toward it (a planner/critic split would be genuine multi-agent).
-- **No `py.typed`** — one empty file; only matters if something imports this as a library.
-- **`requires-python = ">=3.14"`** constrains base images, some wheels, and contributors. Fine for
-  a personal project — just make it a documented decision.
+- **Not published** — `package.json` has `bin`, `files`, and `exports`-worthy metadata, but nothing
+  is on npm and there is no release workflow.
 - **No `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, or issue/PR templates** — only matters with
   contributors, but evaluators check first.
-- **Document the local-CI decision in `docs/USAGE.md`.** `.github/workflows/` is deliberately
-  absent (removed in `2c27db5`); writing it down is the difference between a decision and an
-  omission — and note that a second contributor ends "green on my machine".
-- **No limitations section in `README.md`.** `GRAPHS.md`, `LOGS.md`, and `USAGE.md` each carry a
-  "Known gaps"; the entry point doesn't, so a reader opens three files to learn there is no
-  rate-limit handling. Add a short one.
+- **No `SECURITY.md`** — a bot that posts under a GitHub App identity should say where to report.
+- **No coverage gate.** `npm run coverage` reports but nothing fails on a drop.
