@@ -269,7 +269,7 @@ for a bot commenting publicly under your identity.
 bare `ENOENT`; an expired key gives an `HttpStatusError`. Both print a stack trace. The REPL
 returns cleanly at end of input but has no `SIGINT` handling, so Ctrl-C out of `chat` — the
 documented sibling of Ctrl-D — kills the process mid-run.
-**Do:** one `catch` in `cli()` mapping `NodeJS.ErrnoException` / `HttpStatusError` to an
+**Do:** one `catch` in `start()` mapping `NodeJS.ErrnoException` / `HttpStatusError` to an
 `ExitError` with a one-line message, logging the stack at `ERROR`; handle `SIGINT` in
 `repl.run`.
 **Done when:** a missing private-key file exits with a one-line message and no stack trace,

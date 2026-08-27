@@ -13,7 +13,7 @@ import {
   resetUsage,
 } from "../../src/clients/llm.js";
 import { resetEnvCache } from "../../src/env.js";
-import { cli, type MainDependencies, main } from "../../src/main.js";
+import { type MainDependencies, main, start } from "../../src/main.js";
 import { stripAnsi } from "../helpers/ansi.js";
 import { FakeGitHubClient } from "../helpers/github.js";
 import { FakeLlmClient } from "../helpers/llm.js";
@@ -337,7 +337,7 @@ describe("main issue_review", () => {
   });
 });
 
-describe("cli", () => {
+describe("start", () => {
   useTemporaryDirectory();
   const previousExitCode = process.exitCode;
 
@@ -352,7 +352,7 @@ describe("cli", () => {
       return true;
     });
 
-    await cli(["--help"]);
+    await start(["--help"]);
 
     expect(process.exitCode).toBe(0);
     expect(written.join("")).toContain("usage: angel");
@@ -365,7 +365,7 @@ describe("cli", () => {
       return true;
     });
 
-    await cli(["bogus"]);
+    await start(["bogus"]);
 
     expect(process.exitCode).toBe(1);
     expect(written.join("")).toContain("Unknown command: bogus.");
@@ -377,7 +377,7 @@ describe("cli", () => {
     delete process.env.ANGEL_NVIDIA_API_KEY;
     resetEnvCache();
 
-    await cli(["chat"]);
+    await start(["chat"]);
 
     expect(process.exitCode).toBe(1);
   });

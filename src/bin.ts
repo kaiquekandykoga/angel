@@ -1,4 +1,4 @@
 #!/usr/bin/env node
-import { cli } from "./main.js";
+import { start } from "./main.js";
 
-await cli();
+await start();

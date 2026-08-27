@@ -242,7 +242,7 @@ export async function main(
   }
 }
 
-export async function cli(argv: readonly string[] = process.argv.slice(2)) {
+export async function start(argv: readonly string[] = process.argv.slice(2)) {
   try {
     await main(argv);
   } catch (error) {
