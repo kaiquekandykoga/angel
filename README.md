@@ -6,12 +6,6 @@ backed by an NVIDIA-hosted model. Three commands: an interactive `chat` REPL, pl
 [kandy-angel](https://github.com/apps/kandy-angel) GitHub App and comment on pull requests
 and issues labeled `angel` across the repositories the App is installed on.
 
-```bash
-npm install
-cp .env.example .env     # then fill in the variables — see docs/USAGE.md
-npm run angel chat       # talk to the model; no GitHub credentials needed
-```
-
 ## Docs
 
 - [`docs/USAGE.md`](docs/USAGE.md) — every command and option, what each prints and exits
