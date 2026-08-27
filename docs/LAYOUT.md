@@ -4,15 +4,16 @@
 apps/server/    the LangGraph engine — agents, external integrations, HTTP; `index.ts` is its surface
 apps/cli/       the terminal UI — argument parsing, rendering, the REPL loop, `bin.ts`
 packages/shared/  infrastructure both sides use — env loading, logging, ANSI output
-tests/          unit and integration suites, mirroring the trees above
+eval/           the Langfuse eval harness — datasets, deterministic scorers, the runner
+tests/          the suites, mirroring the trees above: `apps/`, `packages/`, `eval/`
 ```
 
 A UI other than the CLI becomes a sibling of `apps/cli/` and imports `apps/server/index.js`.
 
 ## `apps/server/`
 
-`index.ts` is the surface a UI imports — graphs, clients, and the record types, nothing
-deeper.
+`index.ts` is the surface a UI imports — graphs, clients, the record types, and the named
+output schemas a caller needs to re-read a structured reply — nothing deeper.
 
 - `agents/` — one directory per graph (`chat/`, `pr-review/`, `issue-review/`), plus
   `shared.ts` for what they have in common. File conventions are in
@@ -34,6 +35,16 @@ here and nowhere else.
 Env loading, logging, and ANSI output, used by both apps. See [`LOGS.md`](LOGS.md) for what
 the logger writes.
 
+## `eval/`
+
+`npm run eval` scores the review agents against a fixed dataset and sends the run to
+[Langfuse](https://langfuse.com). `bin.ts` is the entry point; `run.ts` wires each agent's
+dataset, task, and evaluators into one Langfuse experiment. `datasets.ts` holds the cases,
+`scorers.ts` the deterministic checks, `tasks.ts` runs the real graph against
+`github.ts`'s static repository, and `langfuse.ts` sets up tracing. It imports
+`apps/server/index.js` like any other UI. See [`EVAL.md`](EVAL.md).
+
 ## `tests/`
 
-Unit and integration suites mirroring the trees above; see [`TESTING.md`](TESTING.md).
+One directory per tree above — `apps/`, `packages/`, `eval/` — with `*.integration.test.ts`
+marking the suite that speaks HTTP; see [`TESTING.md`](TESTING.md).

@@ -1,12 +1,21 @@
 # Testing
 
 `npm run ci` runs the whole gate — `biome ci`, then `tsc --noEmit`, then `vitest run`. See
-[`USAGE.md`](USAGE.md) for the commands. Tests split in two:
+[`USAGE.md`](USAGE.md) for the commands. `tests/` mirrors the repository root, one directory
+per tree:
 
-| Tree | What lives there | How it stubs the world |
+| Tree | What lives there |
+|---|---|
+| `tests/apps/` | `cli/` and `server/` — graphs, nodes, the REPL, the clients. |
+| `tests/packages/` | `shared/` — env loading, logging, ANSI output. |
+| `tests/eval/` | The eval harness: scorers, datasets, and the tasks that drive a graph. Never calls a model or Langfuse. |
+
+Inside those trees the *kind* of test is in the filename, not the path:
+
+| Suite | What it covers | How it stubs the world |
 |---|---|---|
-| `tests/unit/` | Graphs, nodes, the REPL, logging, the CLI — everything driven through a fake. Mirrors the source tree: `server/`, `cli/`, `shared/`. | `FakeGitHubClient` / `FakeLlmClient` from `tests/helpers/`. No HTTP at all. |
-| `tests/integration/` | `HttpGitHubClient` and `InstallationTokenProvider` — the code that actually speaks HTTP. | `FakeFetch` from `tests/helpers/fetch.ts`, serving recorded GitHub payloads from `tests/fixtures/`. Still no network. |
+| `*.test.ts` | Everything driven through a fake. | `FakeGitHubClient` / `FakeLlmClient` from `tests/helpers/`. No HTTP at all. |
+| `*.integration.test.ts` | `HttpGitHubClient` and `InstallationTokenProvider` — the code that actually speaks HTTP. | `FakeFetch` from `tests/helpers/fetch.ts`, serving recorded GitHub payloads from `tests/fixtures/`. Still no network. |
 
 ```bash
 npm run test:unit          # fakes only, fastest
@@ -14,7 +23,13 @@ npm run test:integration   # client code over recorded payloads
 npm run coverage           # the same tests, with a coverage report
 ```
 
-Split is by directory — nothing to mark by hand.
+The suffix is the split, so `client.test.ts` and `client.integration.test.ts` sit next to
+each other and next to the `client.ts` they cover.
+
+`tests/eval/` runs with the unit suite: the scorers are pure functions, and
+`tests/eval/tasks.test.ts` drives the real review graphs through `FakeLlmClient`, so the
+whole eval path is exercised without spending a token. The paid, non-deterministic half is
+`npm run eval` — see [`EVAL.md`](EVAL.md).
 
 **Why both.** `FakeGitHubClient` encodes the same assumptions as the real client, so it can
 never falsify them; that's exactly how the missing pagination went unnoticed. The recorded

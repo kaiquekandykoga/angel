@@ -5,6 +5,7 @@
     "includes": [
       "apps/**/*.ts",
       "packages/**/*.ts",
+      "eval/**/*.ts",
       "tests/**/*.ts",
       "*.ts",
       "*.json",
