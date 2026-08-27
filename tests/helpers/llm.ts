@@ -3,7 +3,7 @@ import type {
   LlmClient,
   ModelReply,
   NamedSchema,
-} from "../../apps/server/clients/llm.js";
+} from "../../apps/server/external/nvidia/client.js";
 import { aiMessage } from "./model.js";
 
 export class FakeLlmClient implements LlmClient {

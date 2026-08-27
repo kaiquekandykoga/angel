@@ -7,10 +7,12 @@ them, `prompts.ts` holds the system prompt, and `nodes.ts` holds factories that 
 dependencies (LLM client, GitHub client) and return the node function, so a graph can be
 built against fakes in tests. Shared across agents — the `Review` record, `ItemFailure`,
 `postReviewComments`, comment helpers, review output schemas and their markdown renderers —
-lives in `agents/shared.ts`. Dependencies sit behind interface seams in `apps/server/clients/`;
-the reviewer login, label, and label colour live in `apps/server/settings.ts`.
-`apps/server/index.ts` is the surface a UI imports — graphs, clients, and the record types,
-nothing deeper.
+lives in `agents/shared.ts`. Dependencies sit behind interface seams under
+`apps/server/external/` — GitHub in `external/github/`, the model in `external/nvidia/` —
+each a `client.ts` beside the `settings.ts` holding its constants: the reviewer login,
+label, and label colour on one side; the base URL, model name, and call limits on the other.
+`clients/http.ts` is the provider-agnostic HTTP layer underneath. `apps/server/index.ts` is
+the surface a UI imports — graphs, clients, and the record types, nothing deeper.
 
 Both review agents ask the model for a schema, not prose: `LlmClient.completeStructured`
 binds the OpenAI-style `response_format` json_schema for `PullRequestReviewOutput` /
@@ -25,7 +27,7 @@ objects into one body in `agents/pr-review/nodes.ts`, `issue_review` renders its
 object with `renderIssueReview`.
 
 The endpoint is OpenAI-compatible, so the model is a `ChatOpenAI` from `@langchain/openai`
-pointed at `https://integrate.api.nvidia.com/v1`; the client seam in `clients/llm.ts` is one
+pointed at `https://integrate.api.nvidia.com/v1`; the client seam in `external/nvidia/client.ts` is one
 `invoke(messages, options)` method, all the two call shapes need.
 
 ## `chat`

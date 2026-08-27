@@ -14,7 +14,7 @@ export {
   DryRunGitHubClient,
   type GitHubClient,
   MissingGitHubCredentialsError,
-} from "./clients/github.js";
+} from "./external/github/client.js";
 export {
   buildLlmClient,
   InvalidMaxCompletionTokensError,
@@ -23,4 +23,4 @@ export {
   resetUsage,
   type UsageTotals,
   usageTotals,
-} from "./clients/llm.js";
+} from "./external/nvidia/client.js";

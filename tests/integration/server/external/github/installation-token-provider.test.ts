@@ -1,13 +1,13 @@
 import jwt from "jsonwebtoken";
 import { describe, expect, it } from "vitest";
+import { HttpClient } from "../../../../../apps/server/clients/http.js";
 import {
   GITHUB_BASE_URL,
   InstallationTokenProvider,
-} from "../../../../apps/server/clients/github.js";
-import { HttpClient } from "../../../../apps/server/clients/http.js";
-import { FakeFetch } from "../../../helpers/fetch.js";
-import { loadFixture } from "../../../helpers/fixtures.js";
-import { rsaKeyPair } from "../../../helpers/keys.js";
+} from "../../../../../apps/server/external/github/client.js";
+import { FakeFetch } from "../../../../helpers/fetch.js";
+import { loadFixture } from "../../../../helpers/fixtures.js";
+import { rsaKeyPair } from "../../../../helpers/keys.js";
 
 const RECORDED_TOKEN = "ghs_REDACTEDINSTALLATIONTOKEN0000000000";
 

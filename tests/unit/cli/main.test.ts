@@ -6,13 +6,13 @@ import {
   type Issue,
   MissingGitHubCredentialsError,
   type PullRequest,
-} from "../../../apps/server/clients/github.js";
+} from "../../../apps/server/external/github/client.js";
 import {
   InvalidMaxCompletionTokensError,
   type LlmClient,
   MissingApiKeyError,
   resetUsage,
-} from "../../../apps/server/clients/llm.js";
+} from "../../../apps/server/external/nvidia/client.js";
 import { resetEnvCache } from "../../../packages/shared/env.js";
 import { stripAnsi } from "../../helpers/ansi.js";
 import { FakeGitHubClient } from "../../helpers/github.js";

@@ -19,7 +19,7 @@ import type {
   Comment,
   GitHubClient,
   PullRequest,
-} from "../../../../apps/server/clients/github.js";
+} from "../../../../apps/server/external/github/client.js";
 import { getLogger } from "../../../../packages/shared/logs.js";
 import { FakeGitHubClient } from "../../../helpers/github.js";
 import { useLogCapture } from "../../../helpers/logs.js";

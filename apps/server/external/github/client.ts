@@ -2,11 +2,11 @@ import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import jwt from "jsonwebtoken";
-import { loadEnvVar } from "../../../packages/shared/env.js";
-import { getLogger } from "../../../packages/shared/logs.js";
-import { type FetchLike, getAll, HttpClient } from "./http.js";
+import { loadEnvVar } from "../../../../packages/shared/env.js";
+import { getLogger } from "../../../../packages/shared/logs.js";
+import { type FetchLike, getAll, HttpClient } from "../../clients/http.js";
 
-const log = getLogger("angel.clients.github");
+const log = getLogger("angel.external.github");
 
 export const GITHUB_BASE_URL = "https://api.github.com";
 export const GITHUB_API_VERSION = "2022-11-28";

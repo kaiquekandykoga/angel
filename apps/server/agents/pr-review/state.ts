@@ -1,5 +1,5 @@
 import { Annotation } from "@langchain/langgraph";
-import type { Comment, PullRequest } from "../../clients/github.js";
+import type { Comment, PullRequest } from "../../external/github/client.js";
 import type { ItemFailure, Review } from "../shared.js";
 
 export interface PullRequestContext {

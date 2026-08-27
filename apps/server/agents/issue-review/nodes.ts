@@ -1,7 +1,7 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { getLogger } from "../../../../packages/shared/logs.js";
-import type { GitHubClient } from "../../clients/github.js";
-import type { LlmClient } from "../../clients/llm.js";
+import type { GitHubClient } from "../../external/github/client.js";
+import type { LlmClient } from "../../external/nvidia/client.js";
 import {
   collectFailures,
   ISSUE_REVIEW_OUTPUT,

@@ -4,7 +4,7 @@ import type {
   Issue,
   PullRequest,
   ReviewTarget,
-} from "../../apps/server/clients/github.js";
+} from "../../apps/server/external/github/client.js";
 
 function key(target: ReviewTarget): string {
   return `${target.repository}#${target.number}`;

@@ -6,8 +6,8 @@ import {
   type Issue,
   type PullRequest,
   type ReviewTarget,
-} from "../../../../apps/server/clients/github.js";
-import { useLogCapture } from "../../../helpers/logs.js";
+} from "../../../../../apps/server/external/github/client.js";
+import { useLogCapture } from "../../../../helpers/logs.js";
 
 const PULL_REQUEST: PullRequest = {
   repository: "org/repo",

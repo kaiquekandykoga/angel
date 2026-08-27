@@ -118,7 +118,7 @@ failure below, with `error_type` naming the validation error.
 
 ## Model call records
 
-Every call into the model logs one `DEBUG` record from `angel.clients.llm`, message `model
+Every call into the model logs one `DEBUG` record from `angel.external.nvidia`, message `model
 call completed`, so a run's token spend and latency are recoverable after the fact:
 
 | Key | Meaning |
@@ -142,7 +142,7 @@ jq 'select(.message == "model call completed") | {call, schema, total_tokens, du
 ### The run total on the console
 
 `logModelCallCompleted` also accumulates these four fields into a per-run tally in
-`clients/llm.ts`, which `main` prints as the `Usage` section when the run ends — the same
+`external/nvidia/client.ts`, which `main` prints as the `Usage` section when the run ends — the same
 numbers the first `jq` above recovers, without needing the log:
 
 | Function | Purpose |
@@ -158,7 +158,7 @@ Dollars are not logged — see the token and cost accounting item in [`TODO.md`]
 
 ## Dry-run records
 
-A `--dry-run` run logs each write it suppressed, at `INFO`, from `angel.clients.github`. Both
+A `--dry-run` run logs each write it suppressed, at `INFO`, from `angel.external.github`. Both
 records carry `dry_run: true`, so one filter shows everything the run would have written:
 
 | Message | Context keys |

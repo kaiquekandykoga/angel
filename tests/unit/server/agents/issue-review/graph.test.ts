@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildIssueReviewGraph } from "../../../../../apps/server/agents/issue-review/graph.js";
-import type { Issue } from "../../../../../apps/server/clients/github.js";
+import type { Issue } from "../../../../../apps/server/external/github/client.js";
 import { FakeGitHubClient } from "../../../../helpers/github.js";
 import { FakeLlmClient } from "../../../../helpers/llm.js";
 import { useLogCapture } from "../../../../helpers/logs.js";

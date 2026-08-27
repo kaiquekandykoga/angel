@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { type ContextLogger, getLogger } from "../../../packages/shared/logs.js";
-import type { Comment, GitHubClient, ReviewTarget } from "../clients/github.js";
-import { namedSchema } from "../clients/llm.js";
+import type { Comment, GitHubClient, ReviewTarget } from "../external/github/client.js";
+import { namedSchema } from "../external/nvidia/client.js";
 
 const logger = getLogger("angel.agents.shared");
 
