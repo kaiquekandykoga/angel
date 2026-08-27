@@ -1,7 +1,7 @@
 from langchain_core.messages import SystemMessage
 
-from nishikihebi.agents.chat.graph import build_chat_graph
-from nishikihebi.agents.chat.repl import run, start_session
+from angel.agents.chat.graph import build_chat_graph
+from angel.agents.chat.repl import run, start_session
 
 
 class FakeSession:

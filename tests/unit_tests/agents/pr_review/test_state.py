@@ -1,9 +1,9 @@
 import operator
 from typing import get_args
 
-from nishikihebi.agents._shared import Review
-from nishikihebi.agents.pr_review.state import PrReviewState, PullRequestContext
-from nishikihebi.clients.github import Comment, PullRequest
+from angel.agents._shared import Review
+from angel.agents.pr_review.state import PrReviewState, PullRequestContext
+from angel.clients.github import Comment, PullRequest
 
 
 def test_review_pairs_target_with_body():

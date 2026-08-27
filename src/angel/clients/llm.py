@@ -8,8 +8,8 @@ from langchain_core.messages import AIMessage, BaseMessage
 from langchain_nvidia_ai_endpoints import ChatNVIDIA
 from pydantic import BaseModel
 
-from nishikihebi.env import load_env_var
-from nishikihebi.logs import get_logger
+from angel.env import load_env_var
+from angel.logs import get_logger
 
 log = get_logger(__name__)
 
@@ -138,13 +138,13 @@ class NvidiaClient:
 
 
 def build_llm_client() -> LlmClient:
-    api_key = load_env_var("NISHIKIHEBI_NVIDIA_API_KEY")
+    api_key = load_env_var("ANGEL_NVIDIA_API_KEY")
     if not api_key:
         raise MissingApiKeyError(
-            "NISHIKIHEBI_NVIDIA_API_KEY environment variable is not set."
+            "ANGEL_NVIDIA_API_KEY environment variable is not set."
         )
 
-    max_completion_tokens_raw = load_env_var("NISHIKIHEBI_NVIDIA_MAX_COMPLETION_TOKENS")
+    max_completion_tokens_raw = load_env_var("ANGEL_NVIDIA_MAX_COMPLETION_TOKENS")
     if not max_completion_tokens_raw:
         max_completion_tokens = NVIDIA_MAX_COMPLETION_TOKENS_DEFAULT
     else:
@@ -152,12 +152,12 @@ def build_llm_client() -> LlmClient:
             max_completion_tokens = int(max_completion_tokens_raw)
         except ValueError as error:
             raise InvalidMaxCompletionTokensError(
-                "NISHIKIHEBI_NVIDIA_MAX_COMPLETION_TOKENS must be a positive "
+                "ANGEL_NVIDIA_MAX_COMPLETION_TOKENS must be a positive "
                 f"integer, got {max_completion_tokens_raw!r}."
             ) from error
         if max_completion_tokens <= 0:
             raise InvalidMaxCompletionTokensError(
-                "NISHIKIHEBI_NVIDIA_MAX_COMPLETION_TOKENS must be a positive "
+                "ANGEL_NVIDIA_MAX_COMPLETION_TOKENS must be a positive "
                 f"integer, got {max_completion_tokens_raw!r}."
             )
 

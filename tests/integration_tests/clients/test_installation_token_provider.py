@@ -5,7 +5,7 @@ import httpx
 import jwt
 import respx
 
-from nishikihebi.clients.github import GITHUB_BASE_URL, InstallationTokenProvider
+from angel.clients.github import GITHUB_BASE_URL, InstallationTokenProvider
 
 
 def test_returns_installation_access_token_for_repository(rsa_key_pair):

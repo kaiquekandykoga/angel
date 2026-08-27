@@ -1,12 +1,12 @@
 # Logs
 
-Every run logs to two places at once, configured in `src/nishikihebi/logs.py` by
+Every run logs to two places at once, configured in `src/angel/logs.py` by
 `configure_logging()`, which `__main__.main()` calls before anything else happens.
 
 | Destination | Level | Format |
 |---|---|---|
-| Console (stderr) | `INFO` | `LEVEL   message` — high-level progress, meant to be read while it runs. `ColorFormatter` colors the level name only (`DEBUG` dim, `INFO` cyan, `WARNING` yellow, `ERROR` red, `CRITICAL` bold red); padding is computed on the plain name, so the columns line up either way. Color follows the same `NISHIKIHEBI_COLOR` / `NO_COLOR` rules as the rest of the console — see [`USAGE.md`](USAGE.md#color) |
-| `log/nishikihebi-<timestamp>.jsonl` | `DEBUG` | one JSON object per line, carrying every structured field the nodes attach |
+| Console (stderr) | `INFO` | `LEVEL   message` — high-level progress, meant to be read while it runs. `ColorFormatter` colors the level name only (`DEBUG` dim, `INFO` cyan, `WARNING` yellow, `ERROR` red, `CRITICAL` bold red); padding is computed on the plain name, so the columns line up either way. Color follows the same `ANGEL_COLOR` / `NO_COLOR` rules as the rest of the console — see [`USAGE.md`](USAGE.md#color) |
+| `log/angel-<timestamp>.jsonl` | `DEBUG` | one JSON object per line, carrying every structured field the nodes attach |
 
 The file is the detailed one: it keeps the `DEBUG` records the console drops, which is where
 the per-repository and per-item detail lives — what was scanned, what was selected for
@@ -22,24 +22,24 @@ call site attaches is merged in at the top level alongside them:
 |---|---|
 | `time` | UTC ISO-8601 timestamp |
 | `level` | `DEBUG`, `INFO`, … |
-| `logger` | the module that emitted it — e.g. `nishikihebi.agents.pr_review.nodes` |
+| `logger` | the module that emitted it — e.g. `angel.agents.pr_review.nodes` |
 | `message` | the human-readable message |
 | …rest | whatever the call site put in `extra={"context": {...}}` |
 
 ```json
-{"time": "2026-08-15T09:24:43.602447+00:00", "level": "INFO", "logger": "nishikihebi.__main__", "message": "running chat", "command": "chat", "log_path": "log/nishikihebi-20260815T092443Z.jsonl"}
-{"time": "2026-08-15T09:24:43.604300+00:00", "level": "DEBUG", "logger": "nishikihebi.agents.chat.graph", "message": "wiring call_llm node"}
-{"time": "2026-08-15T09:24:43.605278+00:00", "level": "INFO", "logger": "nishikihebi.agents.chat.graph", "message": "chat graph ready"}
+{"time": "2026-08-15T09:24:43.602447+00:00", "level": "INFO", "logger": "angel.__main__", "message": "running chat", "command": "chat", "log_path": "log/angel-20260815T092443Z.jsonl"}
+{"time": "2026-08-15T09:24:43.604300+00:00", "level": "DEBUG", "logger": "angel.agents.chat.graph", "message": "wiring call_llm node"}
+{"time": "2026-08-15T09:24:43.605278+00:00", "level": "INFO", "logger": "angel.agents.chat.graph", "message": "chat graph ready"}
 ```
 
 ## How call sites log
 
-Call sites do not touch `logging` directly. `nishikihebi.logs.get_logger()` returns a
+Call sites do not touch `logging` directly. `angel.logs.get_logger()` returns a
 `ContextLogger` whose `debug` / `info` / `warning` / `error` take the structured fields as
 keyword arguments and pack them into the `context` dict for you:
 
 ```python
-from nishikihebi.logs import get_logger
+from angel.logs import get_logger
 
 log = get_logger(__name__)
 
@@ -59,7 +59,7 @@ produced, `logger` name included.
 ### Failure records write themselves
 
 The five failure sites all log the same five keys and then append a matching `ItemFailure`
-to graph state. `nishikihebi.agents._shared.collect_failures()` is a context manager that
+to graph state. `angel.agents._shared.collect_failures()` is a context manager that
 does both, so the node body holds the work rather than the bookkeeping:
 
 ```python
@@ -86,8 +86,8 @@ It takes the calling module's `log`, so the record still names the node that pro
 Because every line is self-contained JSON, `jq` is the natural way to read a run:
 
 ```bash
-jq -r 'select(.level == "INFO") | .message' log/nishikihebi-*.jsonl
-jq 'select(.selected == false) | {repository, number, reason}' log/nishikihebi-*.jsonl
+jq -r 'select(.level == "INFO") | .message' log/angel-*.jsonl
+jq 'select(.selected == false) | {repository, number, reason}' log/angel-*.jsonl
 ```
 
 The second one answers "why didn't it review this PR?" — `fetch_pull_requests` and
@@ -106,7 +106,7 @@ Because the model returns a schema rather than prose, `review_pull_requests` /
 | `lens` | `security`, `quality`, or `performance` — which specialised prompt produced this record. `review_pull_requests` emits one record per lens per PR; `review_issues` makes a single call and omits the key |
 
 ```bash
-jq 'select(.finding_count) | {repository, number, finding_count, severity_counts}' log/nishikihebi-*.jsonl
+jq 'select(.finding_count) | {repository, number, finding_count, severity_counts}' log/angel-*.jsonl
 ```
 
 A reply the schema rejects never reaches this record; it is caught per item and logged as a
@@ -114,7 +114,7 @@ failure below, with `error_type` naming the validation error.
 
 ## Model call records
 
-Every call into the model logs one `DEBUG` record from `nishikihebi.clients.llm`, message
+Every call into the model logs one `DEBUG` record from `angel.clients.llm`, message
 `model call completed`, so a run's token spend and latency are recoverable after the fact:
 
 | Key | Meaning |
@@ -131,8 +131,8 @@ The record is written before the truncation check, so a call that hits the
 logs nothing here; it is the failure record that names it.
 
 ```bash
-jq -s 'map(select(.message == "model call completed") | .total_tokens // 0) | add' log/nishikihebi-*.jsonl
-jq 'select(.message == "model call completed") | {call, schema, total_tokens, duration_ms}' log/nishikihebi-*.jsonl
+jq -s 'map(select(.message == "model call completed") | .total_tokens // 0) | add' log/angel-*.jsonl
+jq 'select(.message == "model call completed") | {call, schema, total_tokens, duration_ms}' log/angel-*.jsonl
 ```
 
 ### The run total on the console
@@ -155,7 +155,7 @@ Dollars are not logged — see the token and cost accounting item in [`TODO.md`]
 ## Dry-run records
 
 A `--dry-run` run logs each write it suppressed, at `INFO`, from
-`nishikihebi.clients.github`. Both records carry `dry_run: true`, so one filter shows
+`angel.clients.github`. Both records carry `dry_run: true`, so one filter shows
 everything the run would have written:
 
 | Message | Context keys |
@@ -164,7 +164,7 @@ everything the run would have written:
 | `dry run: skipping post_comment` | `dry_run`, `repository`, `number`, `body_length` |
 
 ```bash
-jq 'select(.dry_run == true) | {message, repository, number}' log/nishikihebi-*.jsonl
+jq 'select(.dry_run == true) | {message, repository, number}' log/angel-*.jsonl
 ```
 
 The review bodies themselves go to stdout, not the log — see [`USAGE.md`](USAGE.md).
@@ -184,7 +184,7 @@ fixed set of context keys, so failures across all three nodes read the same way:
 | `error` | `str(exception)` |
 
 ```bash
-jq 'select(.level == "WARNING") | {stage, repository, number, error_type, error}' log/nishikihebi-*.jsonl
+jq 'select(.level == "WARNING") | {stage, repository, number, error_type, error}' log/angel-*.jsonl
 ```
 
 These are the same records the run collects into `failures` in graph state and reports

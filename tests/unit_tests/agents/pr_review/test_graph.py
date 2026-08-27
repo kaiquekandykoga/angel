@@ -2,13 +2,13 @@ import logging
 
 from langchain_core.messages import AIMessage
 
-from nishikihebi.agents._shared import Review, review_marker
-from nishikihebi.agents.pr_review.graph import build_pr_review_graph
-from nishikihebi.agents.pr_review.prompts import REVIEW_LENSES
-from nishikihebi.clients.github import Comment, PullRequest
+from angel.agents._shared import Review, review_marker
+from angel.agents.pr_review.graph import build_pr_review_graph
+from angel.agents.pr_review.prompts import REVIEW_LENSES
+from angel.clients.github import Comment, PullRequest
 
-REVIEWER_LOGIN = "kandy-nishikihebi[bot]"
-LABEL = "nishikihebi"
+REVIEWER_LOGIN = "kandy-angel[bot]"
+LABEL = "angel"
 
 DEFAULT_REVIEW_BODY = (
     "\n\n".join(f"**{lens.capitalize()}:** fake summary" for lens, _ in REVIEW_LENSES)
@@ -22,7 +22,7 @@ DEFAULT_REVIEW_BODY = (
 
 
 def test_build_pr_review_graph_logs_wiring_and_ready(fake_client, fake_github, caplog):
-    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+    caplog.set_level(logging.DEBUG, logger="angel")
 
     build_pr_review_graph(
         fake_client, fake_github, reviewer_login=REVIEWER_LOGIN, label=LABEL

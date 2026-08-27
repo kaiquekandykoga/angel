@@ -7,7 +7,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from pydantic import BaseModel, ValidationError
 
-from nishikihebi.clients.llm import (
+from angel.clients.llm import (
     InvalidMaxCompletionTokensError,
     MissingApiKeyError,
     NvidiaClient,
@@ -98,7 +98,7 @@ def test_complete_logs_model_call_completed(caplog):
     chat_model.invoke = lambda messages: reply  # type: ignore[method-assign]
     client = NvidiaClient(cast("BaseChatModel", chat_model), max_completion_tokens=8192)
 
-    with caplog.at_level(logging.DEBUG, logger="nishikihebi.clients.llm"):
+    with caplog.at_level(logging.DEBUG, logger="angel.clients.llm"):
         client.complete([HumanMessage(content="hello")])
 
     records = [r for r in caplog.records if r.message == "model call completed"]
@@ -120,7 +120,7 @@ def test_complete_logs_none_when_usage_metadata_and_finish_reason_missing(caplog
     chat_model.invoke = lambda messages: reply  # type: ignore[method-assign]
     client = NvidiaClient(cast("BaseChatModel", chat_model), max_completion_tokens=8192)
 
-    with caplog.at_level(logging.DEBUG, logger="nishikihebi.clients.llm"):
+    with caplog.at_level(logging.DEBUG, logger="angel.clients.llm"):
         client.complete([HumanMessage(content="hello")])
 
     matched = next(r for r in caplog.records if r.message == "model call completed")
@@ -165,7 +165,7 @@ def test_complete_structured_logs_model_call_completed(caplog):
     chat_model = FakeChatModel(reply="unused", bound_reply=reply)
     client = NvidiaClient(cast("BaseChatModel", chat_model), max_completion_tokens=8192)
 
-    with caplog.at_level(logging.DEBUG, logger="nishikihebi.clients.llm"):
+    with caplog.at_level(logging.DEBUG, logger="angel.clients.llm"):
         client.complete_structured([HumanMessage(content="hello")], Answer)
 
     records = [r for r in caplog.records if r.message == "model call completed"]
@@ -195,7 +195,7 @@ def test_complete_structured_logs_before_raising_truncated_error(caplog):
     client = NvidiaClient(cast("BaseChatModel", chat_model), max_completion_tokens=8192)
 
     with (
-        caplog.at_level(logging.DEBUG, logger="nishikihebi.clients.llm"),
+        caplog.at_level(logging.DEBUG, logger="angel.clients.llm"),
         pytest.raises(TruncatedCompletionError),
     ):
         client.complete_structured([HumanMessage(content="hello")], Answer)
@@ -211,7 +211,7 @@ def test_complete_structured_does_not_log_when_model_call_raises(caplog):
     client = NvidiaClient(cast("BaseChatModel", chat_model), max_completion_tokens=8192)
 
     with (
-        caplog.at_level(logging.DEBUG, logger="nishikihebi.clients.llm"),
+        caplog.at_level(logging.DEBUG, logger="angel.clients.llm"),
         pytest.raises(ValueError, match="bad output"),
     ):
         client.complete_structured([HumanMessage(content="hello")], Answer)
@@ -301,9 +301,9 @@ def test_build_llm_client_constructs_chat_nvidia_with_expected_kwargs(monkeypatc
         def __init__(self, **kwargs):
             captured_kwargs.update(kwargs)
 
-    monkeypatch.setattr("nishikihebi.clients.llm.ChatNVIDIA", FakeChatNVIDIA)
-    env = {"NISHIKIHEBI_NVIDIA_API_KEY": "test-key"}
-    monkeypatch.setattr("nishikihebi.clients.llm.load_env_var", env.get)
+    monkeypatch.setattr("angel.clients.llm.ChatNVIDIA", FakeChatNVIDIA)
+    env = {"ANGEL_NVIDIA_API_KEY": "test-key"}
+    monkeypatch.setattr("angel.clients.llm.load_env_var", env.get)
 
     client = build_llm_client()
 
@@ -321,9 +321,9 @@ def test_build_llm_client_constructs_chat_nvidia_with_expected_kwargs(monkeypatc
 
 
 def test_build_llm_client_raises_when_api_key_missing(monkeypatch):
-    monkeypatch.setattr("nishikihebi.clients.llm.load_env_var", lambda name: None)
+    monkeypatch.setattr("angel.clients.llm.load_env_var", lambda name: None)
 
-    with pytest.raises(MissingApiKeyError, match="NISHIKIHEBI_NVIDIA_API_KEY"):
+    with pytest.raises(MissingApiKeyError, match="ANGEL_NVIDIA_API_KEY"):
         build_llm_client()
 
 
@@ -334,12 +334,12 @@ def test_build_llm_client_uses_max_completion_tokens_override(monkeypatch):
         def __init__(self, **kwargs):
             captured_kwargs.update(kwargs)
 
-    monkeypatch.setattr("nishikihebi.clients.llm.ChatNVIDIA", FakeChatNVIDIA)
+    monkeypatch.setattr("angel.clients.llm.ChatNVIDIA", FakeChatNVIDIA)
     env = {
-        "NISHIKIHEBI_NVIDIA_API_KEY": "test-key",
-        "NISHIKIHEBI_NVIDIA_MAX_COMPLETION_TOKENS": "16000",
+        "ANGEL_NVIDIA_API_KEY": "test-key",
+        "ANGEL_NVIDIA_MAX_COMPLETION_TOKENS": "16000",
     }
-    monkeypatch.setattr("nishikihebi.clients.llm.load_env_var", env.get)
+    monkeypatch.setattr("angel.clients.llm.load_env_var", env.get)
 
     client = build_llm_client()
 
@@ -350,14 +350,14 @@ def test_build_llm_client_uses_max_completion_tokens_override(monkeypatch):
 
 def test_build_llm_client_raises_when_max_completion_tokens_not_an_integer(monkeypatch):
     env = {
-        "NISHIKIHEBI_NVIDIA_API_KEY": "test-key",
-        "NISHIKIHEBI_NVIDIA_MAX_COMPLETION_TOKENS": "not-a-number",
+        "ANGEL_NVIDIA_API_KEY": "test-key",
+        "ANGEL_NVIDIA_MAX_COMPLETION_TOKENS": "not-a-number",
     }
-    monkeypatch.setattr("nishikihebi.clients.llm.load_env_var", env.get)
+    monkeypatch.setattr("angel.clients.llm.load_env_var", env.get)
 
     with pytest.raises(
         InvalidMaxCompletionTokensError,
-        match="NISHIKIHEBI_NVIDIA_MAX_COMPLETION_TOKENS",
+        match="ANGEL_NVIDIA_MAX_COMPLETION_TOKENS",
     ):
         build_llm_client()
 
@@ -454,13 +454,13 @@ def test_usage_totals_returns_a_snapshot_that_does_not_mutate(clean_usage):
 
 def test_build_llm_client_raises_when_max_completion_tokens_not_positive(monkeypatch):
     env = {
-        "NISHIKIHEBI_NVIDIA_API_KEY": "test-key",
-        "NISHIKIHEBI_NVIDIA_MAX_COMPLETION_TOKENS": "0",
+        "ANGEL_NVIDIA_API_KEY": "test-key",
+        "ANGEL_NVIDIA_MAX_COMPLETION_TOKENS": "0",
     }
-    monkeypatch.setattr("nishikihebi.clients.llm.load_env_var", env.get)
+    monkeypatch.setattr("angel.clients.llm.load_env_var", env.get)
 
     with pytest.raises(
         InvalidMaxCompletionTokensError,
-        match="NISHIKIHEBI_NVIDIA_MAX_COMPLETION_TOKENS",
+        match="ANGEL_NVIDIA_MAX_COMPLETION_TOKENS",
     ):
         build_llm_client()

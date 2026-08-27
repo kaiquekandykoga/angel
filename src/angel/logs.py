@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TextIO
 
-from nishikihebi.console import BOLD, CYAN, DIM, RED, YELLOW, color_enabled, style
+from angel.console import BOLD, CYAN, DIM, RED, YELLOW, color_enabled, style
 
 _LEVEL_CODES: dict[str, tuple[str, ...]] = {
     "DEBUG": (DIM,),
@@ -45,9 +45,9 @@ def configure_logging(
 ) -> Path:
     timestamp = timestamp or datetime.now(UTC)
     directory.mkdir(parents=True, exist_ok=True)
-    path = directory / f"nishikihebi-{timestamp:%Y%m%dT%H%M%SZ}.jsonl"
+    path = directory / f"angel-{timestamp:%Y%m%dT%H%M%SZ}.jsonl"
 
-    logger = logging.getLogger("nishikihebi")
+    logger = logging.getLogger("angel")
     logger.setLevel(logging.DEBUG)
     logger.handlers.clear()
 

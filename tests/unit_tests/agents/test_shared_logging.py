@@ -2,20 +2,20 @@ import logging
 
 import pytest
 
-from nishikihebi.agents._shared import (
+from angel.agents._shared import (
     Finding,
     ItemFailure,
     Severity,
     collect_failures,
     log_review_produced,
 )
-from nishikihebi.logs import get_logger
+from angel.logs import get_logger
 
 
 def test_collect_failures_no_exception_appends_nothing_and_leaves_scope_unfailed(
     caplog,
 ):
-    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+    caplog.set_level(logging.DEBUG, logger="angel")
     failures: list[ItemFailure] = []
 
     with collect_failures(
@@ -29,7 +29,7 @@ def test_collect_failures_no_exception_appends_nothing_and_leaves_scope_unfailed
 
 
 def test_collect_failures_catches_exception_logs_and_appends_failure(caplog):
-    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+    caplog.set_level(logging.DEBUG, logger="angel")
     failures: list[ItemFailure] = []
     error = ValueError("boom")
 
@@ -78,8 +78,8 @@ def test_collect_failures_lets_base_exception_propagate():
 
 
 def test_log_review_produced_with_mixed_severities(caplog):
-    caplog.set_level(logging.DEBUG, logger="nishikihebi")
-    log = get_logger("nishikihebi.test")
+    caplog.set_level(logging.DEBUG, logger="angel")
+    log = get_logger("angel.test")
     findings = [
         Finding(severity=Severity.BLOCKER, title="a", detail="a detail"),
         Finding(severity=Severity.MINOR, title="b", detail="b detail"),
@@ -94,7 +94,7 @@ def test_log_review_produced_with_mixed_severities(caplog):
     assert len(debug_records) == 1
     record = debug_records[0]
     assert record.message == "review produced"
-    assert record.name == "nishikihebi.test"
+    assert record.name == "angel.test"
     assert record.context == {
         "repository": "org/a",
         "number": 1,
@@ -105,8 +105,8 @@ def test_log_review_produced_with_mixed_severities(caplog):
 
 
 def test_log_review_produced_with_no_findings(caplog):
-    caplog.set_level(logging.DEBUG, logger="nishikihebi")
-    log = get_logger("nishikihebi.test")
+    caplog.set_level(logging.DEBUG, logger="angel")
+    log = get_logger("angel.test")
 
     log_review_produced(
         log, repository="org/a", number=1, review="review body", findings=[]

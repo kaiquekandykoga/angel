@@ -1,8 +1,8 @@
 import operator
 from typing import Annotated, NamedTuple, TypedDict
 
-from nishikihebi.agents._shared import ItemFailure, Review
-from nishikihebi.clients.github import Comment, Issue
+from angel.agents._shared import ItemFailure, Review
+from angel.clients.github import Comment, Issue
 
 
 class IssueContext(NamedTuple):

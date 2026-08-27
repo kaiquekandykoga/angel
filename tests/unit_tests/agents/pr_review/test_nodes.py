@@ -2,7 +2,7 @@ import logging
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
-from nishikihebi.agents._shared import (
+from angel.agents._shared import (
     Finding,
     ItemFailure,
     PullRequestReviewOutput,
@@ -11,13 +11,13 @@ from nishikihebi.agents._shared import (
     render_finding,
     review_marker,
 )
-from nishikihebi.agents.pr_review.nodes import fetch_pull_requests, review_pull_requests
-from nishikihebi.agents.pr_review.prompts import REVIEW_LENSES
-from nishikihebi.agents.pr_review.state import PullRequestContext
-from nishikihebi.clients.github import Comment, PullRequest
+from angel.agents.pr_review.nodes import fetch_pull_requests, review_pull_requests
+from angel.agents.pr_review.prompts import REVIEW_LENSES
+from angel.agents.pr_review.state import PullRequestContext
+from angel.clients.github import Comment, PullRequest
 
-REVIEWER_LOGIN = "kandy-nishikihebi[bot]"
-LABEL = "nishikihebi"
+REVIEWER_LOGIN = "kandy-angel[bot]"
+LABEL = "angel"
 LABEL_COLOR = "f709c2"
 
 _FAKE_OUTPUT = PullRequestReviewOutput(
@@ -41,7 +41,7 @@ DEFAULT_REVIEW_BODY = (
 
 
 def test_fetch_pull_requests_logs_start_per_repository_and_summary(fake_github, caplog):
-    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+    caplog.set_level(logging.DEBUG, logger="angel")
     pr = PullRequest("org/a", 1, "pr a", "body", "sha-a")
     fake_github.pull_requests = {"org/a": [pr]}
     fake_github.label(pr, LABEL)
@@ -143,7 +143,7 @@ def test_fetch_pull_requests_includes_pr_when_bot_comment_predates_markers(fake_
 
 
 def test_fetch_pull_requests_reports_selection_reasons(fake_github, caplog):
-    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+    caplog.set_level(logging.DEBUG, logger="angel")
     never_reviewed = PullRequest("org/a", 1, "pr 1", "body", "sha-1")
     no_recorded_head = PullRequest("org/a", 2, "pr 2", "body", "sha-2")
     new_head = PullRequest("org/a", 3, "pr 3", "body", "sha-3-new")
@@ -289,7 +289,7 @@ def test_fetch_pull_requests_calls_ensure_label_once_per_repository(fake_github)
 def test_review_pull_requests_logs_start_per_item_and_end(
     fake_client, fake_github, caplog
 ):
-    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+    caplog.set_level(logging.DEBUG, logger="angel")
     pr_a = PullRequest("org/a", 1, "pr a", "body a", "sha-a")
     fake_github.diffs = {pr_a: "diff a"}
     node = review_pull_requests(fake_github, fake_client)
@@ -321,7 +321,7 @@ def test_review_pull_requests_logs_start_per_item_and_end(
 def test_review_pull_requests_logs_finding_count_and_severity_counts(
     fake_github, caplog
 ):
-    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+    caplog.set_level(logging.DEBUG, logger="angel")
     pr_a = PullRequest("org/a", 1, "pr a", "body a", "sha-a")
     fake_github.diffs = {pr_a: "diff a"}
 
@@ -416,7 +416,7 @@ def test_review_pull_requests_sends_title_body_comments_and_diff(
     fake_github.diffs = {pr_a: "diff --git a/x b/x"}
     comments = [
         Comment("alice", "please add tests", "2026-08-01T00:00:00Z"),
-        Comment("kandy-nishikihebi[bot]", "looks fine", "2026-08-02T00:00:00Z"),
+        Comment("kandy-angel[bot]", "looks fine", "2026-08-02T00:00:00Z"),
     ]
     node = review_pull_requests(fake_github, fake_client)
 
@@ -439,7 +439,7 @@ def test_review_pull_requests_sends_title_body_comments_and_diff(
     assert "pr a" in content
     assert "the pr description" in content
     assert "@alice: please add tests" in content
-    assert "@kandy-nishikihebi[bot]: looks fine" in content
+    assert "@kandy-angel[bot]: looks fine" in content
 
 
 def test_review_pull_requests_calls_each_lens_with_shared_content(
@@ -649,7 +649,7 @@ def test_fetch_pull_requests_isolates_repository_failure(fake_github):
 
 
 def test_fetch_pull_requests_logs_failure_at_warning(fake_github, caplog):
-    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+    caplog.set_level(logging.DEBUG, logger="angel")
     pr = PullRequest("org/a", 1, "pr a", "body", "sha-a")
     fake_github.pull_requests = {"org/a": [pr]}
     fake_github.label(pr, LABEL)
@@ -716,7 +716,7 @@ def test_review_pull_requests_isolates_item_failure(fake_github):
 
 
 def test_review_pull_requests_logs_failure_at_warning(fake_github, caplog):
-    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+    caplog.set_level(logging.DEBUG, logger="angel")
     pr_a = PullRequest("org/a", 1, "pr a", "body", "sha-a")
     fake_github.diffs = {pr_a: "diff a"}
 

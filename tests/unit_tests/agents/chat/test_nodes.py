@@ -2,14 +2,14 @@ import logging
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
-from nishikihebi.agents.chat.nodes import call_llm
-from nishikihebi.agents.chat.prompts import SYSTEM_PROMPT
+from angel.agents.chat.nodes import call_llm
+from angel.agents.chat.prompts import SYSTEM_PROMPT
 
 
 def test_call_llm_logs_message_count_in_and_reply_length_out_at_debug(
     fake_client, caplog
 ):
-    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+    caplog.set_level(logging.DEBUG, logger="angel")
     node = call_llm(fake_client)
 
     node({"messages": [HumanMessage(content="hi")]})

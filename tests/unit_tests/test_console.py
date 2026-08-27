@@ -1,7 +1,7 @@
 import io
 from typing import TextIO, cast
 
-from nishikihebi.console import BOLD, CYAN, RESET, color_enabled, section, style
+from angel.console import BOLD, CYAN, RESET, color_enabled, section, style
 
 
 class TtyStream(io.StringIO):
@@ -11,7 +11,7 @@ class TtyStream(io.StringIO):
 
 def _clear_color_env(monkeypatch):
     monkeypatch.delenv("NO_COLOR", raising=False)
-    monkeypatch.delenv("NISHIKIHEBI_COLOR", raising=False)
+    monkeypatch.delenv("ANGEL_COLOR", raising=False)
 
 
 def test_color_enabled_false_for_non_tty_stream(monkeypatch):
@@ -30,28 +30,28 @@ def test_no_color_forces_false_for_tty_stream(monkeypatch):
     assert color_enabled(TtyStream()) is False
 
 
-def test_nishikihebi_color_always_forces_true_for_non_tty(monkeypatch):
+def test_angel_color_always_forces_true_for_non_tty(monkeypatch):
     _clear_color_env(monkeypatch)
-    monkeypatch.setenv("NISHIKIHEBI_COLOR", "always")
+    monkeypatch.setenv("ANGEL_COLOR", "always")
     assert color_enabled(io.StringIO()) is True
 
 
-def test_nishikihebi_color_never_forces_false_for_tty(monkeypatch):
+def test_angel_color_never_forces_false_for_tty(monkeypatch):
     _clear_color_env(monkeypatch)
-    monkeypatch.setenv("NISHIKIHEBI_COLOR", "never")
+    monkeypatch.setenv("ANGEL_COLOR", "never")
     assert color_enabled(TtyStream()) is False
 
 
-def test_nishikihebi_color_auto_defers_to_isatty(monkeypatch):
+def test_angel_color_auto_defers_to_isatty(monkeypatch):
     _clear_color_env(monkeypatch)
-    monkeypatch.setenv("NISHIKIHEBI_COLOR", "auto")
+    monkeypatch.setenv("ANGEL_COLOR", "auto")
     assert color_enabled(TtyStream()) is True
     assert color_enabled(io.StringIO()) is False
 
 
-def test_nishikihebi_color_unrecognised_value_defers_to_isatty(monkeypatch):
+def test_angel_color_unrecognised_value_defers_to_isatty(monkeypatch):
     _clear_color_env(monkeypatch)
-    monkeypatch.setenv("NISHIKIHEBI_COLOR", "bogus")
+    monkeypatch.setenv("ANGEL_COLOR", "bogus")
     assert color_enabled(TtyStream()) is True
     assert color_enabled(io.StringIO()) is False
 

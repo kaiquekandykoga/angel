@@ -6,7 +6,7 @@ import httpx
 import pytest
 import respx
 
-from nishikihebi.clients.github import (
+from angel.clients.github import (
     GITHUB_BASE_URL,
     Comment,
     HttpGitHubClient,
@@ -56,7 +56,7 @@ def test_list_open_pull_requests_maps_number_title_body_and_head_sha(
     )
 
     pull_requests = client.list_open_pull_requests(
-        "monalisa/hello-world", "nishikihebi"
+        "monalisa/hello-world", "angel"
     )
 
     assert PullRequest(
@@ -85,7 +85,7 @@ def test_list_open_pull_requests_drops_prs_without_the_label(
     )
 
     pull_requests = client.list_open_pull_requests(
-        "monalisa/hello-world", "nishikihebi"
+        "monalisa/hello-world", "angel"
     )
 
     assert [pull_request.number for pull_request in pull_requests] == [41]
@@ -100,7 +100,7 @@ def test_list_open_issues_excludes_pull_requests_and_maps_updated_at(
         f"{GITHUB_BASE_URL}/repos/monalisa/hello-world/issues"
     ).mock(return_value=httpx.Response(200, json=load_fixture("github/issues.json")))
 
-    issues = client.list_open_issues("monalisa/hello-world", "nishikihebi")
+    issues = client.list_open_issues("monalisa/hello-world", "angel")
 
     assert issues == [
         Issue(
@@ -114,7 +114,7 @@ def test_list_open_issues_excludes_pull_requests_and_maps_updated_at(
     request = route.calls.last.request
     assert request.url.params["state"] == "open"
     assert request.url.params["per_page"] == "100"
-    assert request.url.params["labels"] == "nishikihebi"
+    assert request.url.params["labels"] == "angel"
     assert (
         request.headers["authorization"]
         == "Bearer token-for-monalisa/hello-world"
@@ -195,10 +195,10 @@ def test_ensure_label_does_not_post_when_label_already_exists(
     client: HttpGitHubClient,
 ):
     get_route = respx_mock.get(
-        f"{GITHUB_BASE_URL}/repos/monalisa/hello-world/labels/nishikihebi"
+        f"{GITHUB_BASE_URL}/repos/monalisa/hello-world/labels/angel"
     ).mock(return_value=httpx.Response(200, json=load_fixture("github/label.json")))
 
-    client.ensure_label("monalisa/hello-world", "nishikihebi", "f709c2")
+    client.ensure_label("monalisa/hello-world", "angel", "f709c2")
 
     assert get_route.call_count == 1
 
@@ -209,7 +209,7 @@ def test_ensure_label_creates_label_when_missing(
     client: HttpGitHubClient,
 ):
     get_route = respx_mock.get(
-        f"{GITHUB_BASE_URL}/repos/monalisa/hello-world/labels/nishikihebi"
+        f"{GITHUB_BASE_URL}/repos/monalisa/hello-world/labels/angel"
     ).mock(
         return_value=httpx.Response(
             404, json=load_fixture("github/label_not_found.json")
@@ -219,11 +219,11 @@ def test_ensure_label_creates_label_when_missing(
         f"{GITHUB_BASE_URL}/repos/monalisa/hello-world/labels"
     ).mock(return_value=httpx.Response(201, json=load_fixture("github/label.json")))
 
-    client.ensure_label("monalisa/hello-world", "nishikihebi", "f709c2")
+    client.ensure_label("monalisa/hello-world", "angel", "f709c2")
 
     assert get_route.call_count == 1
     assert json.loads(post_route.calls.last.request.content) == {
-        "name": "nishikihebi",
+        "name": "angel",
         "color": "f709c2",
     }
 
@@ -252,7 +252,7 @@ def test_list_open_pull_requests_follows_link_header_pagination(
     )
 
     pull_requests = client.list_open_pull_requests(
-        "monalisa/hello-world", "nishikihebi"
+        "monalisa/hello-world", "angel"
     )
 
     assert {pull_request.number for pull_request in pull_requests} == {41, 12}
@@ -287,7 +287,7 @@ def test_list_comments_follows_link_header_pagination(
     assert {comment.author for comment in comments} == {
         "monalisa",
         "octocat",
-        "kandy-nishikihebi[bot]",
+        "kandy-angel[bot]",
     }
 
 
@@ -305,7 +305,7 @@ def test_list_open_issues_follows_link_header_pagination(
             headers={
                 "Link": (
                     "<https://api.github.com/repos/monalisa/hello-world/issues"
-                    '?state=open&per_page=100&labels=nishikihebi&page=2>; rel="next"'
+                    '?state=open&per_page=100&labels=angel&page=2>; rel="next"'
                 )
             },
         )
@@ -314,18 +314,18 @@ def test_list_open_issues_follows_link_header_pagination(
         f"{GITHUB_BASE_URL}/repos/monalisa/hello-world/issues"
     ).mock(side_effect=responder)
 
-    issues = client.list_open_issues("monalisa/hello-world", "nishikihebi")
+    issues = client.list_open_issues("monalisa/hello-world", "angel")
 
     assert [issue.number for issue in issues] == [38]
 
 
 def test_build_github_client_raises_when_app_id_missing(monkeypatch, tmp_path):
-    monkeypatch.delenv("NISHIKIHEBI_GITHUB_APP_ID", raising=False)
-    monkeypatch.setenv("NISHIKIHEBI_GITHUB_PRIVATE_KEY_PATH", str(tmp_path / "key.pem"))
+    monkeypatch.delenv("ANGEL_GITHUB_APP_ID", raising=False)
+    monkeypatch.setenv("ANGEL_GITHUB_PRIVATE_KEY_PATH", str(tmp_path / "key.pem"))
     monkeypatch.chdir(tmp_path)
 
     with pytest.raises(
-        MissingGitHubCredentialsError, match="NISHIKIHEBI_GITHUB_APP_ID"
+        MissingGitHubCredentialsError, match="ANGEL_GITHUB_APP_ID"
     ):
         build_github_client()
 
@@ -333,12 +333,12 @@ def test_build_github_client_raises_when_app_id_missing(monkeypatch, tmp_path):
 def test_build_github_client_raises_when_private_key_path_missing(
     monkeypatch, tmp_path
 ):
-    monkeypatch.setenv("NISHIKIHEBI_GITHUB_APP_ID", "app-1")
-    monkeypatch.delenv("NISHIKIHEBI_GITHUB_PRIVATE_KEY_PATH", raising=False)
+    monkeypatch.setenv("ANGEL_GITHUB_APP_ID", "app-1")
+    monkeypatch.delenv("ANGEL_GITHUB_PRIVATE_KEY_PATH", raising=False)
     monkeypatch.chdir(tmp_path)
 
     with pytest.raises(
-        MissingGitHubCredentialsError, match="NISHIKIHEBI_GITHUB_PRIVATE_KEY_PATH"
+        MissingGitHubCredentialsError, match="ANGEL_GITHUB_PRIVATE_KEY_PATH"
     ):
         build_github_client()
 
@@ -349,8 +349,8 @@ def test_build_github_client_constructs_http_client_with_api_version_header(
     private_key, _public_key = rsa_key_pair
     key_path = tmp_path / "key.pem"
     key_path.write_text(private_key)
-    monkeypatch.setenv("NISHIKIHEBI_GITHUB_APP_ID", "app-1")
-    monkeypatch.setenv("NISHIKIHEBI_GITHUB_PRIVATE_KEY_PATH", str(key_path))
+    monkeypatch.setenv("ANGEL_GITHUB_APP_ID", "app-1")
+    monkeypatch.setenv("ANGEL_GITHUB_PRIVATE_KEY_PATH", str(key_path))
 
     client = build_github_client()
 

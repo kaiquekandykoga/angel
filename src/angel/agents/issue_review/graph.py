@@ -2,13 +2,13 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import RetryPolicy
 
-from nishikihebi.agents._shared import post_review_comments
-from nishikihebi.agents.issue_review.nodes import fetch_issues, review_issues
-from nishikihebi.agents.issue_review.state import IssueReviewState
-from nishikihebi.clients.github import GitHubClient
-from nishikihebi.clients.llm import LlmClient
-from nishikihebi.logs import get_logger
-from nishikihebi.settings import LABEL, LABEL_COLOR, REVIEWER_LOGIN
+from angel.agents._shared import post_review_comments
+from angel.agents.issue_review.nodes import fetch_issues, review_issues
+from angel.agents.issue_review.state import IssueReviewState
+from angel.clients.github import GitHubClient
+from angel.clients.llm import LlmClient
+from angel.logs import get_logger
+from angel.settings import LABEL, LABEL_COLOR, REVIEWER_LOGIN
 
 log = get_logger(__name__)
 

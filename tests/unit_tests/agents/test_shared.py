@@ -3,7 +3,7 @@ import logging
 import pytest
 from pydantic import ValidationError
 
-from nishikihebi.agents._shared import (
+from angel.agents._shared import (
     Finding,
     IssueReviewOutput,
     ItemFailure,
@@ -16,67 +16,67 @@ from nishikihebi.agents._shared import (
     review_marker,
     reviewed_sha,
 )
-from nishikihebi.agents.issue_review.state import IssueContext
-from nishikihebi.agents.pr_review.state import PullRequestContext
-from nishikihebi.clients.github import Comment, Issue, PullRequest
+from angel.agents.issue_review.state import IssueContext
+from angel.agents.pr_review.state import PullRequestContext
+from angel.clients.github import Comment, Issue, PullRequest
 
 
 def test_last_review_at_returns_none_when_reviewer_never_commented():
     comments = [Comment("someone-else", "hi", "2026-08-01T00:00:00Z")]
 
-    assert last_review_at(comments, "kandy-nishikihebi[bot]") is None
+    assert last_review_at(comments, "kandy-angel[bot]") is None
 
 
 def test_last_review_at_returns_most_recent_reviewer_comment():
     comments = [
-        Comment("kandy-nishikihebi[bot]", "first", "2026-08-01T00:00:00Z"),
+        Comment("kandy-angel[bot]", "first", "2026-08-01T00:00:00Z"),
         Comment("someone-else", "hi", "2026-08-02T00:00:00Z"),
-        Comment("kandy-nishikihebi[bot]", "second", "2026-08-03T00:00:00Z"),
+        Comment("kandy-angel[bot]", "second", "2026-08-03T00:00:00Z"),
     ]
 
-    assert last_review_at(comments, "kandy-nishikihebi[bot]") == "2026-08-03T00:00:00Z"
+    assert last_review_at(comments, "kandy-angel[bot]") == "2026-08-03T00:00:00Z"
 
 
 def test_review_marker_renders_sha():
-    assert review_marker("abc123") == "<!-- nishikihebi: sha=abc123 -->"
+    assert review_marker("abc123") == "<!-- angel: sha=abc123 -->"
 
 
 def test_reviewed_sha_round_trips_through_review_marker():
     comments = [
-        Comment("kandy-nishikihebi[bot]", review_marker("abc"), "2026-08-01T00:00:00Z")
+        Comment("kandy-angel[bot]", review_marker("abc"), "2026-08-01T00:00:00Z")
     ]
 
-    assert reviewed_sha(comments, "kandy-nishikihebi[bot]") == "abc"
+    assert reviewed_sha(comments, "kandy-angel[bot]") == "abc"
 
 
 def test_reviewed_sha_returns_none_when_no_bot_comment():
     comments = [Comment("someone-else", review_marker("abc"), "2026-08-01T00:00:00Z")]
 
-    assert reviewed_sha(comments, "kandy-nishikihebi[bot]") is None
+    assert reviewed_sha(comments, "kandy-angel[bot]") is None
 
 
 def test_reviewed_sha_returns_none_when_bot_commented_without_marker():
-    comments = [Comment("kandy-nishikihebi[bot]", "looks good", "2026-08-01T00:00:00Z")]
+    comments = [Comment("kandy-angel[bot]", "looks good", "2026-08-01T00:00:00Z")]
 
-    assert reviewed_sha(comments, "kandy-nishikihebi[bot]") is None
+    assert reviewed_sha(comments, "kandy-angel[bot]") is None
 
 
 def test_reviewed_sha_uses_most_recent_bot_comment_with_a_marker():
     comments = [
         Comment(
-            "kandy-nishikihebi[bot]",
+            "kandy-angel[bot]",
             f"first\n\n{review_marker('old-sha')}",
             "2026-08-01T00:00:00Z",
         ),
         Comment("someone-else", "hi", "2026-08-02T00:00:00Z"),
         Comment(
-            "kandy-nishikihebi[bot]",
+            "kandy-angel[bot]",
             f"second\n\n{review_marker('new-sha')}",
             "2026-08-03T00:00:00Z",
         ),
     ]
 
-    assert reviewed_sha(comments, "kandy-nishikihebi[bot]") == "new-sha"
+    assert reviewed_sha(comments, "kandy-angel[bot]") == "new-sha"
 
 
 def test_reviewed_sha_ignores_markers_from_other_authors():
@@ -87,26 +87,26 @@ def test_reviewed_sha_ignores_markers_from_other_authors():
             "2026-08-05T00:00:00Z",
         ),
         Comment(
-            "kandy-nishikihebi[bot]",
+            "kandy-angel[bot]",
             f"reviewed\n\n{review_marker('real-sha')}",
             "2026-08-01T00:00:00Z",
         ),
     ]
 
-    assert reviewed_sha(comments, "kandy-nishikihebi[bot]") == "real-sha"
+    assert reviewed_sha(comments, "kandy-angel[bot]") == "real-sha"
 
 
 def test_reviewed_sha_uses_last_marker_in_a_single_comment_body():
     comments = [
         Comment(
-            "kandy-nishikihebi[bot]",
+            "kandy-angel[bot]",
             f"quoting {review_marker('quoted')} in the middle\n\n"
             f"{review_marker('real')}",
             "2026-08-01T00:00:00Z",
         ),
     ]
 
-    assert reviewed_sha(comments, "kandy-nishikihebi[bot]") == "real"
+    assert reviewed_sha(comments, "kandy-angel[bot]") == "real"
 
 
 def test_render_comments_formats_author_and_body():
@@ -123,7 +123,7 @@ def test_render_comments_falls_back_when_empty():
 
 
 def test_post_review_comments_logs_count_per_comment_and_posted(fake_github, caplog):
-    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+    caplog.set_level(logging.DEBUG, logger="angel")
     pr_a = PullRequest("org/a", 1, "pr a", "body a", "sha-a")
     node = post_review_comments(fake_github)
 
@@ -225,7 +225,7 @@ def test_post_review_comments_isolates_a_failing_post(fake_github):
 
 
 def test_post_review_comments_logs_failure_at_warning(fake_github, caplog):
-    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+    caplog.set_level(logging.DEBUG, logger="angel")
     pr_a = PullRequest("org/a", 1, "pr a", "body a", "sha-a")
     error = RuntimeError("nope")
 

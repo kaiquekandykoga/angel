@@ -6,12 +6,12 @@
     "id": 3212440908,
     "node_id": "IC_kwDOEXAMPLE17LhHtM",
     "user": {
-      "login": "kandy-nishikihebi[bot]",
+      "login": "kandy-angel[bot]",
       "id": 231884012,
       "node_id": "BOT_kgDOG9pQ7A",
       "avatar_url": "https://avatars.githubusercontent.com/in/123456?v=4",
-      "url": "https://api.github.com/users/kandy-nishikihebi%5Bbot%5D",
-      "html_url": "https://github.com/apps/kandy-nishikihebi",
+      "url": "https://api.github.com/users/kandy-angel%5Bbot%5D",
+      "html_url": "https://github.com/apps/kandy-angel",
       "type": "Bot",
       "user_view_type": "public",
       "site_admin": false
@@ -35,11 +35,11 @@
     "performed_via_github_app": {
       "id": 123456,
       "node_id": "A_kwHOG9pQ7M4AHUqv",
-      "slug": "kandy-nishikihebi",
-      "name": "kandy-nishikihebi",
+      "slug": "kandy-angel",
+      "name": "kandy-angel",
       "description": "Automated review bot",
       "external_url": "https://github.com/monalisa/hello-world",
-      "html_url": "https://github.com/apps/kandy-nishikihebi"
+      "html_url": "https://github.com/apps/kandy-angel"
     }
   }
 ]

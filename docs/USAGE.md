@@ -17,14 +17,14 @@ Python 3.14 or newer.
 ```bash
 uv sync                  # install
 cp .env.example .env     # then fill in the three variables — see Configuration
-uv run nishikihebi chat  # talk to the model; no GitHub credentials needed
+uv run angel chat  # talk to the model; no GitHub credentials needed
 ```
 
 Once the GitHub App variables are set, see what a review run *would* post, without posting
 anything:
 
 ```bash
-uv run nishikihebi pr_review --dry-run
+uv run angel pr_review --dry-run
 ```
 
 ## Commands
@@ -32,11 +32,11 @@ uv run nishikihebi pr_review --dry-run
 | Command | What it does | Needs |
 |---|---|---|
 | [`chat`](#chat) | Interactive REPL against the model | NVIDIA key |
-| [`pr_review`](#pr_review) | One pass over open PRs labeled `nishikihebi`; comments on the ones due for review | NVIDIA key + GitHub App |
-| [`issue_review`](#issue_review) | Same, over open issues labeled `nishikihebi` | NVIDIA key + GitHub App |
+| [`pr_review`](#pr_review) | One pass over open PRs labeled `angel`; comments on the ones due for review | NVIDIA key + GitHub App |
+| [`issue_review`](#issue_review) | Same, over open issues labeled `angel` | NVIDIA key + GitHub App |
 
 ```bash
-uv run nishikihebi <command> [--dry-run]
+uv run angel <command> [--dry-run]
 ```
 
 The command may be given before or after the flag. Anything else exits `1` with
@@ -48,7 +48,7 @@ How each command is wired internally, node by node, is in [`GRAPHS.md`](GRAPHS.m
 ### `chat`
 
 ```bash
-uv run nishikihebi chat
+uv run angel chat
 ```
 
 Reads a line at a time at a `>` prompt and prints the reply. Blank lines are ignored. Leave
@@ -58,21 +58,21 @@ it is gone when you leave — nothing is written to GitHub, and `--dry-run` is r
 ### `pr_review`
 
 ```bash
-uv run nishikihebi pr_review [--dry-run]
+uv run angel pr_review [--dry-run]
 ```
 
 Scans every repository the GitHub App is installed on — the list is discovered at run time,
 so granting or revoking the App's access is all it takes to add or drop a repository — and
-reviews the open pull requests labeled `nishikihebi`.
+reviews the open pull requests labeled `angel`.
 
 A labeled PR is reviewed when:
 
-- `kandy-nishikihebi[bot]` has **never** commented on it, or
+- `kandy-angel[bot]` has **never** commented on it, or
 - its **head sha differs** from the one recorded in that last bot comment — so it is
   re-reviewed exactly when the head moves, force-pushes included.
 
 Otherwise it is skipped as already up to date. Each review is posted as one issue comment
-on the PR, ending with a `<!-- nishikihebi: sha=<head sha> -->` marker. That marker is the
+on the PR, ending with a `<!-- angel: sha=<head sha> -->` marker. That marker is the
 only state the bot keeps: it records which head was reviewed, on the PR itself. Deleting it
 from a comment makes the next run review that PR again.
 
@@ -91,17 +91,17 @@ again next run because no marker was written.
 Sampling is pinned at `temperature=0`, so two runs over an unchanged head give the same review far
 more often than they used to — though nothing about a hosted model guarantees it.
 
-> **The label is created for you.** Every scanned repository gets a pink `nishikihebi` label
+> **The label is created for you.** Every scanned repository gets a pink `angel` label
 > if it lacks one — including repositories you never meant to review. Install the App only
 > where you want that.
 
 ### `issue_review`
 
 ```bash
-uv run nishikihebi issue_review [--dry-run]
+uv run angel issue_review [--dry-run]
 ```
 
-The same pass over open issues labeled `nishikihebi`. An issue is reviewed when the bot has
+The same pass over open issues labeled `angel`. An issue is reviewed when the bot has
 never commented on it, or when the issue's `updated_at` is newer than that last comment —
 which covers an edited description and new comments alike. The label caveat above applies
 here too. The comment follows the same rendered-from-schema shape, with two extra sections:
@@ -112,13 +112,13 @@ proposed acceptance criteria and a suggested approach.
 | Option | Works with | Effect |
 |---|---|---|
 | `--dry-run` | `pr_review`, `issue_review` | Print each review to stdout and make zero GitHub writes |
-| `--help` | every command, and on its own | Print usage and exit `0` — also what a bare `uv run nishikihebi` does |
+| `--help` | every command, and on its own | Print usage and exit `0` — also what a bare `uv run angel` does |
 
 ### `--dry-run`
 
 The run is identical up to the point of writing: repositories are discovered, labeled items
 are selected, diffs are fetched, and the model is called — so it costs the same tokens.
-Only the two writes are suppressed: creating the `nishikihebi` label, and posting the review
+Only the two writes are suppressed: creating the `angel` label, and posting the review
 comment. Each review body is printed instead, under its target:
 
 ```
@@ -144,24 +144,24 @@ a fetch or model failure still reports and exits `1`.
 Each command's options, printed either way — nothing runs, no credentials are read:
 
 ```bash
-uv run nishikihebi pr_review --help
-uv run nishikihebi help pr_review
+uv run angel pr_review --help
+uv run angel help pr_review
 ```
 
 ```
-usage: nishikihebi pr_review [-h] [--dry-run]
+usage: angel pr_review [-h] [--dry-run]
 
-Review open pull requests labeled nishikihebi.
+Review open pull requests labeled angel.
 
 options:
   -h, --help  show this help message and exit
   --dry-run   Print each review to stdout and make zero GitHub writes
 ```
 
-`uv run nishikihebi --help`, a bare `help`, or `uv run nishikihebi` with no arguments at all
+`uv run angel --help`, a bare `help`, or `uv run angel` with no arguments at all
 lists the three commands instead — the same output and the same exit `0` from each. Naming
 something that is not a command still exits `1` with the usual `Unknown command: …`, whether
-it is `uv run nishikihebi bogus` or `uv run nishikihebi help bogus`.
+it is `uv run angel bogus` or `uv run angel help bogus`.
 
 ## Output and exit codes
 
@@ -173,7 +173,7 @@ Run ─────────────────────────�
 
   command   pr_review
   dry run   no
-  log       log/nishikihebi-20260816T101010Z.jsonl
+  log       log/angel-20260816T101010Z.jsonl
 
 Reviews ────────────────────────────────────────────────────────────────
 
@@ -210,7 +210,7 @@ process exits non-zero, so a failed run still reports what it spent.
 ### Color
 
 Colored when stdout is a terminal, plain otherwise — so piping or redirecting is unaffected.
-`NISHIKIHEBI_COLOR` overrides the terminal check in either direction, and a non-empty
+`ANGEL_COLOR` overrides the terminal check in either direction, and a non-empty
 `NO_COLOR` always wins. Only the section headings and the status lines are styled; review
 bodies are never colored.
 
@@ -248,11 +248,11 @@ Copy `.env.example` to `.env` and fill in these variables.
 
 | Variable | Needed by | Description |
 |---|---|---|
-| `NISHIKIHEBI_NVIDIA_API_KEY` | all three commands | NVIDIA API key from https://build.nvidia.com — used for every model call. |
-| `NISHIKIHEBI_GITHUB_APP_ID` | `pr_review`, `issue_review` | ID of the GitHub App to authenticate as. |
-| `NISHIKIHEBI_GITHUB_PRIVATE_KEY_PATH` | `pr_review`, `issue_review` | Path to that App's private key (`.pem`). |
-| `NISHIKIHEBI_NVIDIA_MAX_COMPLETION_TOKENS` | optional, all three commands | Output tokens allowed per model call, default `32768`. Counts the model's reasoning as well as its answer, so a value sized to the review text alone truncates the reply mid-object and the item fails. A non-integer or non-positive value exits `1` rather than falling back to the default. |
-| `NISHIKIHEBI_COLOR` | optional, all three commands | `auto` (default) colors the console only when the stream is a terminal; `always` keeps color when piping or redirecting; `never` disables it. An unrecognised value is treated as `auto`. A non-empty `NO_COLOR` disables color whatever this is set to. |
+| `ANGEL_NVIDIA_API_KEY` | all three commands | NVIDIA API key from https://build.nvidia.com — used for every model call. |
+| `ANGEL_GITHUB_APP_ID` | `pr_review`, `issue_review` | ID of the GitHub App to authenticate as. |
+| `ANGEL_GITHUB_PRIVATE_KEY_PATH` | `pr_review`, `issue_review` | Path to that App's private key (`.pem`). |
+| `ANGEL_NVIDIA_MAX_COMPLETION_TOKENS` | optional, all three commands | Output tokens allowed per model call, default `32768`. Counts the model's reasoning as well as its answer, so a value sized to the review text alone truncates the reply mid-object and the item fails. A non-integer or non-positive value exits `1` rather than falling back to the default. |
+| `ANGEL_COLOR` | optional, all three commands | `auto` (default) colors the console only when the stream is a terminal; `always` keeps color when piping or redirecting; `never` disables it. An unrecognised value is treated as `auto`. A non-empty `NO_COLOR` disables color whatever this is set to. |
 
 A missing *required* variable exits `1` with `<NAME> environment variable is not set.` before
 any work starts. `.env` is loaded automatically and searched from the current directory *upward*, so
@@ -261,7 +261,7 @@ over the file.
 
 ### The GitHub App
 
-[kandy-nishikihebi](https://github.com/apps/kandy-nishikihebi) is the App behind the
+[kandy-angel](https://github.com/apps/kandy-angel) is the App behind the
 reviews. The repositories it reviews are exactly the ones it is installed on — there is no
 list to maintain in the code. It needs three permissions and nothing more, so it cannot
 approve, merge, or push:
@@ -269,7 +269,7 @@ approve, merge, or push:
 | Permission | Used for |
 |---|---|
 | **Pull requests: read** | listing PRs and fetching diffs |
-| **Issues: read and write** | reading issues and comments, creating the `nishikihebi` label, posting the review comment |
+| **Issues: read and write** | reading issues and comments, creating the `angel` label, posting the review comment |
 | **Metadata: read** | required by the others |
 
 ## Testing

@@ -2,10 +2,10 @@ from typing import cast
 
 from langchain_core.messages import AnyMessage, SystemMessage
 
-from nishikihebi.agents.chat.prompts import SYSTEM_PROMPT
-from nishikihebi.agents.chat.state import ChatState
-from nishikihebi.clients.llm import LlmClient
-from nishikihebi.logs import get_logger
+from angel.agents.chat.prompts import SYSTEM_PROMPT
+from angel.agents.chat.state import ChatState
+from angel.clients.llm import LlmClient
+from angel.logs import get_logger
 
 log = get_logger(__name__)
 
