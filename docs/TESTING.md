@@ -1,7 +1,7 @@
 # Testing
 
 `npm run ci` runs the whole gate — `biome ci`, then `tsc --noEmit`, then `vitest run`. See
-[`USAGE.md`](USAGE.md) for the commands. The tests are split in two:
+[`USAGE.md`](USAGE.md) for the commands. Tests split in two:
 
 | Tree | What lives there | How it stubs the world |
 |---|---|---|
@@ -14,16 +14,16 @@ npm run test:integration   # client code over recorded payloads
 npm run coverage           # the same tests, with a coverage report
 ```
 
-The split is by directory, so there is nothing to mark by hand.
+Split is by directory — nothing to mark by hand.
 
 **Why both.** `FakeGitHubClient` encodes the same assumptions as the real client, so it can
-never falsify them; that is exactly how the missing pagination went unnoticed. The recorded
-fixtures are full-shape GitHub responses (every field the API really returns, sanitized),
-so a test can serve a `Link: rel="next"` header and prove that page 2 is dropped.
+never falsify them; that's exactly how the missing pagination went unnoticed. The recorded
+fixtures are full-shape GitHub responses (every field the API really returns, sanitized), so
+a test can serve a `Link: rel="next"` header and prove page 2 isn't dropped.
 
 ## The helpers
 
-Everything shared between suites lives in `tests/helpers/`, imported explicitly — there is no
+Everything shared between suites lives in `tests/helpers/`, imported explicitly — no
 implicit fixture injection:
 
 | Helper | Gives you |
@@ -46,12 +46,13 @@ implicit fixture injection:
 const payload = loadFixture("github/pulls_page1.json");
 ```
 
-Keep the whole response shape rather than the handful of fields the client reads today —
-the extra fields are what makes the fixture useful when the client grows. Never commit a
-real token: the recorded installation token is a redacted placeholder.
+Keep the whole response shape rather than the handful of fields the client reads today — the
+extra fields are what makes the fixture useful when the client grows. Never commit a real
+token: the recorded installation token is a redacted placeholder.
 
 ## In CI
 
 `.github/workflows/ci.yml` runs the same three checks on every push and pull request: lint
 and typecheck and build once, then the test suite on Node 22 and 24. Nothing there needs a
-secret, because nothing in either suite touches the network.
+secret, since neither suite touches the network.
+</content>

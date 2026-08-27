@@ -3,7 +3,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach } from "vitest";
 
-/** Creates a fresh temporary directory per test and chdir's into it. */
 export function useTemporaryDirectory(): { readonly path: string } {
   const state = { path: "" };
   let previousCwd = "";

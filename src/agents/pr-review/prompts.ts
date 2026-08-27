@@ -37,7 +37,6 @@ export interface ReviewLens {
   readonly prompt: string;
 }
 
-/** One model call per lens, each told to stay in its lane. */
 export const REVIEW_LENSES: readonly ReviewLens[] = [
   { name: "security", prompt: SECURITY_REVIEW_PROMPT },
   { name: "quality", prompt: QUALITY_REVIEW_PROMPT },

@@ -37,10 +37,8 @@ export interface Comment {
   readonly createdAt: string;
 }
 
-/** Either kind of item a review can be posted on. */
 export type ReviewTarget = PullRequest | Issue;
 
-/** The seam the review agents reach GitHub through. */
 export interface GitHubClient {
   listRepositories(): Promise<string[]>;
   ensureLabel(repository: string, label: string, color: string): Promise<void>;
@@ -51,7 +49,6 @@ export interface GitHubClient {
   postComment(target: ReviewTarget, body: string): Promise<void>;
 }
 
-/** Hands out an installation token per repository. */
 export interface TokenProvider {
   tokenFor(repository: string): Promise<string>;
   listRepositories(): Promise<string[]>;
@@ -99,10 +96,6 @@ interface ApiAccessToken {
   readonly token: string;
 }
 
-/**
- * Exchanges the App's private key for installation tokens, caching one per
- * repository for the life of the run.
- */
 export class InstallationTokenProvider implements TokenProvider {
   private readonly tokens = new Map<string, string>();
 
@@ -184,7 +177,6 @@ export class InstallationTokenProvider implements TokenProvider {
   }
 }
 
-/** The real client, one authenticated request per call. */
 export class HttpGitHubClient implements GitHubClient {
   constructor(
     readonly httpClient: HttpClient,
@@ -299,7 +291,6 @@ export class HttpGitHubClient implements GitHubClient {
   }
 }
 
-/** Wraps a client so every read passes through and every write is logged only. */
 export class DryRunGitHubClient implements GitHubClient {
   constructor(private readonly inner: GitHubClient) {}
 
@@ -345,7 +336,6 @@ function expandUser(path: string): string {
   return path.startsWith("~/") ? join(homedir(), path.slice(2)) : path;
 }
 
-/** Builds the App-authenticated client, or throws naming the missing variables. */
 export function buildGithubClient(fetchImpl?: FetchLike): HttpGitHubClient {
   const appId = loadEnvVar("ANGEL_GITHUB_APP_ID");
   const privateKeyPath = loadEnvVar("ANGEL_GITHUB_PRIVATE_KEY_PATH");

@@ -28,7 +28,6 @@ import { configureLogging, getLogger } from "./logs.js";
 
 const log = getLogger("angel.main");
 
-/** Everything `main` reaches the outside world through. Test seam. */
 export interface MainDependencies {
   readonly buildLlmClient: () => LlmClient;
   readonly buildGithubClient: () => GitHubClient;
@@ -108,7 +107,6 @@ function printReviews(
   }
 }
 
-/** Prints the failure report and throws {@link ExitError} when anything failed. */
 export function reportFailures(
   stream: OutputStream,
   failures: readonly ItemFailure[],
@@ -209,10 +207,6 @@ function buildClients(
   }
 }
 
-/**
- * Runs one command and returns; throws {@link ExitError} to end the process
- * with a status, whether that is a printed help screen or a failed run.
- */
 export async function main(
   argv: readonly string[],
   overrides: Partial<MainDependencies> = {},
@@ -248,7 +242,6 @@ export async function main(
   }
 }
 
-/** The `angel` executable: runs `main` and turns {@link ExitError} into a status. */
 export async function cli(argv: readonly string[] = process.argv.slice(2)) {
   try {
     await main(argv);

@@ -1,4 +1,3 @@
-/** Thrown to end the process with a status, and a message for a failure. */
 export class ExitError extends Error {
   override readonly name = "ExitError";
 
@@ -32,7 +31,6 @@ function isCommand(value: string): value is Command {
   return (COMMANDS as readonly string[]).includes(value);
 }
 
-/** The top-level `--help` screen. */
 export function topLevelHelp(): string {
   const commands = COMMANDS.map(
     (command) => `    ${command.padEnd(13)} ${SUMMARIES[command]}`,
@@ -56,7 +54,6 @@ export function topLevelHelp(): string {
   ].join("\n");
 }
 
-/** The `--help` screen of one command. */
 export function commandHelp(command: Command): string {
   const usage =
     command === "chat"
@@ -82,7 +79,6 @@ export interface ParsedArguments {
   readonly dryRun: boolean;
 }
 
-/** What `main` should do: run a command, or print something and exit. */
 export type ParseResult =
   | { readonly kind: "run"; readonly arguments: ParsedArguments }
   | { readonly kind: "help"; readonly text: string };
@@ -95,12 +91,6 @@ function unknownCommand(argv: readonly string[]): ExitError {
   );
 }
 
-/**
- * Parses the command line.
- *
- * `--dry-run` may come before or after the command; anything that is not a
- * command exits 1 rather than printing a parser error.
- */
 export function parseArguments(argv: readonly string[]): ParseResult {
   if (argv.length === 0) {
     return { kind: "help", text: topLevelHelp() };

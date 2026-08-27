@@ -1,7 +1,5 @@
-/** The `fetch` signature this client depends on. Test seam. */
 export type FetchLike = (url: string, init?: RequestInit) => Promise<Response>;
 
-/** Raised for any response outside the 2xx range. */
 export class HttpStatusError extends Error {
   override readonly name = "HttpStatusError";
 
@@ -21,7 +19,6 @@ export interface RequestOptions {
 
 const LINK_PATTERN = /<([^>]+)>\s*;\s*rel="([^"]+)"/g;
 
-/** A response, remembering the request that produced it for error messages. */
 export class HttpResponse {
   constructor(
     private readonly response: Response,
@@ -37,7 +34,6 @@ export class HttpResponse {
     return this.response.ok;
   }
 
-  /** Returns itself, or throws {@link HttpStatusError} for a non-2xx status. */
   ensureOk(): this {
     if (!this.response.ok) {
       throw new HttpStatusError(this.status, this.method, this.url);
@@ -45,12 +41,6 @@ export class HttpResponse {
     return this;
   }
 
-  /**
-   * Parses the body as JSON of the caller's expected shape.
-   *
-   * GitHub responses are not validated field by field; this is the one place
-   * that trust is taken, so the shapes live next to the calls that read them.
-   */
   async json<T>(): Promise<T> {
     return (await this.response.json()) as T;
   }
@@ -59,7 +49,6 @@ export class HttpResponse {
     return this.response.text();
   }
 
-  /** The `rel="next"` URL from the `Link` header, when there is another page. */
   nextUrl(): string | undefined {
     const link = this.response.headers.get("link");
     if (link === null) {
@@ -74,7 +63,6 @@ export class HttpResponse {
   }
 }
 
-/** A minimal JSON HTTP client over `fetch`, resolving paths against a base URL. */
 export class HttpClient {
   constructor(
     readonly baseUrl: string,
@@ -121,11 +109,9 @@ export class HttpClient {
 }
 
 export interface GetAllOptions extends RequestOptions {
-  /** Key holding the array when the payload is an object rather than a list. */
   readonly key?: string | undefined;
 }
 
-/** Follows `Link: rel="next"` to the end and returns every item across pages. */
 export async function getAll<T>(
   client: HttpClient,
   path: string,

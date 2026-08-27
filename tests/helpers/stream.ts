@@ -1,6 +1,5 @@
 import type { OutputStream } from "../../src/console.js";
 
-/** An in-memory {@link OutputStream} that records everything written to it. */
 export class MemoryStream implements OutputStream {
   readonly isTTY: boolean;
   private chunks: string[] = [];

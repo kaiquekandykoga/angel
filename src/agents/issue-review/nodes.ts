@@ -17,10 +17,6 @@ import type { IssueContext, IssueReviewState } from "./state.js";
 
 const log = getLogger("angel.agents.issue-review.nodes");
 
-/**
- * Discovers every repository the App can reach and keeps the labeled issues due
- * for review: never reviewed, or edited since the last review.
- */
 export function fetchIssues(
   github: GitHubClient,
   reviewerLogin: string,
@@ -93,7 +89,6 @@ export function fetchIssues(
   };
 }
 
-/** Asks the model for one structured review per issue and renders it. */
 export function reviewIssues(client: LlmClient) {
   return async (
     state: Pick<IssueReviewState, "issues">,

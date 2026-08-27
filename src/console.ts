@@ -1,6 +1,5 @@
 import { loadEnvVar } from "./env.js";
 
-/** The subset of `NodeJS.WriteStream` this module needs. */
 export interface OutputStream {
   write(chunk: string): void;
   readonly isTTY?: boolean | undefined;
@@ -18,7 +17,6 @@ export const CYAN = "36";
 
 const SECTION_WIDTH = 72;
 
-/** Whether ANSI color should be emitted for `stream`. */
 export function colorEnabled(stream: OutputStream): boolean {
   if (loadEnvVar("NO_COLOR")) {
     return false;
@@ -33,7 +31,6 @@ export function colorEnabled(stream: OutputStream): boolean {
   }
 }
 
-/** Wraps `text` in the given SGR codes, unless `stream` takes no color. */
 export function style(
   text: string,
   codes: readonly string[],
@@ -45,7 +42,6 @@ export function style(
   return `\x1b[${codes.join(";")}m${text}\x1b[${RESET}m`;
 }
 
-/** Writes a blank line and a `Title ─────` heading to `stream`. */
 export function section(title: string, stream: OutputStream): void {
   const heading =
     title.length >= SECTION_WIDTH

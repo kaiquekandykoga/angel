@@ -7,7 +7,6 @@ import { ChatAnnotation } from "./state.js";
 
 const log = getLogger("angel.agents.chat.graph");
 
-/** One node, one edge, and a checkpointer that keeps the thread in memory. */
 export function buildChatGraph(client: LlmClient, checkpointer?: BaseCheckpointSaver) {
   log.debug("wiring call_llm node");
   const graph = new StateGraph(ChatAnnotation)

@@ -1,12 +1,12 @@
 # Usage
 
-Three commands, one process each: `chat`, `pr_review`, `issue_review`. Every one of them
-runs once and exits — there is no daemon and nothing schedules them.
+Three commands, one process each: `chat`, `pr_review`, `issue_review`. Each runs once and
+exits — no daemon, nothing schedules them.
 
 - [Quick start](#quick-start)
 - [Commands](#commands) · [`chat`](#chat) · [`pr_review`](#pr_review) · [`issue_review`](#issue_review)
 - [Options](#options) — `--dry-run`, `--help`
-- [Output and exit codes](#output-and-exit-codes) — sections, the `Usage` totals, color
+- [Output and exit codes](#output-and-exit-codes) — sections, `Usage` totals, color
 - [Configuration](#configuration)
 - [Testing](#testing)
 - [Known gaps](#known-gaps)
@@ -21,23 +21,23 @@ cp .env.example .env     # then fill in the three variables — see Configuratio
 npm run angel chat       # talk to the model; no GitHub credentials needed
 ```
 
-`npm run angel` runs the TypeScript sources through [`tsx`](https://tsx.is). To run the
-compiled build instead — the same thing an install of the package gives you:
+`npm run angel` runs the TypeScript sources through [`tsx`](https://tsx.is). Compiled build,
+same behavior:
 
 ```bash
 npm run build
 node dist/bin.js chat
 ```
 
-Once the GitHub App variables are set, see what a review run *would* post, without posting
-anything:
+Preview what a review run would post, without posting anything (needs the GitHub App
+variables):
 
 ```bash
 npm run angel pr_review -- --dry-run
 ```
 
-> `npm run` swallows flags unless you separate them with `--`. Running `node dist/bin.js
-> pr_review --dry-run`, or an installed `angel pr_review --dry-run`, needs no separator.
+> `npm run` swallows flags unless separated with `--`. `node dist/bin.js pr_review
+> --dry-run` or an installed `angel pr_review --dry-run` needs no separator.
 
 ## Commands
 
@@ -51,11 +51,10 @@ npm run angel pr_review -- --dry-run
 angel <command> [--dry-run]
 ```
 
-The command may be given before or after the flag. Anything else exits `1` with
-`Unknown command: … Valid commands: chat, pr_review, issue_review`. There is no `--version`
-yet.
+Command may come before or after the flag. Anything else exits `1` with `Unknown command: …
+Valid commands: chat, pr_review, issue_review`. No `--version` yet.
 
-How each command is wired internally, node by node, is in [`GRAPHS.md`](GRAPHS.md).
+Node-by-node wiring of each command is in [`GRAPHS.md`](GRAPHS.md).
 
 ### `chat`
 
@@ -63,9 +62,9 @@ How each command is wired internally, node by node, is in [`GRAPHS.md`](GRAPHS.m
 angel chat
 ```
 
-Reads a line at a time at a `>` prompt and prints the reply. Blank lines are ignored. Leave
-with `/exit` or Ctrl-D. The conversation is kept in memory for the life of the process, so
-it is gone when you leave — nothing is written to GitHub, and `--dry-run` is rejected here.
+Reads a line at a `>` prompt, prints the reply; blank lines ignored. Exit with `/exit` or
+Ctrl-D. Conversation lives in memory for the process's life only — nothing writes to
+GitHub, and `--dry-run` is rejected here.
 
 ### `pr_review`
 
@@ -73,39 +72,34 @@ it is gone when you leave — nothing is written to GitHub, and `--dry-run` is r
 angel pr_review [--dry-run]
 ```
 
-Scans every repository the GitHub App is installed on — the list is discovered at run time,
-so granting or revoking the App's access is all it takes to add or drop a repository — and
-reviews the open pull requests labeled `angel`.
+Scans every repository the GitHub App is installed on (discovered at run time — granting or
+revoking access adds or drops a repo) and reviews open pull requests labeled `angel`.
 
-A labeled PR is reviewed when:
+A labeled PR is reviewed when `kandy-angel[bot]` has **never** commented on it, or its
+**head sha differs** from the one recorded in that last bot comment — re-reviewed exactly
+when the head moves, force-pushes included. Otherwise it's skipped as up to date.
 
-- `kandy-angel[bot]` has **never** commented on it, or
-- its **head sha differs** from the one recorded in that last bot comment — so it is
-  re-reviewed exactly when the head moves, force-pushes included.
+Each review posts as one issue comment ending with a `<!-- angel: sha=<head sha> -->`
+marker — the only state the bot keeps, recording which head was reviewed, on the PR itself.
+Deleting it makes the next run review that PR again.
 
-Otherwise it is skipped as already up to date. Each review is posted as one issue comment
-on the PR, ending with a `<!-- angel: sha=<head sha> -->` marker. That marker is the
-only state the bot keeps: it records which head was reviewed, on the PR itself. Deleting it
-from a comment makes the next run review that PR again.
+Each PR is read three times, by three specialised prompts — **security**, **quality**,
+**performance** — each told to stay in its lane and given the same title, description,
+comments, and diff: three times the tokens and roughly three times the wall clock of a
+single pass.
 
-Each PR is read three times, by three specialised prompts — **security**, **quality**, and
-**performance** — each told to stay in its lane and given the same title, description, existing
-comments, and diff. Three model calls per PR, so three times the tokens and roughly three times
-the wall clock of a single pass.
+The comment is rendered from validated schemas, not pasted from the model: one summary line
+per lens, then `### Security` / `### Quality` / `### Performance` sections, each holding one
+bold entry per finding tagged `[blocker]` / `[major]` / `[minor]` / `[nit]` and a file:line
+the diff supports. Any lens failing, or a reply that doesn't fit the schema, fails the whole
+PR: nothing posts, and it's retried next run since no marker was written.
 
-The comment is rendered from validated schemas, not pasted from the model: one summary line per
-lens, then a `### Security` / `### Quality` / `### Performance` section, each holding one bold
-entry per finding tagged `[blocker]`, `[major]`, `[minor]`, or `[nit]` and pointing at a file and
-line where the diff makes that clear. A reply that does not fit the schema — or any one lens
-failing — is a failure for that PR: nothing is posted, the run moves on, and the PR is picked up
-again next run because no marker was written.
+`temperature=0`, so repeat runs over an unchanged head usually match — though a hosted model
+guarantees nothing.
 
-Sampling is pinned at `temperature=0`, so two runs over an unchanged head give the same review far
-more often than they used to — though nothing about a hosted model guarantees it.
-
-> **The label is created for you.** Every scanned repository gets a pink `angel` label
-> if it lacks one — including repositories you never meant to review. Install the App only
-> where you want that.
+> **The label is created for you.** Every scanned repository gets a pink `angel` label if it
+> lacks one, including repositories you never meant to review. Install the App only where
+> you want that.
 
 ### `issue_review`
 
@@ -113,11 +107,10 @@ more often than they used to — though nothing about a hosted model guarantees 
 angel issue_review [--dry-run]
 ```
 
-The same pass over open issues labeled `angel`. An issue is reviewed when the bot has
-never commented on it, or when the issue's `updatedAt` is newer than that last comment —
-which covers an edited description and new comments alike. The label caveat above applies
-here too. The comment follows the same rendered-from-schema shape, with two extra sections:
-proposed acceptance criteria and a suggested approach.
+Same pass over open issues labeled `angel`. Reviewed when the bot has never commented, or
+the issue's `updatedAt` is newer than that last comment (covers an edited description and
+new comments alike). Label caveat above applies here too. Same rendered-from-schema shape,
+plus two extra sections: proposed acceptance criteria and a suggested approach.
 
 ## Options
 
@@ -128,10 +121,9 @@ proposed acceptance criteria and a suggested approach.
 
 ### `--dry-run`
 
-The run is identical up to the point of writing: repositories are discovered, labeled items
-are selected, diffs are fetched, and the model is called — so it costs the same tokens.
-Only the two writes are suppressed: creating the `angel` label, and posting the review
-comment. Each review body is printed instead, under its target:
+Identical up to the write: repositories discovered, items selected, diffs fetched, model
+called — same token cost. Only two writes are suppressed: creating the `angel` label,
+posting the comment. Each review body prints instead, under its target:
 
 ```
 Reviews ────────────────────────────────────────────────────────────────
@@ -145,15 +137,14 @@ The change looks correct, but one branch is untested.
 The early return added here is not covered by any case in `tests/unit/parse.test.ts`.
 ```
 
-The target line is bold; the body is printed unindented and unstyled so it can be copied
-straight into a comment as markdown.
+Target line is bold; body prints unindented and unstyled, ready to paste as markdown.
 
-Every suppressed write is also logged; see [`LOGS.md`](LOGS.md). Exit codes are unchanged —
-a fetch or model failure still reports and exits `1`.
+Every suppressed write is also logged; see [`LOGS.md`](LOGS.md). Exit codes unchanged — a
+fetch or model failure still exits `1`.
 
 ### `--help`
 
-Each command's options, printed either way — nothing runs, no credentials are read:
+Each command's options, printed either way — nothing runs, no credentials read:
 
 ```bash
 angel pr_review --help
@@ -170,15 +161,13 @@ options:
   --dry-run   Print each review to stdout and make zero GitHub writes
 ```
 
-`angel --help`, a bare `help`, or `angel` with no arguments at all lists the three commands
-instead — the same output and the same exit `0` from each. Naming something that is not a
-command still exits `1` with the usual `Unknown command: …`, whether it is `angel bogus` or
-`angel help bogus`.
+`angel --help`, a bare `help`, or no arguments lists the three commands instead, exit `0`
+from each. An unknown command still exits `1` with `Unknown command: …`, whether `angel
+bogus` or `angel help bogus`.
 
 ## Output and exit codes
 
-A run prints three sections to stdout — what it is doing, what it produced, and what it
-cost:
+A run prints three sections to stdout — what it's doing, what it produced, what it cost:
 
 ```
 Run ────────────────────────────────────────────────────────────────────
@@ -201,14 +190,14 @@ Usage ────────────────────────�
   duration_ms     8213.4
 ```
 
-When nothing was due, the `Reviews` section holds the one line it always did —
-`No pull requests to review` or `No issues to review` — and `Usage` still prints.
+When nothing was due, `Reviews` holds `No pull requests to review` or `No issues to
+review`; `Usage` still prints.
 
 ### The `Usage` section
 
-The per-run total of every call into the model, summed from the same numbers the
-`model call completed` records carry in the log — see [`LOGS.md`](LOGS.md) for the per-call
-detail. The field names match those records exactly:
+Per-run total of every model call, summed from the same numbers the `model call completed`
+log records carry — see [`LOGS.md`](LOGS.md) for per-call detail. Field names match those
+records exactly:
 
 | Field | Meaning |
 |---|---|
@@ -216,22 +205,20 @@ detail. The field names match those records exactly:
 | `input_tokens` / `output_tokens` / `total_tokens` | summed across those calls; a provider that returns no usage metadata contributes `0` while still counting toward `calls` |
 | `duration_ms` | wall time inside the provider calls, milliseconds — not the run's total wall time |
 
-`chat` prints the same section when the session ends. The section is printed **before** the
-process exits non-zero, so a failed run still reports what it spent.
+`chat` prints the same section at session end, and **before** a non-zero exit, so a failed
+run still reports what it spent.
 
 ### Color
 
-Colored when stdout is a terminal, plain otherwise — so piping or redirecting is unaffected.
-`ANGEL_COLOR` overrides the terminal check in either direction, and a non-empty
-`NO_COLOR` always wins. Only the section headings and the status lines are styled; review
-bodies are never colored.
+Colored when stdout is a terminal, plain otherwise. `ANGEL_COLOR` overrides either
+direction; a non-empty `NO_COLOR` always wins. Only headings and status lines are styled —
+review bodies never are.
 
 ### Failures
 
-Each repository and each item is isolated, so one failure never discards the rest of the
-work — a model error on the fifth pull request still leaves the other nine reviewed and
-posted. What failed prints to stderr under its own heading, one line each, followed by a
-count:
+Each repository and item is isolated — a model error on the fifth of ten pull requests still
+leaves the other nine reviewed and posted. What failed prints to stderr under its own
+heading, one line each, plus a count:
 
 ```
 Failures ───────────────────────────────────────────────────────────────
@@ -241,18 +228,18 @@ Failed post_review_comments for owner/other: TypeError: fetch failed
 2 of 5 items failed
 ```
 
-Repository-level failures — one repository of thirty unreachable during the scan — carry no
-item number and print as `owner/repo`. Because failures go to stderr and the three sections
-above go to stdout, `2> /dev/null` keeps the report and drops the errors.
+Repository-level failures (one of thirty unreachable during the scan) carry no item number,
+printed as `owner/repo`. Failures go to stderr, the three sections above to stdout, so
+`2> /dev/null` keeps the report and drops the errors.
 
 | Exit code | Meaning |
 |---|---|
 | `0` | every item due for review was reviewed and posted (including the case where nothing was due) |
 | `1` | at least one repository or item failed, or the command was invalid, or credentials were missing |
 
-The non-zero exit is what makes a scheduler notice. The same failures appear as `WARNING`
-records in the JSON log with structured `stage` / `error_type` fields; what every run writes
-to the console and to `log/` is documented in [`LOGS.md`](LOGS.md).
+The non-zero exit is what a scheduler notices. Same failures appear as `WARNING` records in
+the JSON log with structured `stage` / `error_type` fields — see [`LOGS.md`](LOGS.md) for
+what every run writes to console and `log/`.
 
 ## Configuration
 
@@ -263,20 +250,19 @@ Copy `.env.example` to `.env` and fill in these variables.
 | `ANGEL_NVIDIA_API_KEY` | all three commands | NVIDIA API key from https://build.nvidia.com — used for every model call. |
 | `ANGEL_GITHUB_APP_ID` | `pr_review`, `issue_review` | ID of the GitHub App to authenticate as. |
 | `ANGEL_GITHUB_PRIVATE_KEY_PATH` | `pr_review`, `issue_review` | Path to that App's private key (`.pem`). A leading `~/` is expanded. |
-| `ANGEL_NVIDIA_MAX_COMPLETION_TOKENS` | optional, all three commands | Output tokens allowed per model call, default `32768`. Counts the model's reasoning as well as its answer, so a value sized to the review text alone truncates the reply mid-object and the item fails. A non-integer or non-positive value exits `1` rather than falling back to the default. |
-| `ANGEL_COLOR` | optional, all three commands | `auto` (default) colors the console only when the stream is a terminal; `always` keeps color when piping or redirecting; `never` disables it. An unrecognised value is treated as `auto`. A non-empty `NO_COLOR` disables color whatever this is set to. |
+| `ANGEL_NVIDIA_MAX_COMPLETION_TOKENS` | optional, all three commands | Output tokens per model call, default `32768`. Counts reasoning as well as the answer, so sizing to the review text alone truncates the reply mid-object and fails the item. Non-integer or non-positive exits `1` rather than falling back to default. |
+| `ANGEL_COLOR` | optional, all three commands | `auto` (default) colors only on a terminal; `always` keeps color when piping or redirecting; `never` disables it; unrecognised value = `auto`. Non-empty `NO_COLOR` disables color regardless. |
 
-A missing *required* variable exits `1` with `<NAME> environment variable is not set.` before
-any work starts. `.env` is loaded automatically and searched from the current directory *upward*, so
-run the commands from the project root; an already-exported shell variable takes precedence
-over the file.
+A missing *required* variable exits `1` with `<NAME> environment variable is not set.`
+before any work starts. `.env` loads automatically, searched upward from the current
+directory — run from the project root; an already-exported shell variable wins over the
+file.
 
 ### The GitHub App
 
-[kandy-angel](https://github.com/apps/kandy-angel) is the App behind the
-reviews. The repositories it reviews are exactly the ones it is installed on — there is no
-list to maintain in the code. It needs three permissions and nothing more, so it cannot
-approve, merge, or push:
+[kandy-angel](https://github.com/apps/kandy-angel) is the App behind the reviews — it
+reviews exactly the repositories it's installed on, no list to maintain in code. Three
+permissions only, so it cannot approve, merge, or push:
 
 | Permission | Used for |
 |---|---|
@@ -295,17 +281,18 @@ npm run test:integration   # client code over recorded GitHub payloads
 npm run coverage           # the same tests, with a coverage report
 ```
 
-Neither suite touches the network. How the two trees differ, and how to add a fixture, is
-in [`TESTING.md`](TESTING.md). The same three checks run in GitHub Actions
-(`.github/workflows/ci.yml`) on every push and pull request, on Node 22 and 24.
+Neither suite touches the network. Split and fixture details in [`TESTING.md`](TESTING.md).
+Same three checks run in GitHub Actions (`.github/workflows/ci.yml`) on every push and pull
+request, Node 22 and 24.
 
 ## Known gaps
 
 - **Nothing schedules a run.** Both review commands are one-shot; see [`TODO.md`](TODO.md),
   "Pick a deployment story".
-- **The CLI has no scoping flags** — no `--version`, and no `--repo owner/name`, `--limit N`,
+- **The CLI has no scoping flags** — no `--version`, `--repo owner/name`, `--limit N`,
   `--log-level`, or `--log-file`. See "Finish the CLI flags".
 - **Some failures still print a stack trace** rather than a message — a bad private-key path,
   an expired key, or Ctrl-C out of `chat`. See "Fail with a message, not a stack trace".
 - **No rate-limit or backoff handling.** A run that hits GitHub's secondary limit fails the
   affected items instead of waiting.
+</content>

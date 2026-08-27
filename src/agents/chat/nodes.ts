@@ -6,7 +6,6 @@ import type { ChatState } from "./state.js";
 
 const log = getLogger("angel.agents.chat.nodes");
 
-/** Prepends the system prompt, calls the model, and appends its reply. */
 export function callLlm(client: LlmClient) {
   return async (state: ChatState): Promise<{ messages: BaseMessage[] }> => {
     const messages = [new SystemMessage(SYSTEM_PROMPT), ...state.messages];

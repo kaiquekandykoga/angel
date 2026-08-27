@@ -19,12 +19,6 @@ function findDotenv(startDirectory: string): string | undefined {
   }
 }
 
-/**
- * Reads an environment variable, loading the nearest `.env` file first.
- *
- * The file is searched for from the current working directory upward, and an
- * already-exported variable always wins over the file.
- */
 export function loadEnvVar(name: string): string | undefined {
   const cwd = process.cwd();
   if (!loadedDirectories.has(cwd)) {
@@ -37,7 +31,6 @@ export function loadEnvVar(name: string): string | undefined {
   return process.env[name];
 }
 
-/** Forgets which directories have been searched. Test seam. */
 export function resetEnvCache(): void {
   loadedDirectories.clear();
 }

@@ -1,6 +1,5 @@
 const ESCAPE = 0x1b;
 
-/** Removes SGR escape sequences, so styled output can be compared as text. */
 export function stripAnsi(text: string): string {
   let result = "";
   let index = 0;

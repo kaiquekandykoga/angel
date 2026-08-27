@@ -9,10 +9,6 @@ import { IssueReviewAnnotation } from "./state.js";
 
 const log = getLogger("angel.agents.issue-review.graph");
 
-/**
- * A backstop for errors that escape a node's per-item handling; per-item retry
- * needs `Send` fan-out, which the graph does not use yet.
- */
 const RETRY_POLICY = { maxAttempts: 3 };
 
 export interface IssueReviewGraphOptions {
@@ -21,7 +17,6 @@ export interface IssueReviewGraphOptions {
   readonly labelColor?: string;
 }
 
-/** fetch → review → post, linear and sequential. */
 export function buildIssueReviewGraph(
   client: LlmClient,
   github: GitHubClient,

@@ -11,7 +11,6 @@ export interface FakeReplyOptions {
   readonly content?: unknown;
 }
 
-/** Builds an AI reply carrying the metadata the client reads. */
 export function aiMessage(content: string, options: FakeReplyOptions = {}): ModelReply {
   return new AIMessage<StandardMessageStructure>({
     content,
@@ -28,7 +27,6 @@ export function aiMessage(content: string, options: FakeReplyOptions = {}): Mode
   });
 }
 
-/** A chat model that always replies the same way and records what it saw. */
 export class FakeChatModel implements ChatModel {
   lastOptions: ModelCallOptions | undefined;
   received: BaseMessage[][] = [];

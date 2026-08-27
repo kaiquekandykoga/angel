@@ -43,7 +43,6 @@ const LEVEL_CODES: Record<LogLevel, readonly string[]> = {
   CRITICAL: [BOLD, RED],
 };
 
-/** Renders a record the way the console handler does: `LEVEL   message`. */
 export function formatConsoleRecord(record: LogRecord, stream: OutputStream): string {
   const padded = record.level.padEnd(7);
   const levelName = colorEnabled(stream)
@@ -83,12 +82,10 @@ class JsonLinesHandler implements LogHandler {
 
 let handlers: LogHandler[] = [];
 
-/** Replaces the installed handlers. Test seam. */
 export function setHandlers(next: readonly LogHandler[]): void {
   handlers = [...next];
 }
 
-/** Removes every handler, so records are dropped. Test seam. */
 export function resetHandlers(): void {
   handlers = [];
 }
@@ -103,10 +100,6 @@ export interface LoggingOptions {
   readonly stream?: OutputStream;
 }
 
-/**
- * Sends `DEBUG` and above to `<directory>/angel-<timestamp>.jsonl` and `INFO`
- * and above to the console, and returns the file path.
- */
 export function configureLogging(options: LoggingOptions = {}): string {
   const directory = options.directory ?? "log";
   const timestamp = options.timestamp ?? new Date();
@@ -119,7 +112,6 @@ export function configureLogging(options: LoggingOptions = {}): string {
   return path;
 }
 
-/** A logger that takes structured fields alongside the message. */
 export class ContextLogger {
   constructor(readonly name: string) {}
 
@@ -153,7 +145,6 @@ export class ContextLogger {
   }
 }
 
-/** Returns the logger named for the calling module. */
 export function getLogger(name: string): ContextLogger {
   return new ContextLogger(name);
 }

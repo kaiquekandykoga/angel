@@ -66,7 +66,6 @@ export const ISSUE_REVIEW_OUTPUT = namedSchema(
   issueReviewOutputSchema,
 );
 
-/** One finding as a bold headline, its location, and the detail underneath. */
 export function renderFinding(finding: Finding): string {
   let location = "";
   if (finding.file !== null) {
@@ -86,7 +85,6 @@ function renderFindingsSection(findings: readonly Finding[]): string {
   return `### Findings\n\n${findings.map(renderFinding).join("\n\n")}`;
 }
 
-/** The whole issue review comment body, rendered from the validated object. */
 export function renderIssueReview(output: IssueReviewOutput): string {
   const sections = [output.summary, renderFindingsSection(output.findings)];
   if (output.acceptanceCriteria.length > 0) {
@@ -115,7 +113,6 @@ export interface ItemFailure {
 export interface FailureDetails {
   readonly stage: string;
   readonly repository: string;
-  /** `0` when the failure belongs to a repository rather than one item. */
   readonly number: number;
 }
 
@@ -126,12 +123,6 @@ function describe(error: unknown): { errorType: string; error: string } {
   return { errorType: typeof error, error: String(error) };
 }
 
-/**
- * Runs `work`, recording anything it throws as an {@link ItemFailure} instead of
- * letting it escape, so one bad item never discards the rest of the run.
- *
- * Returns whether the work succeeded.
- */
 export async function collectFailures(
   failures: ItemFailure[],
   message: string,
@@ -160,11 +151,9 @@ export interface ReviewProduced {
   readonly number: number;
   readonly review: string;
   readonly findings: readonly Finding[];
-  /** Which specialised prompt produced this record; omitted for issue reviews. */
   readonly lens?: string;
 }
 
-/** Logs the `review produced` record, tallying findings by severity. */
 export function logReviewProduced(log: ContextLogger, produced: ReviewProduced): void {
   const severityCounts: Record<string, number> = {};
   for (const finding of produced.findings) {
@@ -183,7 +172,6 @@ export function logReviewProduced(log: ContextLogger, produced: ReviewProduced):
   log.debug("review produced", context);
 }
 
-/** When the bot last commented, or `undefined` if it never has. */
 export function lastReviewAt(
   comments: readonly Comment[],
   reviewerLogin: string,
@@ -200,12 +188,10 @@ function max(a: string, b: string): string {
 
 const MARKER_PATTERN = /<!-- angel: sha=(\S+) -->/g;
 
-/** The trailing marker that records which head a review read. */
 export function reviewMarker(sha: string): string {
   return `<!-- angel: sha=${sha} -->`;
 }
 
-/** The head sha recorded in the bot's most recent marked comment. */
 export function reviewedSha(
   comments: readonly Comment[],
   reviewerLogin: string,
@@ -227,7 +213,6 @@ export function reviewedSha(
   return latest?.sha;
 }
 
-/** Existing comments as the model sees them. */
 export function renderComments(comments: readonly Comment[]): string {
   if (comments.length === 0) {
     return "(none)";
@@ -235,12 +220,10 @@ export function renderComments(comments: readonly Comment[]): string {
   return comments.map((comment) => `@${comment.author}: ${comment.body}`).join("\n\n");
 }
 
-/** State both review graphs thread through their nodes. */
 export interface ReviewState {
   readonly reviews: Review[];
 }
 
-/** The final node of both review graphs: one comment per review. */
 export function postReviewComments(github: GitHubClient) {
   return async (state: ReviewState): Promise<{ failures: ItemFailure[] }> => {
     const { reviews } = state;

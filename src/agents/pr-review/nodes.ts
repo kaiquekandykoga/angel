@@ -41,7 +41,6 @@ interface LensOutput {
   readonly output: PullRequestReviewOutput;
 }
 
-/** One summary line per lens, then one findings section per lens. */
 export function renderMergedReview(lensOutputs: readonly LensOutput[]): string {
   const summary = lensOutputs
     .map(({ lens, output }) => `**${capitalize(lens)}:** ${output.summary}`)
@@ -55,10 +54,6 @@ export function renderMergedReview(lensOutputs: readonly LensOutput[]): string {
   return `${summary}\n\n${sections}`;
 }
 
-/**
- * Discovers every repository the App can reach and keeps the labeled pull
- * requests due for review: never reviewed, or reviewed at a different head.
- */
 export function fetchPullRequests(
   github: GitHubClient,
   reviewerLogin: string,
@@ -136,7 +131,6 @@ export function fetchPullRequests(
   };
 }
 
-/** Reviews each pull request once per lens and merges the lenses into one body. */
 export function reviewPullRequests(github: GitHubClient, client: LlmClient) {
   return async (
     state: Pick<PrReviewState, "pullRequests">,

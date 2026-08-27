@@ -10,7 +10,6 @@ function key(target: ReviewTarget): string {
   return `${target.repository}#${target.number}`;
 }
 
-/** An in-memory GitHub, holding whatever a test sets up. */
 export class FakeGitHubClient implements GitHubClient {
   pullRequests: Record<string, PullRequest[]> = {};
   issues: Record<string, Issue[]> = {};
@@ -21,7 +20,6 @@ export class FakeGitHubClient implements GitHubClient {
   ensureLabelCalls: [string, string, string][] = [];
   callLog: [string, string][] = [];
 
-  /** Puts a label on an item, so the listing calls return it. */
   label(target: ReviewTarget, label: string): void {
     const labels = this.labels.get(key(target)) ?? new Set<string>();
     labels.add(label);

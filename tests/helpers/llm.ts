@@ -2,14 +2,10 @@ import type { BaseMessage } from "@langchain/core/messages";
 import type { LlmClient, ModelReply, NamedSchema } from "../../src/clients/llm.js";
 import { aiMessage } from "./model.js";
 
-/** A model that replies from a script instead of the network. */
 export class FakeLlmClient implements LlmClient {
   reply = "fake reply";
-  /** When set, every structured call returns this instead of the default shape. */
   structuredReply: unknown;
-  /** Every batch of messages the client was asked to complete. */
   readonly calls: BaseMessage[][] = [];
-  /** Set to fail the nth structured call, counting from 1. */
   failStructuredCall: number | undefined;
   private structuredCalls = 0;
 
@@ -45,7 +41,6 @@ export class FakeLlmClient implements LlmClient {
   }
 }
 
-/** The text of every message in a batch, for order-insensitive assertions. */
 export function contentsOf(messages: readonly BaseMessage[]): string[] {
   return messages.map((message) =>
     typeof message.content === "string" ? message.content : "",

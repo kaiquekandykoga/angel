@@ -3,7 +3,6 @@ import { createInterface } from "node:readline/promises";
 import { HumanMessage } from "@langchain/core/messages";
 import type { ChatGraph } from "./graph.js";
 
-/** One question, one answer, against a thread that remembers the last ones. */
 export interface Session {
   ask(question: string): Promise<string>;
 }
@@ -24,20 +23,16 @@ export class ChatSession implements Session {
   }
 }
 
-/** Starts a session on a fresh thread. */
 export function startSession(graph: ChatGraph): ChatSession {
   return new ChatSession(graph, randomUUID());
 }
 
-/** Where the REPL reads lines from and writes replies to. */
 export interface ReplIo {
-  /** The next line, or `undefined` at end of input. */
   readLine(prompt: string): Promise<string | undefined>;
   write(text: string): void;
   close?(): void;
 }
 
-/** A {@link ReplIo} over stdin and stdout. */
 export function terminalIo(): ReplIo {
   const readline = createInterface({ input: process.stdin, output: process.stdout });
   return {
@@ -57,7 +52,6 @@ export function terminalIo(): ReplIo {
   };
 }
 
-/** Reads a line at a time until `/exit` or end of input. */
 export async function run(session: Session, io: ReplIo): Promise<void> {
   try {
     while (true) {

@@ -10,18 +10,15 @@ import { getLogger } from "../logs.js";
 
 const log = getLogger("angel.clients.llm");
 
-/** A zod schema paired with the name the provider sees in `response_format`. */
 export interface NamedSchema<T> {
   readonly name: string;
   readonly schema: z.ZodType<T>;
 }
 
-/** Pairs a schema with the name it is requested under. */
 export function namedSchema<T>(name: string, schema: z.ZodType<T>): NamedSchema<T> {
   return { name, schema };
 }
 
-/** The seam every agent talks to the model through. */
 export interface LlmClient {
   complete(messages: readonly BaseMessage[]): Promise<ModelReply>;
   completeStructured<T>(
@@ -30,10 +27,8 @@ export interface LlmClient {
   ): Promise<T>;
 }
 
-/** A reply from the model, with the metadata the standard structure carries. */
 export type ModelReply = AIMessage<StandardMessageStructure>;
 
-/** The provider arguments this client sets per call. */
 export interface ModelCallOptions {
   readonly response_format?: {
     readonly type: "json_schema";
@@ -45,7 +40,6 @@ export interface ModelCallOptions {
   };
 }
 
-/** The part of a chat model this client drives. */
 export interface ChatModel {
   invoke(messages: BaseMessage[], options?: ModelCallOptions): Promise<ModelReply>;
 }
@@ -80,12 +74,10 @@ const ZERO_USAGE: UsageTotals = {
 
 let totals: UsageTotals = ZERO_USAGE;
 
-/** A snapshot of the run's model spend; later calls do not mutate it. */
 export function usageTotals(): UsageTotals {
   return { ...totals };
 }
 
-/** Zeroes the run tally. `main` calls this once before the command runs. */
 export function resetUsage(): void {
   totals = ZERO_USAGE;
 }
@@ -122,14 +114,6 @@ export const NVIDIA_MAX_COMPLETION_TOKENS_DEFAULT = 32768;
 export const NVIDIA_TIMEOUT_MS = 300_000;
 export const NVIDIA_TEMPERATURE = 0;
 
-/**
- * Talks to an NVIDIA-hosted, OpenAI-compatible endpoint.
- *
- * Structured replies go through the provider's `json_schema` response format
- * and are validated here rather than through LangChain's `withStructuredOutput`,
- * whose fallback chain retries a truncated reply with a `guided_json` field the
- * endpoint rejects — turning a truncation into a misleading 400.
- */
 export class NvidiaClient implements LlmClient {
   constructor(
     private readonly chatModel: ChatModel,
@@ -202,7 +186,6 @@ function readMaxCompletionTokens(): number {
   return parsed;
 }
 
-/** Builds the configured client, or throws naming the variable at fault. */
 export function buildLlmClient(): NvidiaClient {
   const apiKey = loadEnvVar("ANGEL_NVIDIA_API_KEY");
   if (!apiKey) {

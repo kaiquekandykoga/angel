@@ -1,17 +1,16 @@
 # Logs
 
-Every run logs to two places at once, configured in `src/logs.ts` by
-`configureLogging()`, which `main()` calls before anything else happens.
+Every run logs to two places at once, configured in `src/logs.ts` by `configureLogging()`,
+which `main()` calls before anything else happens.
 
 | Destination | Level | Format |
 |---|---|---|
-| Console (stderr) | `INFO` | `LEVEL   message` — high-level progress, meant to be read while it runs. The console handler colors the level name only (`DEBUG` dim, `INFO` cyan, `WARNING` yellow, `ERROR` red, `CRITICAL` bold red); padding is computed on the plain name, so the columns line up either way. Color follows the same `ANGEL_COLOR` / `NO_COLOR` rules as the rest of the console — see [`USAGE.md`](USAGE.md#color) |
+| Console (stderr) | `INFO` | `LEVEL   message` — high-level progress, meant to be read while it runs. The console handler colors the level name only (`DEBUG` dim, `INFO` cyan, `WARNING` yellow, `ERROR` red, `CRITICAL` bold red); padding is computed on the plain name, so columns line up either way. Color follows the same `ANGEL_COLOR` / `NO_COLOR` rules as the rest of the console — see [`USAGE.md`](USAGE.md#color) |
 | `log/angel-<timestamp>.jsonl` | `DEBUG` | one JSON object per line, carrying every structured field the nodes attach |
 
-The file is the detailed one: it keeps the `DEBUG` records the console drops, which is where
-the per-repository and per-item detail lives — what was scanned, what was selected for
-review and why, diff sizes, prompt message counts, and what each model call cost in tokens and
-milliseconds.
+The file is the detailed one: it keeps the `DEBUG` records the console drops — per-repository
+and per-item detail: what was scanned, what was selected for review and why, diff sizes,
+prompt message counts, and what each model call cost in tokens and milliseconds.
 
 ## Record shape
 
@@ -34,7 +33,7 @@ call site attaches is merged in at the top level alongside them:
 
 ## How call sites log
 
-`logs.ts` exports `getLogger(name)`, which returns a `ContextLogger` whose `debug` / `info` /
+`logs.ts` exports `getLogger(name)`, returning a `ContextLogger` whose `debug` / `info` /
 `warning` / `error` take the message and an object of structured fields:
 
 ```ts
@@ -50,18 +49,18 @@ log.debug("evaluated pull request", {
 });
 ```
 
-Field names in the context object are `snake_case`, so a run's log reads the same whichever
-module wrote it, and `jq` filters do not have to know which one did.
+Context-object field names are `snake_case`, so a run's log reads the same whichever module
+wrote it, and `jq` filters don't need to know which one did.
 
 Handlers are module state: `configureLogging()` installs the console and file handlers and
-returns the file path, and a process that never calls it drops records rather than failing.
+returns the file path; a process that never calls it drops records rather than failing.
 Tests install a capturing handler instead — see [`TESTING.md`](TESTING.md).
 
 ### Failure records write themselves
 
-The five failure sites all log the same five keys and then append a matching `ItemFailure`
-to graph state. `collectFailures()` in `src/agents/shared.ts` does both, so the node body
-holds the work rather than the bookkeeping:
+The five failure sites all log the same five keys and append a matching `ItemFailure` to
+graph state. `collectFailures()` in `src/agents/shared.ts` does both, so the node body holds
+the work rather than the bookkeeping:
 
 ```ts
 await collectFailures(
@@ -80,13 +79,13 @@ await collectFailures(
 ```
 
 It catches whatever the callback throws, logs the `WARNING` described under
-[Failure records](#failure-records), appends the `ItemFailure`, and swallows the error so
-the loop continues. Work on the success path goes inside the callback. Where a caller needs
-to branch on the outcome, `collectFailures` returns `false` when it caught something.
+[Failure records](#failure-records), appends the `ItemFailure`, and swallows the error so the
+loop continues. Success-path work goes inside the callback; `collectFailures` returns `false`
+when it caught something, for a caller that needs to branch.
 
 `logReviewProduced()` in the same module owns the `review produced` record, including the
-`severity_counts` tally — which is why that arithmetic no longer appears in the review nodes.
-It takes the calling module's `log`, so the record still names the node that produced it.
+`severity_counts` tally — why that arithmetic no longer appears in the review nodes. It takes
+the calling module's `log`, so the record still names the node that produced it.
 
 Because every line is self-contained JSON, `jq` is the natural way to read a run:
 
@@ -95,7 +94,7 @@ jq -r 'select(.level == "INFO") | .message' log/angel-*.jsonl
 jq 'select(.selected == false) | {repository, number, reason}' log/angel-*.jsonl
 ```
 
-The second one answers "why didn't it review this PR?" — `fetch_pull_requests` and
+The second answers "why didn't it review this PR?" — `fetch_pull_requests` and
 `fetch_issues` log a `selected` / `reason` pair for every labeled item they evaluate.
 
 ## Review records
@@ -114,13 +113,13 @@ Because the model returns a schema rather than prose, `review_pull_requests` /
 jq 'select(.finding_count) | {repository, number, finding_count, severity_counts}' log/angel-*.jsonl
 ```
 
-A reply the schema rejects never reaches this record; it is caught per item and logged as a
+A reply the schema rejects never reaches this record; it's caught per item and logged as a
 failure below, with `error_type` naming the validation error.
 
 ## Model call records
 
-Every call into the model logs one `DEBUG` record from `angel.clients.llm`, message
-`model call completed`, so a run's token spend and latency are recoverable after the fact:
+Every call into the model logs one `DEBUG` record from `angel.clients.llm`, message `model
+call completed`, so a run's token spend and latency are recoverable after the fact:
 
 | Key | Meaning |
 |---|---|
@@ -133,7 +132,7 @@ Every call into the model logs one `DEBUG` record from `angel.clients.llm`, mess
 The record is written before the truncation check, so a call that hits the
 `maxCompletionTokens` ceiling is still accounted for — it shows up as `finish_reason:
 "length"` next to the `WARNING` for the item it cost. A call that throws before returning
-logs nothing here; it is the failure record that names it.
+logs nothing here; the failure record names it instead.
 
 ```bash
 jq -s 'map(select(.message == "model call completed") | .total_tokens // 0) | add' log/angel-*.jsonl
@@ -143,25 +142,24 @@ jq 'select(.message == "model call completed") | {call, schema, total_tokens, du
 ### The run total on the console
 
 `logModelCallCompleted` also accumulates these four fields into a per-run tally in
-`clients/llm.ts`, which `main` prints as the `Usage` section when the run ends — the
-same numbers the first `jq` above recovers, without needing the log:
+`clients/llm.ts`, which `main` prints as the `Usage` section when the run ends — the same
+numbers the first `jq` above recovers, without needing the log:
 
 | Function | Purpose |
 |---|---|
 | `usageTotals()` | a snapshot of `calls`, `inputTokens`, `outputTokens`, `totalTokens`, `durationMs`; later calls do not mutate a snapshot already taken |
 | `resetUsage()` | zeroes the tally; `main()` calls it once before the command runs |
 
-A call whose reply carries no `usage_metadata` still increments `calls` and `durationMs`,
-so the call count on the console always matches the number of `model call completed`
-records in the log. The section's layout is in [`USAGE.md`](USAGE.md#the-usage-section).
+A call whose reply carries no `usage_metadata` still increments `calls` and `durationMs`, so
+the call count on the console always matches the number of `model call completed` records in
+the log. The section's layout is in [`USAGE.md`](USAGE.md#the-usage-section).
 
 Dollars are not logged — see the token and cost accounting item in [`TODO.md`](TODO.md).
 
 ## Dry-run records
 
-A `--dry-run` run logs each write it suppressed, at `INFO`, from
-`angel.clients.github`. Both records carry `dry_run: true`, so one filter shows
-everything the run would have written:
+A `--dry-run` run logs each write it suppressed, at `INFO`, from `angel.clients.github`. Both
+records carry `dry_run: true`, so one filter shows everything the run would have written:
 
 | Message | Context keys |
 |---|---|
@@ -177,8 +175,8 @@ The review bodies themselves go to stdout, not the log — see [`USAGE.md`](USAG
 ## Failure records
 
 Every isolated failure — a repository or item skipped while fetching, a review the model
-failed to produce, a comment that could not be posted — is logged at `WARNING` with a
-fixed set of context keys, so failures across all three nodes read the same way:
+failed to produce, a comment that couldn't be posted — is logged at `WARNING` with a fixed
+set of context keys, so failures across all three nodes read the same way:
 
 | Key | Meaning |
 |---|---|
@@ -205,7 +203,7 @@ the UTC start time. `log/` is gitignored.
 
 ## Known gaps
 
-Logging is not production-shaped yet, and [`TODO.md`](TODO.md) tracks the specifics:
+Logging is not production-shaped yet — [`TODO.md`](TODO.md) tracks the specifics:
 
 - **"Log JSON to stdout by default"** — logging is file-first with no rotation and no
   retention, one file per run, and the path depends on cwd. The 12-factor answer is JSON to
@@ -214,7 +212,8 @@ Logging is not production-shaped yet, and [`TODO.md`](TODO.md) tracks the specif
 - Under that same item — `logReviewProduced()` logs the **entire rendered review body** at
   `DEBUG`, so model output derived from untrusted input lands on disk unbounded. Both review
   nodes now share that one helper, so capping the body is a change in a single place.
-  Combined with no retention, that is a slow disk-fill and a data-handling question.
+  Combined with no retention, that's a slow disk-fill and a data-handling question.
 - Writes are synchronous `appendFileSync` calls, one per record — fine for a short CLI run,
   wrong for anything long-lived.
 - Nothing redacts secrets; the handler serialises whatever is in the context object.
+</content>

@@ -15,12 +15,10 @@ interface Route {
   readonly respond: Responder;
 }
 
-/** Serves recorded payloads in place of the network, and records every call. */
 export class FakeFetch {
   readonly calls: RecordedRequest[] = [];
   private readonly routes: Route[] = [];
 
-  /** Routes `METHOD pathname` to a responder. Later routes win over earlier ones. */
   on(method: string, pathname: string, respond: Responder | Response): this {
     this.routes.unshift({
       method,
@@ -30,7 +28,6 @@ export class FakeFetch {
     return this;
   }
 
-  /** Routes a path to a JSON body, optionally with headers such as `Link`. */
   onJson(
     method: string,
     pathname: string,
