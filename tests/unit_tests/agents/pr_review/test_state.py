@@ -7,7 +7,7 @@ from nishikihebi.clients.github import Comment, PullRequest
 
 
 def test_review_pairs_target_with_body():
-    pull_request = PullRequest("kaiquekandykoga/nishikihebi", 1, "a pr", "body", "sha")
+    pull_request = PullRequest("monalisa/hello-world", 1, "a pr", "body", "sha")
 
     review = Review(pull_request, "looks good")
 
@@ -16,7 +16,7 @@ def test_review_pairs_target_with_body():
 
 
 def test_pull_request_context_pairs_pull_request_with_comments():
-    pull_request = PullRequest("kaiquekandykoga/nishikihebi", 1, "a pr", "body", "sha")
+    pull_request = PullRequest("monalisa/hello-world", 1, "a pr", "body", "sha")
     comment = Comment("someone", "hi", "2026-08-01T00:00:00Z")
 
     context = PullRequestContext(pull_request, [comment])

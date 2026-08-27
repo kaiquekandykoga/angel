@@ -38,8 +38,8 @@ def test_build_pr_review_graph_logs_wiring_and_ready(fake_client, fake_github, c
 
 
 def test_graph_posts_comment_for_never_reviewed_pull_request(fake_client, fake_github):
-    pr_a = PullRequest("kaiquekandykoga/nishikihebi", 1, "pr a", "body a", "sha-a")
-    fake_github.pull_requests = {"kaiquekandykoga/nishikihebi": [pr_a]}
+    pr_a = PullRequest("monalisa/hello-world", 1, "pr a", "body a", "sha-a")
+    fake_github.pull_requests = {"monalisa/hello-world": [pr_a]}
     fake_github.diffs = {pr_a: "diff a"}
     fake_github.label(pr_a, LABEL)
     graph = build_pr_review_graph(
@@ -59,9 +59,9 @@ def test_graph_posts_comment_for_never_reviewed_pull_request(fake_client, fake_g
 def test_graph_posts_no_comment_for_already_reviewed_unchanged_pull_request(
     fake_client, fake_github
 ):
-    pr_a = PullRequest("kaiquekandykoga/nishikihebi", 1, "pr a", "body a", "sha-a")
+    pr_a = PullRequest("monalisa/hello-world", 1, "pr a", "body a", "sha-a")
     review_comment_created_at = "2026-08-02T00:00:00Z"
-    fake_github.pull_requests = {"kaiquekandykoga/nishikihebi": [pr_a]}
+    fake_github.pull_requests = {"monalisa/hello-world": [pr_a]}
     fake_github.comments = {
         pr_a: [
             Comment(

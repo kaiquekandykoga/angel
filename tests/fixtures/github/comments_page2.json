@@ -1,15 +1,15 @@
 [
   {
-    "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/comments/3212440908",
-    "html_url": "https://github.com/kaiquekandykoga/nishikihebi/pull/41#issuecomment-3212440908",
-    "issue_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/41",
+    "url": "https://api.github.com/repos/monalisa/hello-world/issues/comments/3212440908",
+    "html_url": "https://github.com/monalisa/hello-world/pull/41#issuecomment-3212440908",
+    "issue_url": "https://api.github.com/repos/monalisa/hello-world/issues/41",
     "id": 3212440908,
-    "node_id": "IC_kwDOPXwRr87LhHtM",
+    "node_id": "IC_kwDOEXAMPLE17LhHtM",
     "user": {
       "login": "kandy-nishikihebi[bot]",
       "id": 231884012,
       "node_id": "BOT_kgDOG9pQ7A",
-      "avatar_url": "https://avatars.githubusercontent.com/in/1934511?v=4",
+      "avatar_url": "https://avatars.githubusercontent.com/in/123456?v=4",
       "url": "https://api.github.com/users/kandy-nishikihebi%5Bbot%5D",
       "html_url": "https://github.com/apps/kandy-nishikihebi",
       "type": "Bot",
@@ -21,7 +21,7 @@
     "author_association": "NONE",
     "body": "The `_get_all` helper looks right. One note on `/installation/repositories`.",
     "reactions": {
-      "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/comments/3212440908/reactions",
+      "url": "https://api.github.com/repos/monalisa/hello-world/issues/comments/3212440908/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -33,12 +33,12 @@
       "eyes": 0
     },
     "performed_via_github_app": {
-      "id": 1934511,
+      "id": 123456,
       "node_id": "A_kwHOG9pQ7M4AHUqv",
       "slug": "kandy-nishikihebi",
       "name": "kandy-nishikihebi",
       "description": "Automated review bot",
-      "external_url": "https://github.com/kaiquekandykoga/nishikihebi",
+      "external_url": "https://github.com/monalisa/hello-world",
       "html_url": "https://github.com/apps/kandy-nishikihebi"
     }
   }

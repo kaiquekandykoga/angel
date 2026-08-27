@@ -1,22 +1,22 @@
 [
   {
-    "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/38",
-    "repository_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi",
-    "labels_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/38/labels{/name}",
-    "comments_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/38/comments",
-    "events_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/38/events",
-    "html_url": "https://github.com/kaiquekandykoga/nishikihebi/issues/38",
+    "url": "https://api.github.com/repos/monalisa/hello-world/issues/38",
+    "repository_url": "https://api.github.com/repos/monalisa/hello-world",
+    "labels_url": "https://api.github.com/repos/monalisa/hello-world/issues/38/labels{/name}",
+    "comments_url": "https://api.github.com/repos/monalisa/hello-world/issues/38/comments",
+    "events_url": "https://api.github.com/repos/monalisa/hello-world/issues/38/events",
+    "html_url": "https://github.com/monalisa/hello-world/issues/38",
     "id": 3487006512,
-    "node_id": "I_kwDOPXwRr87QvsWw",
+    "node_id": "I_kwDOEXAMPLE17QvsWw",
     "number": 38,
     "title": "Add a LICENSE",
     "user": {
-      "login": "kaiquekandykoga",
-      "id": 22661138,
-      "node_id": "MDQ6VXNlcjIyNjYxMTM4",
-      "avatar_url": "https://avatars.githubusercontent.com/u/22661138?v=4",
-      "url": "https://api.github.com/users/kaiquekandykoga",
-      "html_url": "https://github.com/kaiquekandykoga",
+      "login": "monalisa",
+      "id": 1234567,
+      "node_id": "MDQ6VXNlcjEyMzQ1Njc=",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1234567?v=4",
+      "url": "https://api.github.com/users/monalisa",
+      "html_url": "https://github.com/monalisa",
       "type": "User",
       "user_view_type": "public",
       "site_admin": false
@@ -24,8 +24,8 @@
     "labels": [
       {
         "id": 9481120334,
-        "node_id": "LA_kwDOPXwRr88AAAACaHqXjg",
-        "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/labels/nishikihebi",
+        "node_id": "LA_kwDOEXAMPLE18AAAACaHqXjg",
+        "url": "https://api.github.com/repos/monalisa/hello-world/labels/nishikihebi",
         "name": "nishikihebi",
         "color": "f709c2",
         "default": false,
@@ -46,7 +46,7 @@
     "active_lock_reason": null,
     "body": null,
     "reactions": {
-      "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/38/reactions",
+      "url": "https://api.github.com/repos/monalisa/hello-world/issues/38/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -57,7 +57,7 @@
       "rocket": 0,
       "eyes": 0
     },
-    "timeline_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/38/timeline",
+    "timeline_url": "https://api.github.com/repos/monalisa/hello-world/issues/38/timeline",
     "performed_via_github_app": null
   }
 ]

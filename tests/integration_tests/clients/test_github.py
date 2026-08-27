@@ -50,17 +50,17 @@ def test_list_open_pull_requests_maps_number_title_body_and_head_sha(
     client: HttpGitHubClient,
 ):
     route = respx_mock.get(
-        f"{GITHUB_BASE_URL}/repos/kaiquekandykoga/nishikihebi/pulls"
+        f"{GITHUB_BASE_URL}/repos/monalisa/hello-world/pulls"
     ).mock(
         return_value=httpx.Response(200, json=load_fixture("github/pulls_page1.json"))
     )
 
     pull_requests = client.list_open_pull_requests(
-        "kaiquekandykoga/nishikihebi", "nishikihebi"
+        "monalisa/hello-world", "nishikihebi"
     )
 
     assert PullRequest(
-        "kaiquekandykoga/nishikihebi",
+        "monalisa/hello-world",
         41,
         "Paginate every GitHub list call",
         'Follows the `Link: rel="next"` header on every list endpoint.',
@@ -71,7 +71,7 @@ def test_list_open_pull_requests_maps_number_title_body_and_head_sha(
     assert request.url.params["per_page"] == "100"
     assert (
         request.headers["authorization"]
-        == "Bearer token-for-kaiquekandykoga/nishikihebi"
+        == "Bearer token-for-monalisa/hello-world"
     )
 
 
@@ -80,12 +80,12 @@ def test_list_open_pull_requests_drops_prs_without_the_label(
     load_fixture: Callable[[str], Any],
     client: HttpGitHubClient,
 ):
-    respx_mock.get(f"{GITHUB_BASE_URL}/repos/kaiquekandykoga/nishikihebi/pulls").mock(
+    respx_mock.get(f"{GITHUB_BASE_URL}/repos/monalisa/hello-world/pulls").mock(
         return_value=httpx.Response(200, json=load_fixture("github/pulls_page1.json"))
     )
 
     pull_requests = client.list_open_pull_requests(
-        "kaiquekandykoga/nishikihebi", "nishikihebi"
+        "monalisa/hello-world", "nishikihebi"
     )
 
     assert [pull_request.number for pull_request in pull_requests] == [41]
@@ -97,14 +97,14 @@ def test_list_open_issues_excludes_pull_requests_and_maps_updated_at(
     client: HttpGitHubClient,
 ):
     route = respx_mock.get(
-        f"{GITHUB_BASE_URL}/repos/kaiquekandykoga/nishikihebi/issues"
+        f"{GITHUB_BASE_URL}/repos/monalisa/hello-world/issues"
     ).mock(return_value=httpx.Response(200, json=load_fixture("github/issues.json")))
 
-    issues = client.list_open_issues("kaiquekandykoga/nishikihebi", "nishikihebi")
+    issues = client.list_open_issues("monalisa/hello-world", "nishikihebi")
 
     assert issues == [
         Issue(
-            "kaiquekandykoga/nishikihebi",
+            "monalisa/hello-world",
             38,
             "Add a LICENSE",
             "",
@@ -117,7 +117,7 @@ def test_list_open_issues_excludes_pull_requests_and_maps_updated_at(
     assert request.url.params["labels"] == "nishikihebi"
     assert (
         request.headers["authorization"]
-        == "Bearer token-for-kaiquekandykoga/nishikihebi"
+        == "Bearer token-for-monalisa/hello-world"
     )
 
 
@@ -127,25 +127,25 @@ def test_list_comments_maps_login_body_and_created_at(
     client: HttpGitHubClient,
 ):
     route = respx_mock.get(
-        f"{GITHUB_BASE_URL}/repos/kaiquekandykoga/nishikihebi/issues/41/comments"
+        f"{GITHUB_BASE_URL}/repos/monalisa/hello-world/issues/41/comments"
     ).mock(
         return_value=httpx.Response(
             200, json=load_fixture("github/comments_page1.json")
         )
     )
 
-    pull_request = PullRequest("kaiquekandykoga/nishikihebi", 41, "a pr", "", "sha")
+    pull_request = PullRequest("monalisa/hello-world", 41, "a pr", "", "sha")
     comments = client.list_comments(pull_request)
 
     assert comments == [
-        Comment("kaiquekandykoga", "Ready for a look.", "2026-08-14T11:04:02Z"),
+        Comment("monalisa", "Ready for a look.", "2026-08-14T11:04:02Z"),
         Comment("octocat", "", "2026-08-14T12:20:35Z"),
     ]
     request = route.calls.last.request
     assert request.url.params["per_page"] == "100"
     assert (
         request.headers["authorization"]
-        == "Bearer token-for-kaiquekandykoga/nishikihebi"
+        == "Bearer token-for-monalisa/hello-world"
     )
 
 
@@ -156,10 +156,10 @@ def test_fetch_diff_requests_diff_accept_header(
 ):
     diff_text = load_fixture("github/pull_request.diff")
     route = respx_mock.get(
-        f"{GITHUB_BASE_URL}/repos/kaiquekandykoga/nishikihebi/pulls/41"
+        f"{GITHUB_BASE_URL}/repos/monalisa/hello-world/pulls/41"
     ).mock(return_value=httpx.Response(200, text=diff_text))
 
-    pull_request = PullRequest("kaiquekandykoga/nishikihebi", 41, "a pr", "", "sha")
+    pull_request = PullRequest("monalisa/hello-world", 41, "a pr", "", "sha")
     diff = client.fetch_diff(pull_request)
 
     assert diff == diff_text
@@ -167,7 +167,7 @@ def test_fetch_diff_requests_diff_accept_header(
     assert request.headers["accept"] == "application/vnd.github.diff"
     assert (
         request.headers["authorization"]
-        == "Bearer token-for-kaiquekandykoga/nishikihebi"
+        == "Bearer token-for-monalisa/hello-world"
     )
 
 
@@ -175,17 +175,17 @@ def test_post_comment_sends_body_to_issue_comments_endpoint(
     respx_mock: respx.MockRouter, client: HttpGitHubClient
 ):
     route = respx_mock.post(
-        f"{GITHUB_BASE_URL}/repos/kaiquekandykoga/nishikihebi/issues/41/comments"
+        f"{GITHUB_BASE_URL}/repos/monalisa/hello-world/issues/41/comments"
     ).mock(return_value=httpx.Response(201, json={}))
 
-    pull_request = PullRequest("kaiquekandykoga/nishikihebi", 41, "a pr", "", "sha")
+    pull_request = PullRequest("monalisa/hello-world", 41, "a pr", "", "sha")
     client.post_comment(pull_request, "great work")
 
     request = route.calls.last.request
     assert json.loads(request.content) == {"body": "great work"}
     assert (
         request.headers["authorization"]
-        == "Bearer token-for-kaiquekandykoga/nishikihebi"
+        == "Bearer token-for-monalisa/hello-world"
     )
 
 
@@ -195,10 +195,10 @@ def test_ensure_label_does_not_post_when_label_already_exists(
     client: HttpGitHubClient,
 ):
     get_route = respx_mock.get(
-        f"{GITHUB_BASE_URL}/repos/kaiquekandykoga/nishikihebi/labels/nishikihebi"
+        f"{GITHUB_BASE_URL}/repos/monalisa/hello-world/labels/nishikihebi"
     ).mock(return_value=httpx.Response(200, json=load_fixture("github/label.json")))
 
-    client.ensure_label("kaiquekandykoga/nishikihebi", "nishikihebi", "f709c2")
+    client.ensure_label("monalisa/hello-world", "nishikihebi", "f709c2")
 
     assert get_route.call_count == 1
 
@@ -209,17 +209,17 @@ def test_ensure_label_creates_label_when_missing(
     client: HttpGitHubClient,
 ):
     get_route = respx_mock.get(
-        f"{GITHUB_BASE_URL}/repos/kaiquekandykoga/nishikihebi/labels/nishikihebi"
+        f"{GITHUB_BASE_URL}/repos/monalisa/hello-world/labels/nishikihebi"
     ).mock(
         return_value=httpx.Response(
             404, json=load_fixture("github/label_not_found.json")
         )
     )
     post_route = respx_mock.post(
-        f"{GITHUB_BASE_URL}/repos/kaiquekandykoga/nishikihebi/labels"
+        f"{GITHUB_BASE_URL}/repos/monalisa/hello-world/labels"
     ).mock(return_value=httpx.Response(201, json=load_fixture("github/label.json")))
 
-    client.ensure_label("kaiquekandykoga/nishikihebi", "nishikihebi", "f709c2")
+    client.ensure_label("monalisa/hello-world", "nishikihebi", "f709c2")
 
     assert get_route.call_count == 1
     assert json.loads(post_route.calls.last.request.content) == {
@@ -241,18 +241,18 @@ def test_list_open_pull_requests_follows_link_header_pagination(
             json=load_fixture("github/pulls_page1.json"),
             headers={
                 "Link": (
-                    "<https://api.github.com/repos/kaiquekandykoga/nishikihebi/pulls"
+                    "<https://api.github.com/repos/monalisa/hello-world/pulls"
                     '?state=open&per_page=100&page=2>; rel="next"'
                 )
             },
         )
 
-    respx_mock.get(f"{GITHUB_BASE_URL}/repos/kaiquekandykoga/nishikihebi/pulls").mock(
+    respx_mock.get(f"{GITHUB_BASE_URL}/repos/monalisa/hello-world/pulls").mock(
         side_effect=responder
     )
 
     pull_requests = client.list_open_pull_requests(
-        "kaiquekandykoga/nishikihebi", "nishikihebi"
+        "monalisa/hello-world", "nishikihebi"
     )
 
     assert {pull_request.number for pull_request in pull_requests} == {41, 12}
@@ -271,21 +271,21 @@ def test_list_comments_follows_link_header_pagination(
             json=load_fixture("github/comments_page1.json"),
             headers={
                 "Link": (
-                    "<https://api.github.com/repos/kaiquekandykoga/nishikihebi/"
+                    "<https://api.github.com/repos/monalisa/hello-world/"
                     'issues/41/comments?per_page=100&page=2>; rel="next"'
                 )
             },
         )
 
     respx_mock.get(
-        f"{GITHUB_BASE_URL}/repos/kaiquekandykoga/nishikihebi/issues/41/comments"
+        f"{GITHUB_BASE_URL}/repos/monalisa/hello-world/issues/41/comments"
     ).mock(side_effect=responder)
 
-    pull_request = PullRequest("kaiquekandykoga/nishikihebi", 41, "a pr", "", "sha")
+    pull_request = PullRequest("monalisa/hello-world", 41, "a pr", "", "sha")
     comments = client.list_comments(pull_request)
 
     assert {comment.author for comment in comments} == {
-        "kaiquekandykoga",
+        "monalisa",
         "octocat",
         "kandy-nishikihebi[bot]",
     }
@@ -304,17 +304,17 @@ def test_list_open_issues_follows_link_header_pagination(
             json=load_fixture("github/issues_page1.json"),
             headers={
                 "Link": (
-                    "<https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues"
+                    "<https://api.github.com/repos/monalisa/hello-world/issues"
                     '?state=open&per_page=100&labels=nishikihebi&page=2>; rel="next"'
                 )
             },
         )
 
     respx_mock.get(
-        f"{GITHUB_BASE_URL}/repos/kaiquekandykoga/nishikihebi/issues"
+        f"{GITHUB_BASE_URL}/repos/monalisa/hello-world/issues"
     ).mock(side_effect=responder)
 
-    issues = client.list_open_issues("kaiquekandykoga/nishikihebi", "nishikihebi")
+    issues = client.list_open_issues("monalisa/hello-world", "nishikihebi")
 
     assert [issue.number for issue in issues] == [38]
 
