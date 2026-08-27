@@ -6,25 +6,17 @@ backed by an NVIDIA-hosted model. Three commands: an interactive `chat` REPL, pl
 [kandy-angel](https://github.com/apps/kandy-angel) GitHub App and comment on pull requests
 and issues labeled `angel` across the repositories the App is installed on.
 
-## Layout
-
-```
-apps/server/    the LangGraph engine — agents, external integrations, HTTP; `index.ts` is its surface
-apps/cli/       the terminal UI — argument parsing, rendering, the REPL loop, `bin.ts`
-packages/shared/  infrastructure both sides use — env loading, logging, ANSI output
-tests/          unit and integration suites, mirroring the trees above
-```
-
-A UI other than the CLI becomes a sibling of `apps/cli/` and imports `apps/server/index.js`.
-
 ## Docs
 
 - [`docs/INSTALL.md`](docs/INSTALL.md) — requirements and how to install, from source or
   globally.
 - [`docs/USAGE.md`](docs/USAGE.md) — every command and option, what each prints and exits
   with, the environment variables and GitHub App they need. **Start here.**
-- [`docs/GRAPHS.md`](docs/GRAPHS.md) — how each of the three graphs is wired, node by node,
-  with a diagram per command and the code layout under `apps/server/agents/`.
+- [`docs/LAYOUT.md`](docs/LAYOUT.md) — the directory tree and what lives where, from
+  `apps/server/` down to the client seams.
+- [`docs/agents/`](docs/agents/README.md) — how each of the three graphs is wired, node by
+  node, with a page and diagram per command: [`chat`](docs/agents/CHAT.md),
+  [`pr_review`](docs/agents/PR-REVIEW.md), [`issue_review`](docs/agents/ISSUE-REVIEW.md).
 - [`docs/LOGS.md`](docs/LOGS.md) — what each run writes to the console and to
   `log/angel-<timestamp>.jsonl`, the shape of a log record, and how to read a run back with
   `jq`.

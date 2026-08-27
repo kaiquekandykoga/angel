@@ -196,7 +196,7 @@ small change, biggest perceived-quality delta here.
 
 ### `langgraph.json` for LangGraph Studio
 ~10 lines unlocking `langgraphjs dev` → visual stepping, high value for a project whose
-`docs/GRAPHS.md` hand-draws ASCII. Needs real work: it wants module-level `graph` exports,
+`docs/agents/` hand-draws ASCII. Needs real work: it wants module-level `graph` exports,
 but `build*Graph` takes credentialed clients, so a bare `export const graph =
 buildPrReviewGraph(...)` fails at import without `.env`. Keep the factories; add a guarded
 Studio entry point.

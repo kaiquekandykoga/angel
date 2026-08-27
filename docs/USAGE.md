@@ -54,7 +54,7 @@ angel <command> [--dry-run]
 Command may come before or after the flag. Anything else exits `1` with `Unknown command: …
 Valid commands: chat, pr_review, issue_review`. No `--version` yet.
 
-Node-by-node wiring of each command is in [`GRAPHS.md`](GRAPHS.md).
+Node-by-node wiring of each command is in [`agents/`](agents/README.md).
 
 ### `chat`
 

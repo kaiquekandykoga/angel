@@ -16,5 +16,5 @@ Maximize token efficiency — never at cost of correctness, safety, or verificat
 
 ## This Project
 * TypeScript, ESM, Node >= 22. Strict `tsc`, Biome (lint+format), Vitest, TDD.
-* Docs sync with behavior: `docs/USAGE.md` (env vars, commands), `docs/GRAPHS.md` (graph wiring), `docs/LOGS.md` (log records), `docs/TESTING.md` (suites), `docs/TODO.md` (backlog).
+* Docs sync with behavior: `docs/USAGE.md` (env vars, commands), `docs/LAYOUT.md` (directory tree), `docs/agents/` (graph wiring), `docs/LOGS.md` (log records), `docs/TESTING.md` (suites), `docs/TODO.md` (backlog).
 * Green = `npm run ci` (`biome ci` → `tsc --noEmit` → `vitest run`); same three run in GitHub Actions on every push/PR.
