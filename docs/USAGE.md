@@ -152,13 +152,13 @@ angel help pr_review
 ```
 
 ```
-usage: angel pr_review [-h] [--dry-run]
+usage: angel pr_review [options]
 
 Review open pull requests labeled angel.
 
 options:
-  -h, --help  show this help message and exit
   --dry-run   Print each review to stdout and make zero GitHub writes
+  -h, --help  show this help message and exit
 ```
 
 `angel --help`, a bare `help`, or no arguments lists the three commands instead, exit `0`
