@@ -8,6 +8,8 @@ and issues labeled `angel` across the repositories the App is installed on.
 
 ## Docs
 
+- [`docs/INSTALL.md`](docs/INSTALL.md) — requirements and how to install, from source or
+  globally.
 - [`docs/USAGE.md`](docs/USAGE.md) — every command and option, what each prints and exits
   with, the environment variables and GitHub App they need. **Start here.**
 - [`docs/GRAPHS.md`](docs/GRAPHS.md) — how each of the three graphs is wired, node by node,
