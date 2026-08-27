@@ -3,10 +3,10 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
-from nishikihebi.agents.chat.nodes import call_llm
-from nishikihebi.agents.chat.state import ChatState
-from nishikihebi.clients.llm import LlmClient
-from nishikihebi.logs import get_logger
+from angel.agents.chat.nodes import call_llm
+from angel.agents.chat.state import ChatState
+from angel.clients.llm import LlmClient
+from angel.logs import get_logger
 
 log = get_logger(__name__)
 

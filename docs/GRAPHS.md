@@ -1,7 +1,7 @@
 # Graphs
 
 Each command is a [LangGraph](https://langchain-ai.github.io/langgraph/) state graph, and
-each one owns a directory under `src/nishikihebi/agents/` — `agents/chat/`,
+each one owns a directory under `src/angel/agents/` — `agents/chat/`,
 `agents/pr_review/`, `agents/issue_review/`. Inside each, `graph.py` wires the nodes,
 `state.py` declares the state threaded between them, `prompts.py` holds the system prompt,
 and `nodes.py` holds the nodes themselves: factories that take their dependencies (LLM
@@ -9,8 +9,8 @@ client, GitHub client) and return the node function, so a graph can be built aga
 in tests. Anything two agents share — the `Review` record, the `ItemFailure` record, the
 `post_review_comments` node, the comment helpers, and the review output schemas and their
 markdown renderers — lives in `agents/_shared.py`. Those dependencies sit behind
-`Protocol` seams in `src/nishikihebi/clients/`, and the reviewer login, label, and label
-colour in `src/nishikihebi/settings.py`.
+`Protocol` seams in `src/angel/clients/`, and the reviewer login, label, and label
+colour in `src/angel/settings.py`.
 
 Both review agents ask the model for a schema, not prose: `LlmClient.complete_structured`
 binds the OpenAI-style `response_format` json_schema for `PullRequestReviewOutput` /
@@ -52,11 +52,11 @@ returns the reply for the reducer to append.
 
 Reviews open pull requests across every repository the App installation can reach — the
 set is discovered at run time from GitHub, so granting or revoking the App's access to a
-repository is all it takes to add or drop it. Only PRs labeled `nishikihebi` are
+repository is all it takes to add or drop it. Only PRs labeled `angel` are
 considered; the label is created on each repository if it doesn't already exist. A
-labeled pull request is picked up when `kandy-nishikihebi[bot]` has never commented on
+labeled pull request is picked up when `kandy-angel[bot]` has never commented on
 it, or when its current head sha differs from the one recorded in that last comment —
-each review ends with a `<!-- nishikihebi: sha=… -->` marker naming the head it read, so
+each review ends with a `<!-- angel: sha=… -->` marker naming the head it read, so
 a PR is re-reviewed exactly when its head has moved.
 
 ```
@@ -65,8 +65,8 @@ a PR is re-reviewed exactly when its head has moved.
     v
   +---------------------+
   | fetch_pull_requests |  <--- GitHub: installation repositories,
-  +---------------------+       ensures the `nishikihebi` label exists,
-    |                           then their open PRs labeled `nishikihebi` + comments
+  +---------------------+       ensures the `angel` label exists,
+    |                           then their open PRs labeled `angel` + comments
     |  PullRequestContext (pull request + comments), only the ones due for review
     v
   +----------------------+
@@ -85,7 +85,7 @@ a PR is re-reviewed exactly when its head has moved.
 
 | Node | Does |
 |---|---|
-| `fetch_pull_requests` | Ensures each repository has the `nishikihebi` label, lists PRs carrying it and their comments, keeps the ones due for review, and emits `PullRequestContext` (the PR plus its comments) |
+| `fetch_pull_requests` | Ensures each repository has the `angel` label, lists PRs carrying it and their comments, keeps the ones due for review, and emits `PullRequestContext` (the PR plus its comments) |
 | `review_pull_requests` | Fetches the diff, then asks the model for a `PullRequestReviewOutput` (summary + severity-tagged findings) three times over the same title, description, existing comments, and diff — once per specialised lens (security, quality, performance), each prompted to stay in its lane — and merges the three into one comment body with a finding section per lens. A lens that fails fails the whole pull request: nothing is posted and it is retried next run |
 | `post_review_comments` | Posts each review as an issue comment on its PR |
 
@@ -97,8 +97,8 @@ Under `--dry-run` the wiring is identical — the flag wraps the GitHub client i
 ## `issue_review`
 
 Same shape as `pr_review`, over the open issues of the same discovered repositories. Only
-issues labeled `nishikihebi` are considered; the label is created on each repository if
-it doesn't already exist. A labeled issue is picked up when `kandy-nishikihebi[bot]` has
+issues labeled `angel` are considered; the label is created on each repository if
+it doesn't already exist. A labeled issue is picked up when `kandy-angel[bot]` has
 never commented on it, or when the issue's `updated_at` is newer than that last comment —
 which covers both an edited description and new comments.
 
@@ -108,8 +108,8 @@ which covers both an edited description and new comments.
     v
   +--------------+
   | fetch_issues |  <--- GitHub: installation repositories,
-  +--------------+       ensures the `nishikihebi` label exists,
-    |                    then their open issues labeled `nishikihebi` + comments
+  +--------------+       ensures the `angel` label exists,
+    |                    then their open issues labeled `angel` + comments
     |  IssueContext (issue + comments), only the ones due for review
     v
   +---------------+
@@ -127,7 +127,7 @@ which covers both an edited description and new comments.
 
 | Node | Does |
 |---|---|
-| `fetch_issues` | Ensures each repository has the `nishikihebi` label, lists issues carrying it and their comments, keeps the ones due for review, and emits `IssueContext` (the issue plus its comments) |
+| `fetch_issues` | Ensures each repository has the `angel` label, lists issues carrying it and their comments, keeps the ones due for review, and emits `IssueContext` (the issue plus its comments) |
 | `review_issues` | Asks the model for an `IssueReviewOutput` (summary, findings, acceptance criteria, suggested approach) given the title, description, and existing comments, then renders it to the comment body |
 | `post_review_comments` | Shared with `pr_review` — posts each review as an issue comment |
 

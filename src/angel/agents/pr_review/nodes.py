@@ -1,6 +1,6 @@
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from nishikihebi.agents._shared import (
+from angel.agents._shared import (
     Finding,
     ItemFailure,
     PullRequestReviewOutput,
@@ -13,11 +13,11 @@ from nishikihebi.agents._shared import (
     review_marker,
     reviewed_sha,
 )
-from nishikihebi.agents.pr_review.prompts import REVIEW_LENSES
-from nishikihebi.agents.pr_review.state import PrReviewState, PullRequestContext
-from nishikihebi.clients.github import GitHubClient
-from nishikihebi.clients.llm import LlmClient
-from nishikihebi.logs import get_logger
+from angel.agents.pr_review.prompts import REVIEW_LENSES
+from angel.agents.pr_review.state import PrReviewState, PullRequestContext
+from angel.clients.github import GitHubClient
+from angel.clients.llm import LlmClient
+from angel.logs import get_logger
 
 log = get_logger(__name__)
 

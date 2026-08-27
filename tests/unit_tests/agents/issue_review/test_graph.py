@@ -2,18 +2,18 @@ import logging
 
 from langchain_core.messages import AIMessage
 
-from nishikihebi.agents._shared import (
+from angel.agents._shared import (
     Finding,
     IssueReviewOutput,
     Review,
     Severity,
     render_issue_review,
 )
-from nishikihebi.agents.issue_review.graph import build_issue_review_graph
-from nishikihebi.clients.github import Comment, Issue
+from angel.agents.issue_review.graph import build_issue_review_graph
+from angel.clients.github import Comment, Issue
 
-REVIEWER_LOGIN = "kandy-nishikihebi[bot]"
-LABEL = "nishikihebi"
+REVIEWER_LOGIN = "kandy-angel[bot]"
+LABEL = "angel"
 
 DEFAULT_REVIEW_BODY = render_issue_review(
     IssueReviewOutput(
@@ -28,7 +28,7 @@ DEFAULT_REVIEW_BODY = render_issue_review(
 def test_build_issue_review_graph_logs_wiring_and_ready(
     fake_client, fake_github, caplog
 ):
-    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+    caplog.set_level(logging.DEBUG, logger="angel")
 
     build_issue_review_graph(
         fake_client, fake_github, reviewer_login=REVIEWER_LOGIN, label=LABEL

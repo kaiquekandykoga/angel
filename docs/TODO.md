@@ -1,4 +1,4 @@
-# Nishikihebi — TODO
+# Angel — TODO
 
 Open work only. Goal: a Python/LangGraph service that is safe against untrusted input,
 observable, resumable, deployable, and typed. When an item lands, delete it.
@@ -25,14 +25,14 @@ structured output, `interrupt`), unadopted Python/tooling practice, or operation
 **Where:** `agents/*/prompts.py`, `agents/*/nodes.py`, `agents/_shared.py`
 **Why:** attacker-controlled text (PR/issue bodies, comments, diffs) is interpolated undelimited,
 and output is published under the App's identity. A crafted PR can post fabricated approval or
-links signed `kandy-nishikihebi[bot]` on every watched repo.
+links signed `kandy-angel[bot]` on every watched repo.
 **Do:** (1) fence untrusted fields (`<untrusted_pull_request_body>…`) and declare fenced content as
 data, never instructions; (2) refusal clause — never follow reviewed-content instructions, claim
 approval authority, or emit links absent from the diff; (3) validate before posting — reviews now
 arrive as `PullRequestReviewOutput` / `IssueReviewOutput`, so the shape check is done; enforce the
 length cap and strip external links in `render_*_review` (this is the layer that actually saves
 you);
-(4) keep App permissions comments-only; (5) footer: "Automated review by nishikihebi — not a human
+(4) keep App permissions comments-only; (5) footer: "Automated review by angel — not a human
 approval."
 **Done when:** an injection fixture produces no policy-violating comment, enforced by a test on the
 validation layer.
@@ -84,16 +84,16 @@ once on any 401.
 ### Turn `settings.py` into real settings
 **Where:** `settings.py`, `clients/llm.py:19–21`, `logs.py`
 **Why:** `REVIEWER_LOGIN`, `LABEL`, `LABEL_COLOR`, `NVIDIA_*`, and the log directory are scattered
-module constants. `REVIEWER_LOGIN = "kandy-nishikihebi[bot]"` hardcodes *your* App — nobody else
+module constants. `REVIEWER_LOGIN = "kandy-angel[bot]"` hardcodes *your* App — nobody else
 can run this without editing source.
 **Do:** a `pydantic-settings` model with env overrides and startup validation; fold in every
 remaining constant so each knob has one documented place.
 
 ### Accept private key material, not just a path
 **Where:** `clients/github.py`, `env.py`
-**Why:** `NISHIKIHEBI_GITHUB_PRIVATE_KEY_PATH` is path-only; containers and secrets managers hand
+**Why:** `ANGEL_GITHUB_PRIVATE_KEY_PATH` is path-only; containers and secrets managers hand
 you material, not a file — a hard blocker for containerised deployment.
-**Do:** support `NISHIKIHEBI_GITHUB_PRIVATE_KEY` (raw or base64); warn if the `.pem` is
+**Do:** support `ANGEL_GITHUB_PRIVATE_KEY` (raw or base64); warn if the `.pem` is
 group/world-readable; load `.env` once at startup from a known location — `env.py` calls
 `load_dotenv(find_dotenv(usecwd=True))` per lookup and `usecwd=True` walks *up*, so running from a
 subdirectory of an unrelated project can pick up a stranger's `.env`.
@@ -105,7 +105,7 @@ leaves only JSON logs of *lengths*. Highest value-per-effort item in the file.
 
 ### Log JSON to stdout by default
 **Where:** `logs.py`
-**Why:** `configure_logging` writes `log/nishikihebi-<timestamp>.jsonl` relative to cwd, so log
+**Why:** `configure_logging` writes `log/angel-<timestamp>.jsonl` relative to cwd, so log
 location depends on invocation directory. No rotation, no retention, one file per run — hourly
 scheduling means 8,760 files a year.
 **Do:** 12-factor it — JSON to stdout, file handler behind an opt-in `--log-file`; add a run-id and
@@ -128,7 +128,7 @@ and are merely polling — and they mostly dissolve the freshness heuristics. Ei
 **Why:** the label is created in every repo on every run — two wasted calls per repo per run, and
 installing the App to review *one* repo silently adds a pink label to all of them, a least-surprise
 violation that gets Apps uninstalled in orgs.
-**Do:** `--ensure-label` or a one-shot `nishikihebi setup`; otherwise treat "no label" as "nothing
+**Do:** `--ensure-label` or a one-shot `angel setup`; otherwise treat "no label" as "nothing
 to review here".
 
 ### Finish the CLI flags
@@ -205,7 +205,7 @@ from the environment, so follow that shape.
 ### Fix the listing inefficiencies
 - `list_open_pull_requests` filters by label client-side (github.py:196) while `list_open_issues`
   filters server-side — inconsistent, and the PR path downloads far more than it needs.
-- The whole repo loop could be one `GET /search/issues?q=is:open+label:nishikihebi+is:pr` instead
+- The whole repo loop could be one `GET /search/issues?q=is:open+label:angel+is:pr` instead
   of 2 + 2N requests. Worth it past a handful of repos.
 - `list_comments` is one call per labeled PR per run, made before the freshness check can skip it.
   The search endpoint above cannot replace it — the head-sha marker lives in the comment bodies.
@@ -238,7 +238,7 @@ commenting publicly under your identity.
 ### Fail with a message, not a traceback
 **Where:** `__main__.py:111-115`, `agents/chat/repl.py:35-39`
 **Why:** `main()` catches only `MissingApiKeyError` and `MissingGitHubCredentialsError`. A typo in
-`NISHIKIHEBI_GITHUB_PRIVATE_KEY_PATH` isn't a missing variable, so `build_github_client`
+`ANGEL_GITHUB_PRIVATE_KEY_PATH` isn't a missing variable, so `build_github_client`
 (github.py:249) raises bare `FileNotFoundError`; an expired key gives `httpx.HTTPStatusError`. Both
 print a stack trace. `repl.run` catches `EOFError` but not `KeyboardInterrupt`, so Ctrl-C out of
 `chat` — the documented sibling of Ctrl-D — also tracebacks.

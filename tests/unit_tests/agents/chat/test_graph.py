@@ -3,7 +3,7 @@ import logging
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.runnables import RunnableConfig
 
-from nishikihebi.agents.chat.graph import build_chat_graph
+from angel.agents.chat.graph import build_chat_graph
 
 
 def test_graph_routes_through_chat_node(fake_client):
@@ -17,7 +17,7 @@ def test_graph_routes_through_chat_node(fake_client):
 
 
 def test_build_chat_graph_logs_wiring_and_ready(fake_client, caplog):
-    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+    caplog.set_level(logging.DEBUG, logger="angel")
 
     build_chat_graph(fake_client)
 

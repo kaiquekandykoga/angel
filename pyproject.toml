@@ -1,5 +1,5 @@
 [project]
-name = "nishikihebi"
+name = "angel"
 version = "0.1.0"
 description = "Multi-Agent System using Python"
 readme = "README.md"
@@ -19,8 +19,8 @@ dependencies = [
 ]
 
 [project.scripts]
-nishikihebi = "nishikihebi.__main__:main"
-ci = "nishikihebi.__ci__:main"
+angel = "angel.__main__:main"
+ci = "angel.__ci__:main"
 
 [build-system]
 requires = ["uv_build>=0.12.1,<0.13.0"]

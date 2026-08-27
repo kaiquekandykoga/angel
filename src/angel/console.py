@@ -1,6 +1,6 @@
 from typing import TextIO
 
-from nishikihebi.env import load_env_var
+from angel.env import load_env_var
 
 RESET = "0"
 BOLD = "1"
@@ -19,7 +19,7 @@ def color_enabled(stream: TextIO) -> bool:
     if load_env_var("NO_COLOR"):
         return False
 
-    match (load_env_var("NISHIKIHEBI_COLOR") or "").strip().lower():
+    match (load_env_var("ANGEL_COLOR") or "").strip().lower():
         case "never":
             return False
         case "always":

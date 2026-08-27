@@ -5,8 +5,8 @@ import pytest
 from langchain_core.messages import AIMessage, BaseMessage
 from pydantic import BaseModel
 
-from nishikihebi.agents._shared import Finding, Severity
-from nishikihebi.clients.github import Comment, Issue, PullRequest
+from angel.agents._shared import Finding, Severity
+from angel.clients.github import Comment, Issue, PullRequest
 
 
 @pytest.fixture(autouse=True)

@@ -1,6 +1,6 @@
 import logging
 
-from nishikihebi.clients.github import (
+from angel.clients.github import (
     Comment,
     DryRunGitHubClient,
     Issue,

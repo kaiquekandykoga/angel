@@ -1,7 +1,7 @@
-diff --git a/src/nishikihebi/clients/github.py b/src/nishikihebi/clients/github.py
+diff --git a/src/angel/clients/github.py b/src/angel/clients/github.py
 index 3f2a1c4..9b7d0e2 100644
---- a/src/nishikihebi/clients/github.py
-+++ b/src/nishikihebi/clients/github.py
+--- a/src/angel/clients/github.py
++++ b/src/angel/clients/github.py
 @@ -152,10 +152,16 @@ class HttpGitHubClient:
      def list_open_pull_requests(self, repository: str, label: str) -> list[PullRequest]:
 -        response = self.http_client.get(

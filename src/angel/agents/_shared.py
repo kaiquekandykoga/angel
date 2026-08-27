@@ -8,12 +8,12 @@ from typing import TYPE_CHECKING, NamedTuple
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from nishikihebi.clients.github import Comment, GitHubClient, Issue, PullRequest
-from nishikihebi.logs import ContextLogger, get_logger
+from angel.clients.github import Comment, GitHubClient, Issue, PullRequest
+from angel.logs import ContextLogger, get_logger
 
 if TYPE_CHECKING:
-    from nishikihebi.agents.issue_review.state import IssueReviewState
-    from nishikihebi.agents.pr_review.state import PrReviewState
+    from angel.agents.issue_review.state import IssueReviewState
+    from angel.agents.pr_review.state import PrReviewState
 
 logger = get_logger(__name__)
 
@@ -182,11 +182,11 @@ def last_review_at(comments: list[Comment], reviewer_login: str) -> str | None:
     )
 
 
-_MARKER_PATTERN = re.compile(r"<!-- nishikihebi: sha=(\S+) -->")
+_MARKER_PATTERN = re.compile(r"<!-- angel: sha=(\S+) -->")
 
 
 def review_marker(sha: str) -> str:
-    return f"<!-- nishikihebi: sha={sha} -->"
+    return f"<!-- angel: sha={sha} -->"
 
 
 def reviewed_sha(comments: list[Comment], reviewer_login: str) -> str | None:

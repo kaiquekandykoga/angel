@@ -6,20 +6,20 @@ from datetime import UTC, datetime
 
 import pytest
 
-from nishikihebi.console import CYAN, RED, YELLOW
-from nishikihebi.logs import ColorFormatter, configure_logging, get_logger
+from angel.console import CYAN, RED, YELLOW
+from angel.logs import ColorFormatter, configure_logging, get_logger
 
 _ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 
 
 def _clear_color_env(monkeypatch):
     monkeypatch.delenv("NO_COLOR", raising=False)
-    monkeypatch.delenv("NISHIKIHEBI_COLOR", raising=False)
+    monkeypatch.delenv("ANGEL_COLOR", raising=False)
 
 
 def _make_record(level: int, message: str) -> logging.LogRecord:
     return logging.LogRecord(
-        name="nishikihebi",
+        name="angel",
         level=level,
         pathname=__file__,
         lineno=1,
@@ -32,7 +32,7 @@ def _make_record(level: int, message: str) -> logging.LogRecord:
 @pytest.fixture(autouse=True)
 def _reset_handlers():
     yield
-    logger = logging.getLogger("nishikihebi")
+    logger = logging.getLogger("angel")
     for handler in logger.handlers:
         handler.close()
     logger.handlers.clear()
@@ -46,19 +46,19 @@ def test_configure_logging_creates_directory_and_returns_timestamped_path(tmp_pa
     path = configure_logging(directory, timestamp=timestamp)
 
     assert directory.is_dir()
-    assert path == directory / "nishikihebi-20260807T123045Z.jsonl"
+    assert path == directory / "angel-20260807T123045Z.jsonl"
 
 
 def test_configure_logging_writes_json_lines_with_context(tmp_path):
     path = configure_logging(tmp_path)
-    logger = logging.getLogger("nishikihebi")
+    logger = logging.getLogger("angel")
 
     logger.info("hello", extra={"context": {"foo": "bar"}})
 
     line = path.read_text().strip()
     record = json.loads(line)
     assert record["level"] == "INFO"
-    assert record["logger"] == "nishikihebi"
+    assert record["logger"] == "angel"
     assert record["message"] == "hello"
     assert record["foo"] == "bar"
     assert "time" in record
@@ -68,7 +68,7 @@ def test_configure_logging_sets_console_handler_to_info_and_file_handler_to_debu
     tmp_path,
 ):
     configure_logging(tmp_path)
-    logger = logging.getLogger("nishikihebi")
+    logger = logging.getLogger("angel")
 
     file_handler = next(
         h for h in logger.handlers if isinstance(h, logging.FileHandler)
@@ -84,20 +84,20 @@ def test_configure_logging_sets_console_handler_to_info_and_file_handler_to_debu
 def test_configure_logging_twice_does_not_duplicate_handlers(tmp_path):
     configure_logging(tmp_path)
     configure_logging(tmp_path)
-    logger = logging.getLogger("nishikihebi")
+    logger = logging.getLogger("angel")
 
     assert len(logger.handlers) == 2
 
 
 def test_get_logger_debug_writes_json_lines_with_fields(tmp_path):
     path = configure_logging(tmp_path)
-    log = get_logger("nishikihebi.foo")
+    log = get_logger("angel.foo")
 
     log.debug("evaluated pull request", foo="bar")
 
     record = json.loads(path.read_text().strip())
     assert record["level"] == "DEBUG"
-    assert record["logger"] == "nishikihebi.foo"
+    assert record["logger"] == "angel.foo"
     assert record["message"] == "evaluated pull request"
     assert record["foo"] == "bar"
 
@@ -113,7 +113,7 @@ def test_get_logger_debug_writes_json_lines_with_fields(tmp_path):
 )
 def test_get_logger_methods_map_to_correct_level(tmp_path, method, level_name):
     path = configure_logging(tmp_path)
-    log = get_logger("nishikihebi")
+    log = get_logger("angel")
 
     getattr(log, method)("message", key="value")
 
@@ -124,26 +124,26 @@ def test_get_logger_methods_map_to_correct_level(tmp_path, method, level_name):
 
 def test_get_logger_call_with_no_fields_produces_valid_record(tmp_path):
     path = configure_logging(tmp_path)
-    log = get_logger("nishikihebi")
+    log = get_logger("angel")
 
     log.info("no fields here")
 
     record = json.loads(path.read_text().strip())
     assert record["level"] == "INFO"
-    assert record["logger"] == "nishikihebi"
+    assert record["logger"] == "angel"
     assert record["message"] == "no fields here"
     assert "time" in record
 
 
 def test_get_logger_record_equivalent_to_raw_extra_call(tmp_path):
     path = configure_logging(tmp_path)
-    log = get_logger("nishikihebi")
+    log = get_logger("angel")
 
     log.info("hello", foo="bar")
     wrapped_record = json.loads(path.read_text().strip())
 
     path = configure_logging(tmp_path)
-    raw_logger = logging.getLogger("nishikihebi")
+    raw_logger = logging.getLogger("angel")
 
     raw_logger.info("hello", extra={"context": {"foo": "bar"}})
     raw_record = json.loads(path.read_text().strip().splitlines()[-1])
@@ -155,7 +155,7 @@ def test_get_logger_record_equivalent_to_raw_extra_call(tmp_path):
 
 def test_color_formatter_uncolored_matches_old_format(monkeypatch):
     _clear_color_env(monkeypatch)
-    monkeypatch.setenv("NISHIKIHEBI_COLOR", "never")
+    monkeypatch.setenv("ANGEL_COLOR", "never")
     stream = io.StringIO()
     formatter = ColorFormatter(stream)
     record = _make_record(logging.INFO, "hello")
@@ -168,7 +168,7 @@ def test_color_formatter_uncolored_matches_old_format(monkeypatch):
 
 def test_color_formatter_colors_level_when_enabled(monkeypatch):
     _clear_color_env(monkeypatch)
-    monkeypatch.setenv("NISHIKIHEBI_COLOR", "always")
+    monkeypatch.setenv("ANGEL_COLOR", "always")
     stream = io.StringIO()
     formatter = ColorFormatter(stream)
     record = _make_record(logging.INFO, "hello")
@@ -189,7 +189,7 @@ def test_color_formatter_colors_level_when_enabled(monkeypatch):
 )
 def test_color_formatter_maps_levels_to_colors(monkeypatch, level, level_name, code):
     _clear_color_env(monkeypatch)
-    monkeypatch.setenv("NISHIKIHEBI_COLOR", "always")
+    monkeypatch.setenv("ANGEL_COLOR", "always")
     stream = io.StringIO()
     formatter = ColorFormatter(stream)
     record = _make_record(level, "message")
@@ -201,7 +201,7 @@ def test_color_formatter_maps_levels_to_colors(monkeypatch, level, level_name, c
 
 def test_configure_logging_installs_color_formatter(tmp_path):
     configure_logging(tmp_path)
-    logger = logging.getLogger("nishikihebi")
+    logger = logging.getLogger("angel")
 
     console_handler = next(
         h for h in logger.handlers if not isinstance(h, logging.FileHandler)

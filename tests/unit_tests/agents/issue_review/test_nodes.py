@@ -2,7 +2,7 @@ import logging
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
-from nishikihebi.agents._shared import (
+from angel.agents._shared import (
     Finding,
     IssueReviewOutput,
     ItemFailure,
@@ -10,13 +10,13 @@ from nishikihebi.agents._shared import (
     Severity,
     render_issue_review,
 )
-from nishikihebi.agents.issue_review.nodes import fetch_issues, review_issues
-from nishikihebi.agents.issue_review.prompts import REVIEW_SYSTEM_PROMPT
-from nishikihebi.agents.issue_review.state import IssueContext
-from nishikihebi.clients.github import Comment, Issue
+from angel.agents.issue_review.nodes import fetch_issues, review_issues
+from angel.agents.issue_review.prompts import REVIEW_SYSTEM_PROMPT
+from angel.agents.issue_review.state import IssueContext
+from angel.clients.github import Comment, Issue
 
-REVIEWER_LOGIN = "kandy-nishikihebi[bot]"
-LABEL = "nishikihebi"
+REVIEWER_LOGIN = "kandy-angel[bot]"
+LABEL = "angel"
 LABEL_COLOR = "f709c2"
 
 DEFAULT_REVIEW_BODY = render_issue_review(
@@ -30,7 +30,7 @@ DEFAULT_REVIEW_BODY = render_issue_review(
 
 
 def test_fetch_issues_logs_start_per_repository_and_summary(fake_github, caplog):
-    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+    caplog.set_level(logging.DEBUG, logger="angel")
     issue = Issue("org/a", 1, "issue a", "body a", "2026-08-01T00:00:00Z")
     fake_github.issues = {"org/a": [issue]}
     fake_github.label(issue, LABEL)
@@ -184,7 +184,7 @@ def test_fetch_issues_calls_ensure_label_once_per_repository(fake_github):
 
 
 def test_review_issues_logs_start_per_item_and_end(fake_client, caplog):
-    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+    caplog.set_level(logging.DEBUG, logger="angel")
     issue_a = Issue("org/a", 1, "issue a", "body a", "2026-08-01T00:00:00Z")
     node = review_issues(fake_client)
 
@@ -203,7 +203,7 @@ def test_review_issues_logs_start_per_item_and_end(fake_client, caplog):
 
 
 def test_review_issues_logs_finding_count_and_severity_counts(caplog):
-    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+    caplog.set_level(logging.DEBUG, logger="angel")
     issue_a = Issue("org/a", 1, "issue a", "body a", "2026-08-01T00:00:00Z")
 
     class ScriptedClient:
@@ -261,7 +261,7 @@ def test_review_issues_sends_title_body_and_comments(fake_client):
     )
     comments = [
         Comment("alice", "can you clarify?", "2026-08-01T00:00:00Z"),
-        Comment("kandy-nishikihebi[bot]", "looks reasonable", "2026-08-02T00:00:00Z"),
+        Comment("kandy-angel[bot]", "looks reasonable", "2026-08-02T00:00:00Z"),
     ]
     node = review_issues(fake_client)
 
@@ -277,7 +277,7 @@ def test_review_issues_sends_title_body_and_comments(fake_client):
     assert "1" in content
     assert "issue a" in content
     assert "@alice: can you clarify?" in content
-    assert "@kandy-nishikihebi[bot]: looks reasonable" in content
+    assert "@kandy-angel[bot]: looks reasonable" in content
 
 
 def test_review_issues_renders_no_comments_fallback(fake_client):
@@ -355,7 +355,7 @@ def test_fetch_issues_isolates_repository_failure(fake_github):
 
 
 def test_fetch_issues_logs_failure_at_warning(fake_github, caplog):
-    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+    caplog.set_level(logging.DEBUG, logger="angel")
     issue = Issue("org/a", 1, "issue a", "body", "2026-08-01T00:00:00Z")
     fake_github.issues = {"org/a": [issue]}
     fake_github.label(issue, LABEL)
@@ -422,7 +422,7 @@ def test_review_issues_isolates_item_failure(fake_client):
 
 
 def test_review_issues_logs_failure_at_warning(caplog):
-    caplog.set_level(logging.DEBUG, logger="nishikihebi")
+    caplog.set_level(logging.DEBUG, logger="angel")
     issue_a = Issue("org/a", 1, "issue a", "body", "2026-08-01T00:00:00Z")
 
     class RaisingClient:

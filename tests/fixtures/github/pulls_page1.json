@@ -37,8 +37,8 @@
       {
         "id": 9481120334,
         "node_id": "LA_kwDOEXAMPLE18AAAACaHqXjg",
-        "url": "https://api.github.com/repos/monalisa/hello-world/labels/nishikihebi",
-        "name": "nishikihebi",
+        "url": "https://api.github.com/repos/monalisa/hello-world/labels/angel",
+        "name": "angel",
         "color": "f709c2",
         "default": false,
         "description": null
@@ -64,7 +64,7 @@
       "repo": {
         "id": 1000000001,
         "node_id": "R_kgDOEXAMPLE1",
-        "name": "nishikihebi",
+        "name": "angel",
         "full_name": "monalisa/hello-world",
         "private": false,
         "html_url": "https://github.com/monalisa/hello-world",
@@ -87,7 +87,7 @@
       "repo": {
         "id": 1000000001,
         "node_id": "R_kgDOEXAMPLE1",
-        "name": "nishikihebi",
+        "name": "angel",
         "full_name": "monalisa/hello-world",
         "private": false,
         "html_url": "https://github.com/monalisa/hello-world",
@@ -180,7 +180,7 @@
       "repo": {
         "id": 1000000001,
         "node_id": "R_kgDOEXAMPLE1",
-        "name": "nishikihebi",
+        "name": "angel",
         "full_name": "monalisa/hello-world",
         "private": false,
         "html_url": "https://github.com/monalisa/hello-world",
@@ -203,7 +203,7 @@
       "repo": {
         "id": 1000000001,
         "node_id": "R_kgDOEXAMPLE1",
-        "name": "nishikihebi",
+        "name": "angel",
         "full_name": "monalisa/hello-world",
         "private": false,
         "html_url": "https://github.com/monalisa/hello-world",

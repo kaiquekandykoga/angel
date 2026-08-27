@@ -6,8 +6,8 @@ from typing import Any, NamedTuple, Protocol
 import httpx
 import jwt
 
-from nishikihebi.env import load_env_var
-from nishikihebi.logs import get_logger
+from angel.env import load_env_var
+from angel.logs import get_logger
 
 log = get_logger(__name__)
 
@@ -284,14 +284,14 @@ class DryRunGitHubClient:
 
 
 def build_github_client() -> GitHubClient:
-    app_id = load_env_var("NISHIKIHEBI_GITHUB_APP_ID")
-    private_key_path = load_env_var("NISHIKIHEBI_GITHUB_PRIVATE_KEY_PATH")
+    app_id = load_env_var("ANGEL_GITHUB_APP_ID")
+    private_key_path = load_env_var("ANGEL_GITHUB_PRIVATE_KEY_PATH")
     if not app_id or not private_key_path:
         missing = [
             name
             for name, value in (
-                ("NISHIKIHEBI_GITHUB_APP_ID", app_id),
-                ("NISHIKIHEBI_GITHUB_PRIVATE_KEY_PATH", private_key_path),
+                ("ANGEL_GITHUB_APP_ID", app_id),
+                ("ANGEL_GITHUB_PRIVATE_KEY_PATH", private_key_path),
             )
             if not value
         ]
