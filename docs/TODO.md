@@ -39,7 +39,7 @@ the shape check is done; enforce the length cap and strip external links in the 
 on the validation layer.
 
 ### Cap and filter the diff sent to the model
-**Where:** `agents/pr-review/nodes.ts`, `clients/github.ts::fetchDiff`
+**Where:** `agents/pr-review/nodes.ts`, `external/github/client.ts::fetchDiff`
 **Why:** the full diff goes in with no cap or filter. A lockfile touch (this repo's
 `package-lock.json` is hundreds of KB) blows the context window — a hard API error killing
 the run — and costs money otherwise.
@@ -67,7 +67,7 @@ be dropped without a model call, so do that pass before spending a call.
 posts a body without it, and the drop is logged with the reason.
 
 ### Rate-limit and backoff handling (GitHub, NVIDIA)
-**Where:** `clients/{github,http,llm}.ts`
+**Where:** `external/github/client.ts`, `clients/{http,llm}.ts`
 **Why:** `ensureOk()` and nothing else. Production hits 403 + `x-ratelimit-remaining: 0`,
 403/429 + `Retry-After` (comment loops trigger the secondary limit), routine 5xx, NVIDIA
 429/503. A pull request review is also three long non-streaming calls — one per lens — so a
@@ -80,15 +80,15 @@ client.
 wait is logged.
 
 ### Expire and refresh installation tokens
-**Where:** `clients/github.ts::InstallationTokenProvider.tokens`
+**Where:** `external/github/client.ts::InstallationTokenProvider.tokens`
 **Why:** tokens are cached per repo forever; GitHub installation tokens live 1 hour, so a
 long run 401s halfway through with no recovery.
 **Do:** store `{ token, expiresAt }` — `/access_tokens` already returns `expires_at`, which
 the provider currently drops — treat as expired ~5 min early, re-mint; invalidate and retry
 once on any 401.
 
-### Turn `settings.ts` into real settings
-**Where:** `settings.ts`, `clients/llm.ts`, `logs.ts`
+### Turn `external/github/settings.ts` into real settings
+**Where:** `external/github/settings.ts`, `clients/llm.ts`, `logs.ts`
 **Why:** `REVIEWER_LOGIN`, `LABEL`, `LABEL_COLOR`, `NVIDIA_*`, and the log directory are
 scattered module constants. `REVIEWER_LOGIN = "kandy-angel[bot]"` hardcodes *your* App —
 nobody else can run this without editing source.
@@ -97,7 +97,7 @@ every remaining constant so each knob has one documented place, and fail with th
 when a value is wrong.
 
 ### Accept private key material, not just a path
-**Where:** `clients/github.ts`, `env.ts`
+**Where:** `external/github/client.ts`, `env.ts`
 **Why:** `ANGEL_GITHUB_PRIVATE_KEY_PATH` is path-only; containers and secrets managers hand
 you material, not a file — a hard blocker for containerised deployment.
 **Do:** support `ANGEL_GITHUB_PRIVATE_KEY` (raw or base64); warn if the `.pem` is
@@ -221,7 +221,7 @@ work". Make it configurable, log it per run, pin it — the completion ceiling n
 already reads from the environment, so follow that shape.
 
 ### Validate GitHub payloads at the boundary
-**Where:** `clients/http.ts::HttpResponse.json`, `clients/github.ts`
+**Where:** `clients/http.ts::HttpResponse.json`, `external/github/client.ts`
 **Why:** `json<T>()` casts; the `Api*` interfaces describe what GitHub is believed to return
 and nothing checks it. A renamed or missing field surfaces as `undefined` deep in a node
 rather than as an error naming the endpoint.

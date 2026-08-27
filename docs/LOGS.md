@@ -158,7 +158,7 @@ Dollars are not logged — see the token and cost accounting item in [`TODO.md`]
 
 ## Dry-run records
 
-A `--dry-run` run logs each write it suppressed, at `INFO`, from `angel.clients.github`. Both
+A `--dry-run` run logs each write it suppressed, at `INFO`, from `angel.external.github`. Both
 records carry `dry_run: true`, so one filter shows everything the run would have written:
 
 | Message | Context keys |

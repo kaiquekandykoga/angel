@@ -7,8 +7,9 @@ them, `prompts.ts` holds the system prompt, and `nodes.ts` holds factories that 
 dependencies (LLM client, GitHub client) and return the node function, so a graph can be
 built against fakes in tests. Shared across agents — the `Review` record, `ItemFailure`,
 `postReviewComments`, comment helpers, review output schemas and their markdown renderers —
-lives in `agents/shared.ts`. Dependencies sit behind interface seams in `apps/server/clients/`;
-the reviewer login, label, and label colour live in `apps/server/settings.ts`.
+lives in `agents/shared.ts`. Dependencies sit behind interface seams — the model in
+`apps/server/clients/`, GitHub in `apps/server/external/github/`, where the reviewer login,
+label, and label colour live too (`settings.ts`).
 `apps/server/index.ts` is the surface a UI imports — graphs, clients, and the record types,
 nothing deeper.
 

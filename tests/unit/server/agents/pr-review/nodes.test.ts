@@ -11,7 +11,7 @@ import { reviewMarker } from "../../../../../apps/server/agents/shared.js";
 import type {
   Comment,
   PullRequest,
-} from "../../../../../apps/server/clients/github.js";
+} from "../../../../../apps/server/external/github/client.js";
 import { FakeGitHubClient } from "../../../../helpers/github.js";
 import { contentsOf, FakeLlmClient } from "../../../../helpers/llm.js";
 import { useLogCapture } from "../../../../helpers/logs.js";

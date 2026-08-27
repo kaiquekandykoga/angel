@@ -1,18 +1,21 @@
 import { describe, expect, it } from "vitest";
 import {
+  HttpClient,
+  HttpStatusError,
+} from "../../../../../apps/server/clients/http.js";
+import {
   buildGithubClient,
   GITHUB_BASE_URL,
   HttpGitHubClient,
   MissingGitHubCredentialsError,
   type PullRequest,
   type TokenProvider,
-} from "../../../../apps/server/clients/github.js";
-import { HttpClient, HttpStatusError } from "../../../../apps/server/clients/http.js";
-import { resetEnvCache } from "../../../../packages/shared/env.js";
-import { FakeFetch } from "../../../helpers/fetch.js";
-import { loadFixture } from "../../../helpers/fixtures.js";
-import { rsaKeyPair } from "../../../helpers/keys.js";
-import { useTemporaryDirectory } from "../../../helpers/tmp.js";
+} from "../../../../../apps/server/external/github/client.js";
+import { resetEnvCache } from "../../../../../packages/shared/env.js";
+import { FakeFetch } from "../../../../helpers/fetch.js";
+import { loadFixture } from "../../../../helpers/fixtures.js";
+import { rsaKeyPair } from "../../../../helpers/keys.js";
+import { useTemporaryDirectory } from "../../../../helpers/tmp.js";
 
 const REPOSITORY = "monalisa/hello-world";
 

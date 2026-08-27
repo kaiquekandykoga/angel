@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildPrReviewGraph } from "../../../../../apps/server/agents/pr-review/graph.js";
 import { reviewMarker } from "../../../../../apps/server/agents/shared.js";
-import type { PullRequest } from "../../../../../apps/server/clients/github.js";
+import type { PullRequest } from "../../../../../apps/server/external/github/client.js";
 import { FakeGitHubClient } from "../../../../helpers/github.js";
 import { FakeLlmClient } from "../../../../helpers/llm.js";
 import { useLogCapture } from "../../../../helpers/logs.js";
