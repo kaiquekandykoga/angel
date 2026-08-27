@@ -3,7 +3,7 @@ import {
   HumanMessage,
   type StandardMessageStructure,
 } from "@langchain/core/messages";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import {
   buildLlmClient,
@@ -21,6 +21,8 @@ import { readJsonLines } from "../../helpers/logs.js";
 import { aiMessage, FakeChatModel } from "../../helpers/model.js";
 import { MemoryStream } from "../../helpers/stream.js";
 import { useTemporaryDirectory } from "../../helpers/tmp.js";
+
+vi.mock("dotenv", () => ({ config: vi.fn() }));
 
 const REVIEW = namedSchema(
   "Review",
