@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Multi-agent system for reviewing GitHub pull requests and issues, built on LangGraph",
   "license": "BSD-3-Clause",
-  "author": "Ka\u00edque Kandy Koga <kaiquekandykoga@gmail.com>",
+  "author": "Kaíque Kandy Koga <kaiquekandykoga@gmail.com>",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/kaiquekandykoga/angel.git"
@@ -54,7 +54,7 @@
     "@types/node": "^24.0.0",
     "@vitest/coverage-v8": "^4.1.11",
     "tsx": "^4.23.12",
-    "typescript": "^5.9.0",
+    "typescript": "^7.0.2",
     "vitest": "^4.1.11"
   },
   "main": "dist/main.js",

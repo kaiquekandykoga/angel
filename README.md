@@ -27,24 +27,6 @@ npm run angel chat       # talk to the model; no GitHub credentials needed
   retries, prompt-injection hardening, a deployment story. Open items only, grouped
   P0/P1/P2, conventions for new items at the top.
 
-## Limitations
-
-A working tool, not a hardened service. Before pointing it at anything you care about:
-
-- **Nothing schedules a run.** Both review commands are one-shot; no daemon, no webhook
-  listener.
-- **No rate-limit or backoff handling.** A run hitting GitHub's secondary limit fails the
-  affected items instead of waiting.
-- **Untrusted input reaches the model undelimited.** PR/issue bodies, comments, and diffs
-  are interpolated into the prompt, and the reply posts under the App's identity.
-- **The full diff is sent with no cap.** A lockfile touch can blow the context window.
-- **Installation tokens are cached for the run's life** and never refreshed, so a run
-  longer than an hour starts failing with 401s.
-- **The reviewer login is hardcoded** to `kandy-angel[bot]` in `src/settings.ts`; running
-  this as your own App means editing that constant.
-
-Each is tracked in [`docs/TODO.md`](docs/TODO.md).
-
 ## License
 
 BSD-3-Clause. See [`LICENSE`](LICENSE).
