@@ -53,6 +53,7 @@ token: the recorded installation token is a redacted placeholder.
 ## In CI
 
 `.github/workflows/ci.yml` runs the same three checks on every push and pull request: lint
-and typecheck and build once, then the test suite on Node 22 and 24. Nothing there needs a
-secret, since neither suite touches the network.
+and typecheck and build once on Linux, then the test suite across a matrix of Linux and
+macOS on Node 22 and 24 — four jobs, none of which fail fast. Nothing there needs a secret,
+since neither suite touches the network.
 </content>
