@@ -3,7 +3,11 @@ import {
   type BaseMessage,
   type StandardMessageStructure,
 } from "@langchain/core/messages";
-import type { ChatModel, ModelCallOptions, ModelReply } from "../../src/clients/llm.js";
+import type {
+  ChatModel,
+  ModelCallOptions,
+  ModelReply,
+} from "../../apps/server/clients/llm.js";
 
 export interface FakeReplyOptions {
   readonly finishReason?: string | null;

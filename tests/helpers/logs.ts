@@ -5,7 +5,7 @@ import {
   type LogRecord,
   resetHandlers,
   setHandlers,
-} from "../../src/logs.js";
+} from "../../packages/shared/logs.js";
 
 export function readJsonLines(path: string): Record<string, unknown>[] {
   return readFileSync(path, "utf8")

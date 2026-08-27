@@ -1,14 +1,16 @@
 # Graphs
 
 Each command is a [LangGraph](https://langchain-ai.github.io/langgraphjs/) state graph, one
-directory under `src/agents/` — `agents/chat/`, `agents/pr-review/`, `agents/issue-review/`.
+directory under `apps/server/agents/` — `chat/`, `pr-review/`, `issue-review/`.
 Inside each, `graph.ts` wires the nodes, `state.ts` declares the state threaded between
 them, `prompts.ts` holds the system prompt, and `nodes.ts` holds factories that take their
 dependencies (LLM client, GitHub client) and return the node function, so a graph can be
 built against fakes in tests. Shared across agents — the `Review` record, `ItemFailure`,
 `postReviewComments`, comment helpers, review output schemas and their markdown renderers —
-lives in `agents/shared.ts`. Dependencies sit behind interface seams in `src/clients/`; the
-reviewer login, label, and label colour live in `src/settings.ts`.
+lives in `agents/shared.ts`. Dependencies sit behind interface seams in `apps/server/clients/`;
+the reviewer login, label, and label colour live in `apps/server/settings.ts`.
+`apps/server/index.ts` is the surface a UI imports — graphs, clients, and the record types,
+nothing deeper.
 
 Both review agents ask the model for a schema, not prose: `LlmClient.completeStructured`
 binds the OpenAI-style `response_format` json_schema for `PullRequestReviewOutput` /
@@ -28,9 +30,9 @@ pointed at `https://integrate.api.nvidia.com/v1`; the client seam in `clients/ll
 
 ## `chat`
 
-An interactive assistant REPL over a one-node graph. `agents/chat/repl.ts` reads a line at a
-time, stops at `/exit` or Ctrl-D, holds the `threadId` generated at session start, and
-invokes the graph once per line. The conversation grows via LangGraph's
+An interactive assistant REPL over a one-node graph. `apps/cli/repl.ts` reads a line at a
+time and stops at `/exit` or Ctrl-D; the `ChatSession` in `agents/chat/session.ts` holds the
+`threadId` generated at session start and invokes the graph once per line. The conversation grows via LangGraph's
 `MessagesAnnotation` (`addMessages` reducer), and the compiled graph carries a checkpointer
 (`MemorySaver` by default), so each invocation appends to the same thread — history lives
 only in memory, gone when the process ends.

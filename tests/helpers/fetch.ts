@@ -1,4 +1,4 @@
-import type { FetchLike } from "../../src/clients/http.js";
+import type { FetchLike } from "../../apps/server/clients/http.js";
 
 export interface RecordedRequest {
   readonly method: string;

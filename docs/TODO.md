@@ -143,7 +143,7 @@ a least-surprise violation that gets Apps uninstalled in orgs.
 to review here".
 
 ### Finish the CLI flags
-**Where:** `cli.ts`, `main.ts`
+**Where:** `apps/cli/ui.ts`, `apps/cli/main.ts`
 **Why:** the parser handles subcommands, `--help`, `help <command>`, and `--dry-run` — but a
 run is still all-or-nothing: no way to target one repository, cap the work, or redirect the
 log, and no `--version` to put in a bug report.
@@ -264,7 +264,7 @@ intent.
 for a bot commenting publicly under your identity.
 
 ### Fail with a message, not a stack trace
-**Where:** `main.ts::buildClients`, `agents/chat/repl.ts`
+**Where:** `apps/cli/main.ts::buildClients`, `apps/cli/repl.ts`
 **Why:** `main()` maps only `MissingApiKeyError`, `InvalidMaxCompletionTokensError`, and
 `MissingGitHubCredentialsError` to an exit message. A typo in
 `ANGEL_GITHUB_PRIVATE_KEY_PATH` isn't a missing variable, so `buildGithubClient` throws a

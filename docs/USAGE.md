@@ -26,7 +26,7 @@ same behavior:
 
 ```bash
 npm run build
-node dist/bin.js chat
+node dist/apps/cli/bin.js chat
 ```
 
 Preview what a review run would post, without posting anything (needs the GitHub App
@@ -36,7 +36,7 @@ variables):
 npm run angel pr_review -- --dry-run
 ```
 
-> `npm run` swallows flags unless separated with `--`. `node dist/bin.js pr_review
+> `npm run` swallows flags unless separated with `--`. `node dist/apps/cli/bin.js pr_review
 > --dry-run` or an installed `angel pr_review --dry-run` needs no separator.
 
 ## Commands
