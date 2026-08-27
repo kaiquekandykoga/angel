@@ -86,8 +86,8 @@ def test_main_runs_chat_flow_without_needing_a_github_token(monkeypatch, fake_cl
 def test_main_runs_pr_review_flow_and_prints_one_line_per_pr(
     monkeypatch, capsys, fake_client, fake_github
 ):
-    pr_a = PullRequest("kaiquekandykoga/nishikihebi", 1, "pr a", "body a", "sha-a")
-    fake_github.pull_requests = {"kaiquekandykoga/nishikihebi": [pr_a]}
+    pr_a = PullRequest("monalisa/hello-world", 1, "pr a", "body a", "sha-a")
+    fake_github.pull_requests = {"monalisa/hello-world": [pr_a]}
     fake_github.diffs = {pr_a: "diff a"}
     fake_github.label(pr_a, "nishikihebi")
     monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
@@ -98,7 +98,7 @@ def test_main_runs_pr_review_flow_and_prints_one_line_per_pr(
     nishikihebi.__main__.main(["pr_review"])
 
     out = capsys.readouterr().out
-    assert "kaiquekandykoga/nishikihebi" in out
+    assert "monalisa/hello-world" in out
     assert "1" in out
 
 
@@ -121,7 +121,7 @@ def test_main_reports_when_there_is_nothing_to_review_for_pr_review(
 def test_main_exits_nonzero_when_a_pull_request_review_fails(
     monkeypatch, capsys, fake_client, fake_github
 ):
-    repository = "kaiquekandykoga/nishikihebi"
+    repository = "monalisa/hello-world"
     pull_requests = [
         PullRequest(
             repository, number, f"pr {number}", f"body {number}", f"sha-{number}"
@@ -159,7 +159,7 @@ def test_main_exits_nonzero_when_a_pull_request_review_fails(
 def test_main_exits_nonzero_when_an_issue_review_fails(
     monkeypatch, capsys, fake_client, fake_github
 ):
-    repository = "kaiquekandykoga/nishikihebi"
+    repository = "monalisa/hello-world"
     issues = [
         Issue(
             repository,
@@ -200,7 +200,7 @@ def test_main_exits_nonzero_when_an_issue_review_fails(
 def test_main_exits_nonzero_when_every_pull_request_fails_with_none_reviewed(
     monkeypatch, capsys, fake_client, fake_github
 ):
-    repository = "kaiquekandykoga/nishikihebi"
+    repository = "monalisa/hello-world"
     pr = PullRequest(repository, 1, "pr", "body", "sha-1")
     fake_github.pull_requests = {repository: [pr]}
     fake_github.label(pr, "nishikihebi")
@@ -225,7 +225,7 @@ def test_main_exits_nonzero_when_every_pull_request_fails_with_none_reviewed(
 def test_main_prints_a_readable_failure_summary_to_stderr(
     monkeypatch, capsys, fake_client, fake_github
 ):
-    repository = "kaiquekandykoga/nishikihebi"
+    repository = "monalisa/hello-world"
     pr = PullRequest(repository, 1, "pr", "body", "sha-1")
     fake_github.pull_requests = {repository: [pr]}
     fake_github.diffs = {pr: "diff"}
@@ -254,7 +254,7 @@ def test_main_prints_a_readable_failure_summary_to_stderr(
 def test_main_does_not_double_count_a_post_stage_failure_in_the_summary(
     monkeypatch, capsys, fake_client, fake_github
 ):
-    repository = "kaiquekandykoga/nishikihebi"
+    repository = "monalisa/hello-world"
     pull_requests = [
         PullRequest(
             repository, number, f"pr {number}", f"body {number}", f"sha-{number}"
@@ -289,7 +289,7 @@ def test_main_does_not_double_count_a_post_stage_failure_in_the_summary(
 def test_main_counts_each_item_once_across_review_and_post_failures(
     monkeypatch, capsys, fake_client, fake_github
 ):
-    repository = "kaiquekandykoga/nishikihebi"
+    repository = "monalisa/hello-world"
     pull_requests = [
         PullRequest(
             repository, number, f"pr {number}", f"body {number}", f"sha-{number}"
@@ -344,9 +344,9 @@ def test_main_runs_issue_review_flow_and_prints_one_line_per_issue(
     monkeypatch, capsys, fake_client, fake_github
 ):
     issue_a = Issue(
-        "kaiquekandykoga/nishikihebi", 1, "issue a", "body a", "2026-08-01T00:00:00Z"
+        "monalisa/hello-world", 1, "issue a", "body a", "2026-08-01T00:00:00Z"
     )
-    fake_github.issues = {"kaiquekandykoga/nishikihebi": [issue_a]}
+    fake_github.issues = {"monalisa/hello-world": [issue_a]}
     fake_github.label(issue_a, "nishikihebi")
     monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
     monkeypatch.setattr(
@@ -356,7 +356,7 @@ def test_main_runs_issue_review_flow_and_prints_one_line_per_issue(
     nishikihebi.__main__.main(["issue_review"])
 
     out = capsys.readouterr().out
-    assert "kaiquekandykoga/nishikihebi" in out
+    assert "monalisa/hello-world" in out
     assert "1" in out
 
 
@@ -396,8 +396,8 @@ def test_main_exits_when_github_token_missing_for_issue_review(
 def test_main_dry_run_wraps_github_client_and_prints_review_body_for_pr_review(
     monkeypatch, capsys, fake_client, fake_github
 ):
-    pr_a = PullRequest("kaiquekandykoga/nishikihebi", 1, "pr a", "body a", "sha-a")
-    fake_github.pull_requests = {"kaiquekandykoga/nishikihebi": [pr_a]}
+    pr_a = PullRequest("monalisa/hello-world", 1, "pr a", "body a", "sha-a")
+    fake_github.pull_requests = {"monalisa/hello-world": [pr_a]}
     fake_github.diffs = {pr_a: "diff a"}
     fake_github.label(pr_a, "nishikihebi")
     monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
@@ -417,7 +417,7 @@ def test_main_dry_run_wraps_github_client_and_prints_review_body_for_pr_review(
 
     assert isinstance(captured["github"], DryRunGitHubClient)
     out = capsys.readouterr().out
-    assert "kaiquekandykoga/nishikihebi#1" in out.splitlines()
+    assert "monalisa/hello-world#1" in out.splitlines()
     assert "fake summary" in out
     assert "Commented on" not in out
     assert fake_github.posted_comments == []
@@ -426,8 +426,8 @@ def test_main_dry_run_wraps_github_client_and_prints_review_body_for_pr_review(
 def test_main_dry_run_before_command_parses_the_same_as_after(
     monkeypatch, capsys, fake_client, fake_github
 ):
-    pr_a = PullRequest("kaiquekandykoga/nishikihebi", 1, "pr a", "body a", "sha-a")
-    fake_github.pull_requests = {"kaiquekandykoga/nishikihebi": [pr_a]}
+    pr_a = PullRequest("monalisa/hello-world", 1, "pr a", "body a", "sha-a")
+    fake_github.pull_requests = {"monalisa/hello-world": [pr_a]}
     fake_github.diffs = {pr_a: "diff a"}
     fake_github.label(pr_a, "nishikihebi")
     monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
@@ -447,7 +447,7 @@ def test_main_dry_run_before_command_parses_the_same_as_after(
 
     assert isinstance(captured["github"], DryRunGitHubClient)
     out = capsys.readouterr().out
-    assert "kaiquekandykoga/nishikihebi#1" in out.splitlines()
+    assert "monalisa/hello-world#1" in out.splitlines()
     assert "Commented on" not in out
 
 
@@ -455,9 +455,9 @@ def test_main_dry_run_wraps_github_client_and_prints_review_body_for_issue_revie
     monkeypatch, capsys, fake_client, fake_github
 ):
     issue_a = Issue(
-        "kaiquekandykoga/nishikihebi", 1, "issue a", "body a", "2026-08-01T00:00:00Z"
+        "monalisa/hello-world", 1, "issue a", "body a", "2026-08-01T00:00:00Z"
     )
-    fake_github.issues = {"kaiquekandykoga/nishikihebi": [issue_a]}
+    fake_github.issues = {"monalisa/hello-world": [issue_a]}
     fake_github.label(issue_a, "nishikihebi")
     monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
     monkeypatch.setattr(
@@ -476,7 +476,7 @@ def test_main_dry_run_wraps_github_client_and_prints_review_body_for_issue_revie
 
     assert isinstance(captured["github"], DryRunGitHubClient)
     out = capsys.readouterr().out
-    assert "kaiquekandykoga/nishikihebi#1" in out.splitlines()
+    assert "monalisa/hello-world#1" in out.splitlines()
     assert "Commented on" not in out
     assert fake_github.posted_comments == []
 
@@ -484,8 +484,8 @@ def test_main_dry_run_wraps_github_client_and_prints_review_body_for_issue_revie
 def test_main_non_dry_run_passes_the_raw_github_client_through(
     monkeypatch, capsys, fake_client, fake_github
 ):
-    pr_a = PullRequest("kaiquekandykoga/nishikihebi", 1, "pr a", "body a", "sha-a")
-    fake_github.pull_requests = {"kaiquekandykoga/nishikihebi": [pr_a]}
+    pr_a = PullRequest("monalisa/hello-world", 1, "pr a", "body a", "sha-a")
+    fake_github.pull_requests = {"monalisa/hello-world": [pr_a]}
     fake_github.diffs = {pr_a: "diff a"}
     fake_github.label(pr_a, "nishikihebi")
     monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
@@ -505,7 +505,7 @@ def test_main_non_dry_run_passes_the_raw_github_client_through(
 
     assert captured["github"] is fake_github
     out = capsys.readouterr().out
-    assert "Commented on kaiquekandykoga/nishikihebi#1" in out
+    assert "Commented on monalisa/hello-world#1" in out
 
 
 def test_main_dry_run_reports_when_there_is_nothing_to_review(
@@ -526,7 +526,7 @@ def test_main_dry_run_reports_when_there_is_nothing_to_review(
 def test_main_dry_run_still_exits_nonzero_when_a_pull_request_review_fails(
     monkeypatch, capsys, fake_client, fake_github
 ):
-    repository = "kaiquekandykoga/nishikihebi"
+    repository = "monalisa/hello-world"
     pull_requests = [
         PullRequest(
             repository, number, f"pr {number}", f"body {number}", f"sha-{number}"
@@ -711,7 +711,7 @@ def _label_and_diff(fake_github, pr):
 def test_main_prints_run_reviews_usage_sections_in_order(
     monkeypatch, capsys, fake_client, fake_github
 ):
-    pr_a = PullRequest("kaiquekandykoga/nishikihebi", 1, "pr a", "body a", "sha-a")
+    pr_a = PullRequest("monalisa/hello-world", 1, "pr a", "body a", "sha-a")
     _label_and_diff(fake_github, pr_a)
     monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
     monkeypatch.setattr(
@@ -727,7 +727,7 @@ def test_main_prints_run_reviews_usage_sections_in_order(
 def test_main_usage_section_reports_the_tally(
     monkeypatch, capsys, fake_client, fake_github
 ):
-    pr_a = PullRequest("kaiquekandykoga/nishikihebi", 1, "pr a", "body a", "sha-a")
+    pr_a = PullRequest("monalisa/hello-world", 1, "pr a", "body a", "sha-a")
     _label_and_diff(fake_github, pr_a)
     monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
     monkeypatch.setattr(
@@ -772,7 +772,7 @@ def test_main_usage_section_reports_the_tally(
 def test_main_prints_usage_section_before_exiting_on_failure(
     monkeypatch, capsys, fake_client, fake_github
 ):
-    repository = "kaiquekandykoga/nishikihebi"
+    repository = "monalisa/hello-world"
     pull_requests = [
         PullRequest(
             repository, number, f"pr {number}", f"body {number}", f"sha-{number}"
@@ -809,7 +809,7 @@ def test_main_prints_usage_section_before_exiting_on_failure(
 def test_main_colors_output_when_nishikihebi_color_is_always(
     monkeypatch, capsys, fake_client, fake_github
 ):
-    pr_a = PullRequest("kaiquekandykoga/nishikihebi", 1, "pr a", "body a", "sha-a")
+    pr_a = PullRequest("monalisa/hello-world", 1, "pr a", "body a", "sha-a")
     _label_and_diff(fake_github, pr_a)
     monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
     monkeypatch.setattr(
@@ -823,14 +823,14 @@ def test_main_colors_output_when_nishikihebi_color_is_always(
     out = capsys.readouterr().out
     assert "\x1b" in out
     stripped = re.sub(r"\x1b\[[0-9;]*m", "", out)
-    assert "Commented on kaiquekandykoga/nishikihebi#1" in stripped
+    assert "Commented on monalisa/hello-world#1" in stripped
     assert stripped.index("Run") < stripped.index("Reviews") < stripped.index("Usage")
 
 
 def test_main_does_not_color_output_when_nishikihebi_color_is_never(
     monkeypatch, capsys, fake_client, fake_github
 ):
-    pr_a = PullRequest("kaiquekandykoga/nishikihebi", 1, "pr a", "body a", "sha-a")
+    pr_a = PullRequest("monalisa/hello-world", 1, "pr a", "body a", "sha-a")
     _label_and_diff(fake_github, pr_a)
     monkeypatch.setattr(nishikihebi.__main__, "build_llm_client", lambda: fake_client)
     monkeypatch.setattr(

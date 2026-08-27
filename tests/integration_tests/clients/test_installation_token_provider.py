@@ -14,7 +14,7 @@ def test_returns_installation_access_token_for_repository(rsa_key_pair):
 
     def handler(request: httpx.Request) -> httpx.Response:
         requests.append(request)
-        if request.url.path == "/repos/kaiquekandykoga/nishikihebi/installation":
+        if request.url.path == "/repos/monalisa/hello-world/installation":
             return httpx.Response(200, json={"id": 123})
         if request.url.path == "/app/installations/123/access_tokens":
             return httpx.Response(201, json={"token": "installation-token"})
@@ -27,11 +27,11 @@ def test_returns_installation_access_token_for_repository(rsa_key_pair):
         http_client, app_id="app-1", private_key=private_key
     )
 
-    token = provider("kaiquekandykoga/nishikihebi")
+    token = provider("monalisa/hello-world")
 
     assert token == "installation-token"
     assert [request.url.path for request in requests] == [
-        "/repos/kaiquekandykoga/nishikihebi/installation",
+        "/repos/monalisa/hello-world/installation",
         "/app/installations/123/access_tokens",
     ]
     for request in requests:
@@ -46,7 +46,7 @@ def test_returns_installation_access_token_for_repository(rsa_key_pair):
 def test_list_repositories_spans_every_installation(rsa_key_pair):
     private_key, _public_key = rsa_key_pair
     repositories_by_token = {
-        "token-1": ["kaiquekandykoga/nishikihebi", "kaiquekandykoga/a"],
+        "token-1": ["monalisa/hello-world", "monalisa/a"],
         "token-2": ["someone-else/b"],
     }
 
@@ -80,8 +80,8 @@ def test_list_repositories_spans_every_installation(rsa_key_pair):
     repositories = provider.list_repositories()
 
     assert repositories == [
-        "kaiquekandykoga/nishikihebi",
-        "kaiquekandykoga/a",
+        "monalisa/hello-world",
+        "monalisa/a",
         "someone-else/b",
     ]
 
@@ -94,7 +94,7 @@ def test_list_repositories_caches_the_token_of_each_repository(
         return_value=httpx.Response(200, json=load_fixture("github/installations.json"))
     )
     respx_mock.post(
-        f"{GITHUB_BASE_URL}/app/installations/91733042/access_tokens"
+        f"{GITHUB_BASE_URL}/app/installations/12345678/access_tokens"
     ).mock(
         return_value=httpx.Response(201, json=load_fixture("github/access_token.json"))
     )
@@ -111,7 +111,7 @@ def test_list_repositories_caches_the_token_of_each_repository(
     provider.list_repositories()
     request_count_after_listing = len(respx_mock.calls)
 
-    token = provider("kaiquekandykoga/nishikihebi")
+    token = provider("monalisa/hello-world")
     assert token == "ghs_REDACTEDINSTALLATIONTOKEN0000000000"
     assert len(respx_mock.calls) == request_count_after_listing
 
@@ -123,10 +123,10 @@ def test_caches_installation_token_per_repository(
     installation = load_fixture("github/installations.json")[0]
 
     respx_mock.get(
-        f"{GITHUB_BASE_URL}/repos/kaiquekandykoga/nishikihebi/installation"
+        f"{GITHUB_BASE_URL}/repos/monalisa/hello-world/installation"
     ).mock(return_value=httpx.Response(200, json=installation))
     respx_mock.post(
-        f"{GITHUB_BASE_URL}/app/installations/91733042/access_tokens"
+        f"{GITHUB_BASE_URL}/app/installations/12345678/access_tokens"
     ).mock(
         return_value=httpx.Response(201, json=load_fixture("github/access_token.json"))
     )
@@ -135,9 +135,9 @@ def test_caches_installation_token_per_repository(
         httpx.Client(base_url=GITHUB_BASE_URL), app_id="app-1", private_key=private_key
     )
 
-    first = provider("kaiquekandykoga/nishikihebi")
+    first = provider("monalisa/hello-world")
     request_count_after_first_call = len(respx_mock.calls)
-    second = provider("kaiquekandykoga/nishikihebi")
+    second = provider("monalisa/hello-world")
 
     assert first == second == "ghs_REDACTEDINSTALLATIONTOKEN0000000000"
     assert len(respx_mock.calls) == request_count_after_first_call
@@ -168,7 +168,7 @@ def test_list_repositories_follows_link_header_pagination(
         return_value=httpx.Response(200, json=load_fixture("github/installations.json"))
     )
     respx_mock.post(
-        f"{GITHUB_BASE_URL}/app/installations/91733042/access_tokens"
+        f"{GITHUB_BASE_URL}/app/installations/12345678/access_tokens"
     ).mock(
         return_value=httpx.Response(201, json=load_fixture("github/access_token.json"))
     )
@@ -183,8 +183,8 @@ def test_list_repositories_follows_link_header_pagination(
     repositories = provider.list_repositories()
 
     assert set(repositories) == {
-        "kaiquekandykoga/nishikihebi",
-        "kaiquekandykoga/dotfiles",
+        "monalisa/hello-world",
+        "monalisa/octo-repo",
     }
 
 
@@ -193,8 +193,8 @@ def test_list_repositories_follows_link_header_pagination_across_installations(
 ):
     private_key, _public_key = rsa_key_pair
     repositories_by_installation = {
-        91733042: "kaiquekandykoga/nishikihebi",
-        91733099: "kaiquekandykoga/dotfiles",
+        12345678: "monalisa/hello-world",
+        12345679: "monalisa/octo-repo",
     }
 
     def installations_responder(request: httpx.Request) -> httpx.Response:
@@ -228,11 +228,11 @@ def test_list_repositories_follows_link_header_pagination_across_installations(
     respx_mock.get(f"{GITHUB_BASE_URL}/app/installations").mock(
         side_effect=installations_responder
     )
-    respx_mock.post(f"{GITHUB_BASE_URL}/app/installations/91733042/access_tokens").mock(
-        return_value=httpx.Response(201, json={"token": "token-for-91733042"})
+    respx_mock.post(f"{GITHUB_BASE_URL}/app/installations/12345678/access_tokens").mock(
+        return_value=httpx.Response(201, json={"token": "token-for-12345678"})
     )
-    respx_mock.post(f"{GITHUB_BASE_URL}/app/installations/91733099/access_tokens").mock(
-        return_value=httpx.Response(201, json={"token": "token-for-91733099"})
+    respx_mock.post(f"{GITHUB_BASE_URL}/app/installations/12345679/access_tokens").mock(
+        return_value=httpx.Response(201, json={"token": "token-for-12345679"})
     )
     respx_mock.get(f"{GITHUB_BASE_URL}/installation/repositories").mock(
         side_effect=repositories_responder
@@ -245,6 +245,6 @@ def test_list_repositories_follows_link_header_pagination_across_installations(
     repositories = provider.list_repositories()
 
     assert set(repositories) == {
-        "kaiquekandykoga/nishikihebi",
-        "kaiquekandykoga/dotfiles",
+        "monalisa/hello-world",
+        "monalisa/octo-repo",
     }

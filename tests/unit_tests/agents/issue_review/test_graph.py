@@ -45,9 +45,9 @@ def test_build_issue_review_graph_logs_wiring_and_ready(
 
 def test_graph_posts_comment_for_never_reviewed_issue(fake_client, fake_github):
     issue_a = Issue(
-        "kaiquekandykoga/nishikihebi", 1, "issue a", "body a", "2026-08-01T00:00:00Z"
+        "monalisa/hello-world", 1, "issue a", "body a", "2026-08-01T00:00:00Z"
     )
-    fake_github.issues = {"kaiquekandykoga/nishikihebi": [issue_a]}
+    fake_github.issues = {"monalisa/hello-world": [issue_a]}
     fake_github.label(issue_a, LABEL)
     graph = build_issue_review_graph(
         fake_client,
@@ -66,9 +66,9 @@ def test_graph_posts_no_comment_for_already_reviewed_unchanged_issue(
     fake_client, fake_github
 ):
     issue_a = Issue(
-        "kaiquekandykoga/nishikihebi", 1, "issue a", "body a", "2026-08-01T00:00:00Z"
+        "monalisa/hello-world", 1, "issue a", "body a", "2026-08-01T00:00:00Z"
     )
-    fake_github.issues = {"kaiquekandykoga/nishikihebi": [issue_a]}
+    fake_github.issues = {"monalisa/hello-world": [issue_a]}
     fake_github.comments = {
         issue_a: [Comment(REVIEWER_LOGIN, "reviewed", "2026-08-01T00:00:00Z")]
     }

@@ -1,17 +1,17 @@
 [
   {
-    "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/comments/3211884471",
-    "html_url": "https://github.com/kaiquekandykoga/nishikihebi/pull/41#issuecomment-3211884471",
-    "issue_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/41",
+    "url": "https://api.github.com/repos/monalisa/hello-world/issues/comments/3211884471",
+    "html_url": "https://github.com/monalisa/hello-world/pull/41#issuecomment-3211884471",
+    "issue_url": "https://api.github.com/repos/monalisa/hello-world/issues/41",
     "id": 3211884471,
-    "node_id": "IC_kwDOPXwRr87Le5s3",
+    "node_id": "IC_kwDOEXAMPLE17Le5s3",
     "user": {
-      "login": "kaiquekandykoga",
-      "id": 22661138,
-      "node_id": "MDQ6VXNlcjIyNjYxMTM4",
-      "avatar_url": "https://avatars.githubusercontent.com/u/22661138?v=4",
-      "url": "https://api.github.com/users/kaiquekandykoga",
-      "html_url": "https://github.com/kaiquekandykoga",
+      "login": "monalisa",
+      "id": 1234567,
+      "node_id": "MDQ6VXNlcjEyMzQ1Njc=",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1234567?v=4",
+      "url": "https://api.github.com/users/monalisa",
+      "html_url": "https://github.com/monalisa",
       "type": "User",
       "user_view_type": "public",
       "site_admin": false
@@ -21,7 +21,7 @@
     "author_association": "OWNER",
     "body": "Ready for a look.",
     "reactions": {
-      "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/comments/3211884471/reactions",
+      "url": "https://api.github.com/repos/monalisa/hello-world/issues/comments/3211884471/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -35,11 +35,11 @@
     "performed_via_github_app": null
   },
   {
-    "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/comments/3211890114",
-    "html_url": "https://github.com/kaiquekandykoga/nishikihebi/pull/41#issuecomment-3211890114",
-    "issue_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/41",
+    "url": "https://api.github.com/repos/monalisa/hello-world/issues/comments/3211890114",
+    "html_url": "https://github.com/monalisa/hello-world/pull/41#issuecomment-3211890114",
+    "issue_url": "https://api.github.com/repos/monalisa/hello-world/issues/41",
     "id": 3211890114,
-    "node_id": "IC_kwDOPXwRr87LfDDC",
+    "node_id": "IC_kwDOEXAMPLE17LfDDC",
     "user": {
       "login": "octocat",
       "id": 583231,
@@ -56,7 +56,7 @@
     "author_association": "NONE",
     "body": null,
     "reactions": {
-      "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/comments/3211890114/reactions",
+      "url": "https://api.github.com/repos/monalisa/hello-world/issues/comments/3211890114/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,

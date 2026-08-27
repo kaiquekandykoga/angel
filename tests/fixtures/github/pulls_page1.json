@@ -1,24 +1,24 @@
 [
   {
-    "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/pulls/41",
+    "url": "https://api.github.com/repos/monalisa/hello-world/pulls/41",
     "id": 2419883512,
-    "node_id": "PR_kwDOPXwRr86Zb1x4",
-    "html_url": "https://github.com/kaiquekandykoga/nishikihebi/pull/41",
-    "diff_url": "https://github.com/kaiquekandykoga/nishikihebi/pull/41.diff",
-    "patch_url": "https://github.com/kaiquekandykoga/nishikihebi/pull/41.patch",
-    "issue_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/41",
+    "node_id": "PR_kwDOEXAMPLE16Zb1x4",
+    "html_url": "https://github.com/monalisa/hello-world/pull/41",
+    "diff_url": "https://github.com/monalisa/hello-world/pull/41.diff",
+    "patch_url": "https://github.com/monalisa/hello-world/pull/41.patch",
+    "issue_url": "https://api.github.com/repos/monalisa/hello-world/issues/41",
     "number": 41,
     "state": "open",
     "locked": false,
     "title": "Paginate every GitHub list call",
     "user": {
-      "login": "kaiquekandykoga",
-      "id": 22661138,
-      "node_id": "MDQ6VXNlcjIyNjYxMTM4",
-      "avatar_url": "https://avatars.githubusercontent.com/u/22661138?v=4",
+      "login": "monalisa",
+      "id": 1234567,
+      "node_id": "MDQ6VXNlcjEyMzQ1Njc=",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1234567?v=4",
       "gravatar_id": "",
-      "url": "https://api.github.com/users/kaiquekandykoga",
-      "html_url": "https://github.com/kaiquekandykoga",
+      "url": "https://api.github.com/users/monalisa",
+      "html_url": "https://github.com/monalisa",
       "type": "User",
       "user_view_type": "public",
       "site_admin": false
@@ -36,8 +36,8 @@
     "labels": [
       {
         "id": 9481120334,
-        "node_id": "LA_kwDOPXwRr88AAAACaHqXjg",
-        "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/labels/nishikihebi",
+        "node_id": "LA_kwDOEXAMPLE18AAAACaHqXjg",
+        "url": "https://api.github.com/repos/monalisa/hello-world/labels/nishikihebi",
         "name": "nishikihebi",
         "color": "f709c2",
         "default": false,
@@ -46,69 +46,69 @@
     ],
     "milestone": null,
     "draft": false,
-    "commits_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/pulls/41/commits",
-    "review_comments_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/pulls/41/comments",
-    "review_comment_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/pulls/comments{/number}",
-    "comments_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/41/comments",
-    "statuses_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/statuses/9f1b0c4bd2a54a1e6e2b7dbb1a0dd4b13ec2f0a1",
+    "commits_url": "https://api.github.com/repos/monalisa/hello-world/pulls/41/commits",
+    "review_comments_url": "https://api.github.com/repos/monalisa/hello-world/pulls/41/comments",
+    "review_comment_url": "https://api.github.com/repos/monalisa/hello-world/pulls/comments{/number}",
+    "comments_url": "https://api.github.com/repos/monalisa/hello-world/issues/41/comments",
+    "statuses_url": "https://api.github.com/repos/monalisa/hello-world/statuses/9f1b0c4bd2a54a1e6e2b7dbb1a0dd4b13ec2f0a1",
     "head": {
-      "label": "kaiquekandykoga:paginate-list-calls",
+      "label": "monalisa:paginate-list-calls",
       "ref": "paginate-list-calls",
       "sha": "9f1b0c4bd2a54a1e6e2b7dbb1a0dd4b13ec2f0a1",
       "user": {
-        "login": "kaiquekandykoga",
-        "id": 22661138,
+        "login": "monalisa",
+        "id": 1234567,
         "type": "User",
         "site_admin": false
       },
       "repo": {
-        "id": 1031573935,
-        "node_id": "R_kgDOPXwRrw",
+        "id": 1000000001,
+        "node_id": "R_kgDOEXAMPLE1",
         "name": "nishikihebi",
-        "full_name": "kaiquekandykoga/nishikihebi",
+        "full_name": "monalisa/hello-world",
         "private": false,
-        "html_url": "https://github.com/kaiquekandykoga/nishikihebi",
+        "html_url": "https://github.com/monalisa/hello-world",
         "description": "Multi-Agent System using Python",
         "fork": false,
-        "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi",
+        "url": "https://api.github.com/repos/monalisa/hello-world",
         "default_branch": "master"
       }
     },
     "base": {
-      "label": "kaiquekandykoga:master",
+      "label": "monalisa:master",
       "ref": "master",
       "sha": "41880bf3b1cbb7d3a3a1b7c2f9e0c3fd2a5b6e77",
       "user": {
-        "login": "kaiquekandykoga",
-        "id": 22661138,
+        "login": "monalisa",
+        "id": 1234567,
         "type": "User",
         "site_admin": false
       },
       "repo": {
-        "id": 1031573935,
-        "node_id": "R_kgDOPXwRrw",
+        "id": 1000000001,
+        "node_id": "R_kgDOEXAMPLE1",
         "name": "nishikihebi",
-        "full_name": "kaiquekandykoga/nishikihebi",
+        "full_name": "monalisa/hello-world",
         "private": false,
-        "html_url": "https://github.com/kaiquekandykoga/nishikihebi",
+        "html_url": "https://github.com/monalisa/hello-world",
         "description": "Multi-Agent System using Python",
         "fork": false,
-        "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi",
+        "url": "https://api.github.com/repos/monalisa/hello-world",
         "default_branch": "master"
       }
     },
     "_links": {
       "self": {
-        "href": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/pulls/41"
+        "href": "https://api.github.com/repos/monalisa/hello-world/pulls/41"
       },
       "html": {
-        "href": "https://github.com/kaiquekandykoga/nishikihebi/pull/41"
+        "href": "https://github.com/monalisa/hello-world/pull/41"
       },
       "issue": {
-        "href": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/41"
+        "href": "https://api.github.com/repos/monalisa/hello-world/issues/41"
       },
       "comments": {
-        "href": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/41/comments"
+        "href": "https://api.github.com/repos/monalisa/hello-world/issues/41/comments"
       }
     },
     "author_association": "OWNER",
@@ -116,13 +116,13 @@
     "active_lock_reason": null
   },
   {
-    "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/pulls/40",
+    "url": "https://api.github.com/repos/monalisa/hello-world/pulls/40",
     "id": 2419712004,
-    "node_id": "PR_kwDOPXwRr86ZbLzE",
-    "html_url": "https://github.com/kaiquekandykoga/nishikihebi/pull/40",
-    "diff_url": "https://github.com/kaiquekandykoga/nishikihebi/pull/40.diff",
-    "patch_url": "https://github.com/kaiquekandykoga/nishikihebi/pull/40.patch",
-    "issue_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/40",
+    "node_id": "PR_kwDOEXAMPLE16ZbLzE",
+    "html_url": "https://github.com/monalisa/hello-world/pull/40",
+    "diff_url": "https://github.com/monalisa/hello-world/pull/40.diff",
+    "patch_url": "https://github.com/monalisa/hello-world/pull/40.patch",
+    "issue_url": "https://api.github.com/repos/monalisa/hello-world/issues/40",
     "number": 40,
     "state": "open",
     "locked": false,
@@ -152,8 +152,8 @@
     "labels": [
       {
         "id": 9481120901,
-        "node_id": "LA_kwDOPXwRr88AAAACaHqZxQ",
-        "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/labels/dependencies",
+        "node_id": "LA_kwDOEXAMPLE18AAAACaHqZxQ",
+        "url": "https://api.github.com/repos/monalisa/hello-world/labels/dependencies",
         "name": "dependencies",
         "color": "0366d6",
         "default": false,
@@ -162,69 +162,69 @@
     ],
     "milestone": null,
     "draft": false,
-    "commits_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/pulls/40/commits",
-    "review_comments_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/pulls/40/comments",
-    "review_comment_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/pulls/comments{/number}",
-    "comments_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/40/comments",
-    "statuses_url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/statuses/3d9f8e7c6b5a49382716f5e4d3c2b1a09f8e7d6c",
+    "commits_url": "https://api.github.com/repos/monalisa/hello-world/pulls/40/commits",
+    "review_comments_url": "https://api.github.com/repos/monalisa/hello-world/pulls/40/comments",
+    "review_comment_url": "https://api.github.com/repos/monalisa/hello-world/pulls/comments{/number}",
+    "comments_url": "https://api.github.com/repos/monalisa/hello-world/issues/40/comments",
+    "statuses_url": "https://api.github.com/repos/monalisa/hello-world/statuses/3d9f8e7c6b5a49382716f5e4d3c2b1a09f8e7d6c",
     "head": {
-      "label": "kaiquekandykoga:dependabot/uv/uv-lock",
+      "label": "monalisa:dependabot/uv/uv-lock",
       "ref": "dependabot/uv/uv-lock",
       "sha": "3d9f8e7c6b5a49382716f5e4d3c2b1a09f8e7d6c",
       "user": {
-        "login": "kaiquekandykoga",
-        "id": 22661138,
+        "login": "monalisa",
+        "id": 1234567,
         "type": "User",
         "site_admin": false
       },
       "repo": {
-        "id": 1031573935,
-        "node_id": "R_kgDOPXwRrw",
+        "id": 1000000001,
+        "node_id": "R_kgDOEXAMPLE1",
         "name": "nishikihebi",
-        "full_name": "kaiquekandykoga/nishikihebi",
+        "full_name": "monalisa/hello-world",
         "private": false,
-        "html_url": "https://github.com/kaiquekandykoga/nishikihebi",
+        "html_url": "https://github.com/monalisa/hello-world",
         "description": "Multi-Agent System using Python",
         "fork": false,
-        "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi",
+        "url": "https://api.github.com/repos/monalisa/hello-world",
         "default_branch": "master"
       }
     },
     "base": {
-      "label": "kaiquekandykoga:master",
+      "label": "monalisa:master",
       "ref": "master",
       "sha": "41880bf3b1cbb7d3a3a1b7c2f9e0c3fd2a5b6e77",
       "user": {
-        "login": "kaiquekandykoga",
-        "id": 22661138,
+        "login": "monalisa",
+        "id": 1234567,
         "type": "User",
         "site_admin": false
       },
       "repo": {
-        "id": 1031573935,
-        "node_id": "R_kgDOPXwRrw",
+        "id": 1000000001,
+        "node_id": "R_kgDOEXAMPLE1",
         "name": "nishikihebi",
-        "full_name": "kaiquekandykoga/nishikihebi",
+        "full_name": "monalisa/hello-world",
         "private": false,
-        "html_url": "https://github.com/kaiquekandykoga/nishikihebi",
+        "html_url": "https://github.com/monalisa/hello-world",
         "description": "Multi-Agent System using Python",
         "fork": false,
-        "url": "https://api.github.com/repos/kaiquekandykoga/nishikihebi",
+        "url": "https://api.github.com/repos/monalisa/hello-world",
         "default_branch": "master"
       }
     },
     "_links": {
       "self": {
-        "href": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/pulls/40"
+        "href": "https://api.github.com/repos/monalisa/hello-world/pulls/40"
       },
       "html": {
-        "href": "https://github.com/kaiquekandykoga/nishikihebi/pull/40"
+        "href": "https://github.com/monalisa/hello-world/pull/40"
       },
       "issue": {
-        "href": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/40"
+        "href": "https://api.github.com/repos/monalisa/hello-world/issues/40"
       },
       "comments": {
-        "href": "https://api.github.com/repos/kaiquekandykoga/nishikihebi/issues/40/comments"
+        "href": "https://api.github.com/repos/monalisa/hello-world/issues/40/comments"
       }
     },
     "author_association": "CONTRIBUTOR",
