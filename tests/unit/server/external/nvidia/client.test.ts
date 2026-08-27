@@ -14,13 +14,16 @@ import {
   resetUsage,
   TruncatedCompletionError,
   usageTotals,
-} from "../../../../apps/server/clients/llm.js";
-import { resetEnvCache } from "../../../../packages/shared/env.js";
-import { configureLogging, resetHandlers } from "../../../../packages/shared/logs.js";
-import { readJsonLines } from "../../../helpers/logs.js";
-import { aiMessage, FakeChatModel } from "../../../helpers/model.js";
-import { MemoryStream } from "../../../helpers/stream.js";
-import { useTemporaryDirectory } from "../../../helpers/tmp.js";
+} from "../../../../../apps/server/external/nvidia/client.js";
+import { resetEnvCache } from "../../../../../packages/shared/env.js";
+import {
+  configureLogging,
+  resetHandlers,
+} from "../../../../../packages/shared/logs.js";
+import { readJsonLines } from "../../../../helpers/logs.js";
+import { aiMessage, FakeChatModel } from "../../../../helpers/model.js";
+import { MemoryStream } from "../../../../helpers/stream.js";
+import { useTemporaryDirectory } from "../../../../helpers/tmp.js";
 
 vi.mock("dotenv", () => ({ config: vi.fn() }));
 

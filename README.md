@@ -9,7 +9,7 @@ and issues labeled `angel` across the repositories the App is installed on.
 ## Layout
 
 ```
-apps/server/    the LangGraph engine — agents, clients, external integrations; `index.ts` is its surface
+apps/server/    the LangGraph engine — agents, external integrations, HTTP; `index.ts` is its surface
 apps/cli/       the terminal UI — argument parsing, rendering, the REPL loop, `bin.ts`
 packages/shared/  infrastructure both sides use — env loading, logging, ANSI output
 tests/          unit and integration suites, mirroring the trees above

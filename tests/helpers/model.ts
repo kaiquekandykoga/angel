@@ -7,7 +7,7 @@ import type {
   ChatModel,
   ModelCallOptions,
   ModelReply,
-} from "../../apps/server/clients/llm.js";
+} from "../../apps/server/external/nvidia/client.js";
 
 export interface FakeReplyOptions {
   readonly finishReason?: string | null;

@@ -2,17 +2,17 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { type MainDependencies, main, start } from "../../../apps/cli/main.js";
 import { ExitError } from "../../../apps/cli/ui.js";
 import {
-  InvalidMaxCompletionTokensError,
-  type LlmClient,
-  MissingApiKeyError,
-  resetUsage,
-} from "../../../apps/server/clients/llm.js";
-import {
   type GitHubClient,
   type Issue,
   MissingGitHubCredentialsError,
   type PullRequest,
 } from "../../../apps/server/external/github/client.js";
+import {
+  InvalidMaxCompletionTokensError,
+  type LlmClient,
+  MissingApiKeyError,
+  resetUsage,
+} from "../../../apps/server/external/nvidia/client.js";
 import { resetEnvCache } from "../../../packages/shared/env.js";
 import { stripAnsi } from "../../helpers/ansi.js";
 import { FakeGitHubClient } from "../../helpers/github.js";

@@ -10,6 +10,12 @@ export {
 } from "./agents/pr-review/graph.js";
 export type { Finding, ItemFailure, Review, Severity } from "./agents/shared.js";
 export {
+  buildGithubClient,
+  DryRunGitHubClient,
+  type GitHubClient,
+  MissingGitHubCredentialsError,
+} from "./external/github/client.js";
+export {
   buildLlmClient,
   InvalidMaxCompletionTokensError,
   type LlmClient,
@@ -17,10 +23,4 @@ export {
   resetUsage,
   type UsageTotals,
   usageTotals,
-} from "./clients/llm.js";
-export {
-  buildGithubClient,
-  DryRunGitHubClient,
-  type GitHubClient,
-  MissingGitHubCredentialsError,
-} from "./external/github/client.js";
+} from "./external/nvidia/client.js";

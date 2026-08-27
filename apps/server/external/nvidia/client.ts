@@ -5,10 +5,17 @@ import type {
 } from "@langchain/core/messages";
 import { ChatOpenAI } from "@langchain/openai";
 import { z } from "zod";
-import { loadEnvVar } from "../../../packages/shared/env.js";
-import { getLogger } from "../../../packages/shared/logs.js";
+import { loadEnvVar } from "../../../../packages/shared/env.js";
+import { getLogger } from "../../../../packages/shared/logs.js";
+import {
+  NVIDIA_BASE_URL,
+  NVIDIA_MAX_COMPLETION_TOKENS_DEFAULT,
+  NVIDIA_MODEL,
+  NVIDIA_TEMPERATURE,
+  NVIDIA_TIMEOUT_MS,
+} from "./settings.js";
 
-const log = getLogger("angel.clients.llm");
+const log = getLogger("angel.external.nvidia");
 
 export interface NamedSchema<T> {
   readonly name: string;
@@ -107,12 +114,6 @@ function logModelCallCompleted(
     durationMs: totals.durationMs + durationMs,
   };
 }
-
-export const NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1";
-export const NVIDIA_MODEL = "nvidia/nemotron-3-ultra-550b-a55b";
-export const NVIDIA_MAX_COMPLETION_TOKENS_DEFAULT = 32768;
-export const NVIDIA_TIMEOUT_MS = 300_000;
-export const NVIDIA_TEMPERATURE = 0;
 
 export class NvidiaClient implements LlmClient {
   constructor(

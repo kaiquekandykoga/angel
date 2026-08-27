@@ -67,7 +67,7 @@ be dropped without a model call, so do that pass before spending a call.
 posts a body without it, and the drop is logged with the reason.
 
 ### Rate-limit and backoff handling (GitHub, NVIDIA)
-**Where:** `external/github/client.ts`, `clients/{http,llm}.ts`
+**Where:** `external/github/client.ts`, `external/nvidia/client.ts`, `clients/http.ts`
 **Why:** `ensureOk()` and nothing else. Production hits 403 + `x-ratelimit-remaining: 0`,
 403/429 + `Retry-After` (comment loops trigger the secondary limit), routine 5xx, NVIDIA
 429/503. A pull request review is also three long non-streaming calls — one per lens — so a
@@ -88,7 +88,7 @@ the provider currently drops — treat as expired ~5 min early, re-mint; invalid
 once on any 401.
 
 ### Turn `external/github/settings.ts` into real settings
-**Where:** `external/github/settings.ts`, `clients/llm.ts`, `logs.ts`
+**Where:** `external/github/settings.ts`, `external/nvidia/settings.ts`, `logs.ts`
 **Why:** `REVIEWER_LOGIN`, `LABEL`, `LABEL_COLOR`, `NVIDIA_*`, and the log directory are
 scattered module constants. `REVIEWER_LOGIN = "kandy-angel[bot]"` hardcodes *your* App —
 nobody else can run this without editing source.
@@ -173,7 +173,7 @@ regression protection.
 requirement) and an LLM-as-judge rubric (found it? specific? hallucinated files?). Put them
 under `tests/eval/`, excluded from the default `vitest run` — they cost money and are
 nondeterministic. Hallucinated file/line citations are checkable mechanically, no judge
-needed. Sampling is pinned at `temperature=0` (`clients/llm.ts`), so run-to-run drift is now
+needed. Sampling is pinned at `temperature=0` (`external/nvidia/settings.ts`), so run-to-run drift is now
 the prompt's, not the sampler's — the harness measures whether a prompt change helped rather
 than whether the dice fell differently.
 
@@ -202,7 +202,7 @@ buildPrReviewGraph(...)` fails at import without `.env`. Keep the factories; add
 Studio entry point.
 
 ### Dollar cost and a budget ceiling
-**Where:** `clients/llm.ts`
+**Where:** `external/nvidia/client.ts`
 **Why:** a run now reports its own token total (`usageTotals()`, printed as the `Usage`
 section), but a bot reading unbounded diffs across unbounded repos still has no dollar
 figure and nothing that stops it — the tally counts spend, it does not cap it.

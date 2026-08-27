@@ -1,6 +1,6 @@
 import { type BaseMessage, SystemMessage } from "@langchain/core/messages";
 import { getLogger } from "../../../../packages/shared/logs.js";
-import type { LlmClient } from "../../clients/llm.js";
+import type { LlmClient } from "../../external/nvidia/client.js";
 import { SYSTEM_PROMPT } from "./prompts.js";
 import type { ChatState } from "./state.js";
 

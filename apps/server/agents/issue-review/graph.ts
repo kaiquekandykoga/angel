@@ -1,8 +1,8 @@
 import { END, START, StateGraph } from "@langchain/langgraph";
 import { getLogger } from "../../../../packages/shared/logs.js";
-import type { LlmClient } from "../../clients/llm.js";
 import type { GitHubClient } from "../../external/github/client.js";
 import { LABEL, LABEL_COLOR, REVIEWER_LOGIN } from "../../external/github/settings.js";
+import type { LlmClient } from "../../external/nvidia/client.js";
 import { postReviewComments } from "../shared.js";
 import { fetchIssues, reviewIssues } from "./nodes.js";
 import { IssueReviewAnnotation } from "./state.js";
