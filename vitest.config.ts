@@ -8,7 +8,7 @@ export default defineConfig({
     unstubEnvs: true,
     coverage: {
       provider: "v8",
-      include: ["src/**/*.ts"],
+      include: ["apps/**/*.ts", "packages/**/*.ts"],
       reporter: ["text", "lcov"],
     },
   },

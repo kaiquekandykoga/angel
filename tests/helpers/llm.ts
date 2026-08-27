@@ -1,5 +1,9 @@
 import type { BaseMessage } from "@langchain/core/messages";
-import type { LlmClient, ModelReply, NamedSchema } from "../../src/clients/llm.js";
+import type {
+  LlmClient,
+  ModelReply,
+  NamedSchema,
+} from "../../apps/server/clients/llm.js";
 import { aiMessage } from "./model.js";
 
 export class FakeLlmClient implements LlmClient {

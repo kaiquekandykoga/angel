@@ -20,7 +20,7 @@
     "node": ">=22"
   },
   "bin": {
-    "angel": "dist/bin.js"
+    "angel": "dist/apps/cli/bin.js"
   },
   "files": [
     "dist",
@@ -28,7 +28,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "angel": "tsx src/bin.ts",
+    "angel": "tsx apps/cli/bin.ts",
     "build": "tsc --project tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "lint": "biome ci .",
@@ -58,6 +58,6 @@
     "typescript": "^7.0.2",
     "vitest": "^4.1.11"
   },
-  "main": "dist/main.js",
-  "types": "dist/main.d.ts"
+  "main": "dist/apps/server/index.js",
+  "types": "dist/apps/server/index.d.ts"
 }

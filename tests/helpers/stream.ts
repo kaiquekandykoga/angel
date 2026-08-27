@@ -1,4 +1,4 @@
-import type { OutputStream } from "../../src/console.js";
+import type { OutputStream } from "../../packages/shared/console.js";
 
 export class MemoryStream implements OutputStream {
   readonly isTTY: boolean;

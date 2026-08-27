@@ -25,7 +25,7 @@ Or build + run:
 
 ```bash
 npm run build
-node dist/bin.js chat
+node dist/apps/cli/bin.js chat
 ```
 
 ## As a global command

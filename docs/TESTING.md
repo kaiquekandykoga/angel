@@ -5,7 +5,7 @@
 
 | Tree | What lives there | How it stubs the world |
 |---|---|---|
-| `tests/unit/` | Graphs, nodes, the REPL, logging, the CLI — everything driven through a fake. | `FakeGitHubClient` / `FakeLlmClient` from `tests/helpers/`. No HTTP at all. |
+| `tests/unit/` | Graphs, nodes, the REPL, logging, the CLI — everything driven through a fake. Mirrors the source tree: `server/`, `cli/`, `shared/`. | `FakeGitHubClient` / `FakeLlmClient` from `tests/helpers/`. No HTTP at all. |
 | `tests/integration/` | `HttpGitHubClient` and `InstallationTokenProvider` — the code that actually speaks HTTP. | `FakeFetch` from `tests/helpers/fetch.ts`, serving recorded GitHub payloads from `tests/fixtures/`. Still no network. |
 
 ```bash

@@ -1,6 +1,6 @@
 # Logs
 
-Every run logs to two places at once, configured in `src/logs.ts` by `configureLogging()`,
+Every run logs to two places at once, configured in `packages/shared/logs.ts` by `configureLogging()`,
 which `main()` calls before anything else happens.
 
 | Destination | Level | Format |
@@ -59,7 +59,7 @@ Tests install a capturing handler instead — see [`TESTING.md`](TESTING.md).
 ### Failure records write themselves
 
 The five failure sites all log the same five keys and append a matching `ItemFailure` to
-graph state. `collectFailures()` in `src/agents/shared.ts` does both, so the node body holds
+graph state. `collectFailures()` in `apps/server/agents/shared.ts` does both, so the node body holds
 the work rather than the bookkeeping:
 
 ```ts
