@@ -31,9 +31,11 @@ label is created on each repository if missing. Review-selection logic (never co
 | Node | Does |
 |---|---|
 | `fetch_issues` | Ensures each repository has the `angel` label, lists issues carrying it and their comments, keeps the ones due for review, and emits an `IssueContext` (the issue plus its comments) |
-| `review_issues` | Asks the model for an `IssueReviewOutput` (summary, findings, acceptance criteria, suggested approach) given the title, description, and existing comments, then renders it to the comment body |
+| `review_issues` | Asks the model for an `IssueReviewOutput` (summary, findings, acceptance criteria, suggested approach) given the title, description, and existing comments — each fenced as untrusted — then renders it to the comment body through `finalizeReviewBody()` |
 | `post_review_comments` | Shared with `pr_review` — posts each review as an issue comment |
 
 `--dry-run` applies here too, by the same wrapper.
 
-How failures are isolated and retried is in [`README.md`](README.md#failure-isolation-and-retries).
+How untrusted text is fenced and what every posted body is sanitised and capped by is in
+[`README.md`](README.md#untrusted-input); how failures are isolated and retried is in
+[`README.md`](README.md#failure-isolation-and-retries).

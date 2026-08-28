@@ -7,11 +7,17 @@ import {
 } from "../../../../../apps/server/agents/pr-review/nodes.js";
 import { REVIEW_LENSES } from "../../../../../apps/server/agents/pr-review/prompts.js";
 import type { PullRequestContext } from "../../../../../apps/server/agents/pr-review/state.js";
-import { reviewMarker } from "../../../../../apps/server/agents/shared.js";
+import {
+  REVIEW_BODY_LIMIT,
+  REVIEW_FOOTER,
+  reviewedSha,
+  reviewMarker,
+} from "../../../../../apps/server/agents/shared.js";
 import type {
   Comment,
   PullRequest,
 } from "../../../../../apps/server/external/github/client.js";
+import { loadFixture } from "../../../../helpers/fixtures.js";
 import { FakeGitHubClient } from "../../../../helpers/github.js";
 import { contentsOf, FakeLlmClient } from "../../../../helpers/llm.js";
 import { useLogCapture } from "../../../../helpers/logs.js";
@@ -375,7 +381,10 @@ describe("reviewPullRequests", () => {
     });
 
     expect(logs.contextOf("reviewing pull request")).toMatchObject({
-      diff_size: 5,
+      diff_size: 6,
+      diff_size_original: 5,
+      diff_files_included: 1,
+      diff_files_skipped: 0,
       lens_count: 3,
     });
   });
@@ -404,5 +413,116 @@ describe("renderMergedReview", () => {
     expect(body.split("\n\n")[0]).toBe("**Security:** clean");
     expect(body).toContain("**Quality:** tidy");
     expect(body).toContain("### Security\n\nNo findings.");
+  });
+});
+
+describe("reviewPullRequests under prompt injection", () => {
+  useLogCapture();
+
+  const injectedBody = loadFixture<string>("injection/pull_request_body.md");
+  const injectedOutput = loadFixture<Record<string, unknown>>(
+    "injection/review_output.json",
+  );
+
+  async function reviewInjected(): Promise<string> {
+    const client = new FakeLlmClient();
+    client.structuredReply = injectedOutput;
+    const target = pullRequest({ body: injectedBody });
+    const github = new FakeGitHubClient();
+    github.setDiff(target, loadFixture<string>("github/mixed.diff"));
+
+    const result = await reviewPullRequests(
+      github,
+      client,
+    )({
+      pullRequests: [
+        { target, comments: [comment({ author: "attacker", body: injectedBody })] },
+      ],
+    });
+    return result.reviews[0]?.body ?? "";
+  }
+
+  it("fences the untrusted title, body, comments and diff", async () => {
+    const client = new FakeLlmClient();
+    const target = pullRequest({ body: injectedBody });
+
+    await reviewPullRequests(
+      new FakeGitHubClient(),
+      client,
+    )({
+      pullRequests: [{ target, comments: [] }],
+    });
+
+    const content = contentsOf(client.lastCall).join("\n");
+    for (const tag of ["title", "body", "comments", "diff"]) {
+      expect(content).toContain(`<untrusted_pull_request_${tag}>`);
+      expect(content).toContain(`</untrusted_pull_request_${tag}>`);
+    }
+  });
+
+  it("strips a closing fence forged inside the pull request body", async () => {
+    const client = new FakeLlmClient();
+
+    await reviewPullRequests(
+      new FakeGitHubClient(),
+      client,
+    )({
+      pullRequests: [{ target: pullRequest({ body: injectedBody }), comments: [] }],
+    });
+
+    const content = contentsOf(client.lastCall).join("\n");
+    expect(content.match(/<\/untrusted_pull_request_body>/g)).toHaveLength(1);
+  });
+
+  it("posts no link when the model repeats the injected one", async () => {
+    const body = await reviewInjected();
+
+    expect(body).not.toContain("angel-rewards.example.com");
+    expect(body).not.toMatch(/https?:\/\//);
+  });
+
+  it("records the real head sha, not the injected marker", async () => {
+    const body = await reviewInjected();
+
+    expect(reviewedSha([comment({ body })], BOT)).toBe("sha-1");
+    expect(body).not.toContain("deadbeef -->");
+  });
+
+  it("carries the not-a-human-approval footer", async () => {
+    expect(await reviewInjected()).toContain(REVIEW_FOOTER);
+  });
+
+  it("stays inside the comment length limit", async () => {
+    const client = new FakeLlmClient();
+    client.structuredReply = {
+      summary: "x".repeat(REVIEW_BODY_LIMIT),
+      findings: [],
+    };
+
+    const result = await reviewPullRequests(
+      new FakeGitHubClient(),
+      client,
+    )({
+      pullRequests: [{ target: pullRequest(), comments: [] }],
+    });
+
+    expect(result.reviews[0]?.body.length).toBeLessThanOrEqual(REVIEW_BODY_LIMIT);
+  });
+
+  it("sends the filtered diff, not the whole one", async () => {
+    const client = new FakeLlmClient();
+    const target = pullRequest();
+    const github = new FakeGitHubClient();
+    github.setDiff(target, loadFixture<string>("github/mixed.diff"));
+
+    await reviewPullRequests(
+      github,
+      client,
+    )({ pullRequests: [{ target, comments: [] }] });
+
+    const content = contentsOf(client.lastCall).join("\n");
+    expect(content).toContain("src/greet.ts");
+    expect(content).not.toContain("lockfileVersion");
+    expect(content).toContain("4 file(s) omitted");
   });
 });

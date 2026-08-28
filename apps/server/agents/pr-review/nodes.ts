@@ -3,6 +3,8 @@ import { getLogger } from "../../../../packages/shared/logs.js";
 import type { GitHubClient } from "../../external/github/client.js";
 import type { LlmClient } from "../../external/nvidia/client.js";
 import {
+  fenceUntrusted,
+  finalizeReviewBody,
   lastReviewAt,
   logReviewProduced,
   PULL_REQUEST_REVIEW_OUTPUT,
@@ -14,6 +16,7 @@ import {
   reviewTargets,
   scanTargets,
 } from "../shared.js";
+import { filterDiff, renderOmissions } from "./diff.js";
 import { REVIEW_LENSES } from "./prompts.js";
 import type { PrReviewState } from "./state.js";
 
@@ -80,17 +83,26 @@ export function reviewPullRequests(github: GitHubClient, client: LlmClient) {
       noun: "pull request",
       plural: "pull requests",
       body: async ({ target, comments }) => {
-        const diff = await github.fetchDiff(target);
+        const diff = filterDiff(await github.fetchDiff(target));
         const content =
           `Repository: ${target.repository}\n` +
-          `Pull request #${target.number}: ${target.title}\n\n` +
-          `Description:\n${target.body}\n\n` +
-          `Existing comments:\n${renderComments(comments)}\n\n` +
-          `Diff:\n${diff}`;
+          `Pull request #${target.number}\n\n` +
+          `Title:\n${fenceUntrusted("pull_request_title", target.title)}\n\n` +
+          `Description:\n${fenceUntrusted("pull_request_body", target.body)}\n\n` +
+          "Existing comments:\n" +
+          `${fenceUntrusted("pull_request_comments", renderComments(comments))}\n\n` +
+          "Diff:\n" +
+          fenceUntrusted(
+            "pull_request_diff",
+            `${diff.text}${renderOmissions(diff.skipped)}`,
+          );
         log.debug("reviewing pull request", {
           repository: target.repository,
           number: target.number,
-          diff_size: diff.length,
+          diff_size: diff.bytes,
+          diff_size_original: diff.originalBytes,
+          diff_files_included: diff.includedFiles,
+          diff_files_skipped: diff.skipped.length,
           prompt_message_count: 2,
           lens_count: REVIEW_LENSES.length,
         });
@@ -111,7 +123,10 @@ export function reviewPullRequests(github: GitHubClient, client: LlmClient) {
           });
         }
 
-        return `${renderMergedReview(lensOutputs)}\n\n${reviewMarker(target.headSha)}`;
+        return finalizeReviewBody(
+          renderMergedReview(lensOutputs),
+          reviewMarker(target.headSha),
+        );
       },
     });
 }

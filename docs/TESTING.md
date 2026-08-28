@@ -48,7 +48,12 @@ implicit fixture injection:
 | `ansi.ts` | `stripAnsi(text)` — compare styled output as plain text |
 
 **Adding a fixture.** Drop the sanitized JSON (or raw text, for diffs) under
-`tests/fixtures/github/` and load it with `loadFixture("github/pulls_page1.json")`. Keep the
+`tests/fixtures/github/` and load it with `loadFixture("github/pulls_page1.json")`.
+`tests/fixtures/injection/` holds the prompt-injection material instead — a PR body carrying
+a forged fence, a forged sha marker, and a payout link, plus the review output a model that
+obeyed it would return. Both review agents' node suites drive them through
+`finalizeReviewBody()` and assert nothing policy-violating survives; `github/mixed.diff`
+covers the diff filter's lockfile, `dist/`, binary, and minified cases. Keep the
 whole response shape rather than the handful of fields the client reads today — the extra
 fields are what makes the fixture useful when the client grows. Never commit a real token:
 the recorded installation token is a redacted placeholder.
