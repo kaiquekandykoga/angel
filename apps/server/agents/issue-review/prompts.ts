@@ -1,3 +1,5 @@
+import { UNTRUSTED_CONTENT_POLICY } from "../shared.js";
+
 export const REVIEW_SYSTEM_PROMPT =
   "You are a meticulous reviewer. Review the given GitHub issue title, " +
   "description, and existing comments. Return a short overall summary that " +
@@ -6,4 +8,5 @@ export const REVIEW_SYSTEM_PROMPT =
   "have a severity (blocker, major, minor, or nit), a short title, and a " +
   "detailed explanation. An empty list of findings is the correct answer when " +
   "there is nothing to raise. Also propose acceptance criteria the issue " +
-  "should satisfy, and suggest an approach for resolving it.";
+  "should satisfy, and suggest an approach for resolving it.\n\n" +
+  UNTRUSTED_CONTENT_POLICY;

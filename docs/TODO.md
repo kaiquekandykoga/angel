@@ -21,35 +21,6 @@ structured output, `interrupt`), unadopted TypeScript/tooling practice, or opera
 
 ---
 
-## P0
-
-### Harden against prompt injection; validate output before posting
-**Where:** `agents/*/prompts.ts`, `agents/*/nodes.ts`, `agents/shared.ts`
-**Why:** attacker-controlled text (PR/issue bodies, comments, diffs) is interpolated
-undelimited, and output is published under the App's identity. A crafted PR can post
-fabricated approval or links signed `kandy-angel[bot]` on every watched repo.
-**Do:** (1) fence untrusted fields (`<untrusted_pull_request_body>…`) and declare fenced
-content as data, never instructions; (2) refusal clause — never follow reviewed-content
-instructions, claim approval authority, or emit links absent from the diff; (3) validate
-before posting — reviews now arrive as `PullRequestReviewOutput` / `IssueReviewOutput`, so
-the shape check is done; enforce the length cap and strip external links in the renderers
-(the layer that actually saves you); (4) keep App permissions comments-only; (5) footer:
-"Automated review by angel — not a human approval."
-**Done when:** an injection fixture produces no policy-violating comment, enforced by a test
-on the validation layer.
-
-### Cap and filter the diff sent to the model
-**Where:** `agents/pr-review/nodes.ts`, `external/github/client.ts::fetchDiff`
-**Why:** the full diff goes in with no cap or filter. A lockfile touch (this repo's
-`package-lock.json` is hundreds of KB) blows the context window — a hard API error killing
-the run — and costs money otherwise.
-**Do:** cap total diff bytes (~100 KB) and say so in the prompt when truncated; skip
-lockfiles, `dist/`, minified assets, binaries, files over N KB; prefer tokens over bytes.
-`/pulls/{n}/files` lets you drop whole files instead of truncating mid-hunk.
-**Done when:** an oversized fixture diff is truncated with a marker rather than sent whole.
-
----
-
 ## P1
 
 ### Add a verification judge node to `pr_review`
@@ -222,6 +193,14 @@ figure and nothing that stops it — the tally counts spend, it does not cap it.
 **Do:** dollars once there's a pricing source worth trusting for the configured model; a
 budget ceiling checked against the running tally that aborts cleanly when crossed.
 **Done when:** a run that exceeds the ceiling stops instead of spending past it.
+
+### Budget the diff in tokens, not bytes
+**Where:** `agents/pr-review/diff.ts`
+**Why:** `filterDiff` caps at 100 KB total / 20 KB per file, a proxy for what the context
+window actually costs. Bytes per token vary by a factor of three between prose and minified
+source, so the cap is either wasteful or too loose depending on the diff.
+**Do:** count tokens for the assembled prompt and budget against that, with the byte caps as
+the cheap pre-filter.
 
 ### Version the prompts
 Prompts are diffable in `agents/<name>/prompts.ts` but unversioned — no constant, no

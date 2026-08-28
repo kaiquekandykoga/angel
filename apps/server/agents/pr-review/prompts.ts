@@ -1,3 +1,5 @@
+import { UNTRUSTED_CONTENT_POLICY } from "../shared.js";
+
 const BASE_REVIEW_PROMPT =
   "You are a meticulous code reviewer. Review the given pull request title, " +
   "description, existing comments, and diff. Return a short overall summary of " +
@@ -6,7 +8,8 @@ const BASE_REVIEW_PROMPT =
   "(blocker, major, minor, or nit), a short title, and a detailed explanation, " +
   "and, when the diff makes it clear, the file path and line it refers to. An " +
   "empty list of findings is the correct answer when there is nothing to raise " +
-  "within this lens.";
+  "within this lens.\n\n" +
+  UNTRUSTED_CONTENT_POLICY;
 
 export const SECURITY_REVIEW_PROMPT =
   `${BASE_REVIEW_PROMPT}\n\n` +

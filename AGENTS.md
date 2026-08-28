@@ -19,7 +19,7 @@ Maximize token efficiency — never at cost of correctness, safety, or verificat
 * Green = `npm run ci` (`biome ci` → `tsc --noEmit` → `vitest run`); same three run in GitHub Actions on every push/PR.
 
 ### Map
-* `apps/server/` — engine; `index.ts` is the surface. `agents/{chat,pr-review,issue-review}/{graph,state,prompts,nodes}.ts`; `agents/shared.ts` owns both review agents' scan/review loops, state channels, output schemas, renderers, failure isolation — change review machinery there, not twice. `external/{github,nvidia}/{client,settings}.ts`; `clients/http.ts`.
+* `apps/server/` — engine; `index.ts` is the surface. `agents/{chat,pr-review,issue-review}/{graph,state,prompts,nodes}.ts`; `agents/shared.ts` owns both review agents' scan/review loops, state channels, output schemas, renderers, failure isolation, and the untrusted-input layer (`fenceUntrusted`, `UNTRUSTED_CONTENT_POLICY`, `finalizeReviewBody` — every posted body goes through it) — change review machinery there, not twice. `agents/pr-review/diff.ts` filters and caps the diff before it reaches the model. `external/{github,nvidia}/{client,settings}.ts`; `clients/http.ts`.
 * `apps/cli/` — `bin` → `main` (command → graph) → `ui` (parse + render), `repl` (chat loop).
 * `packages/shared/` — `env`, `logs`, `console`. `eval/` — Langfuse harness. `tests/` mirrors all three.
 

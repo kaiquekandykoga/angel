@@ -3,6 +3,8 @@ import { getLogger } from "../../../../packages/shared/logs.js";
 import type { GitHubClient } from "../../external/github/client.js";
 import type { LlmClient } from "../../external/nvidia/client.js";
 import {
+  fenceUntrusted,
+  finalizeReviewBody,
   ISSUE_REVIEW_OUTPUT,
   lastReviewAt,
   logReviewProduced,
@@ -56,9 +58,11 @@ export function reviewIssues(client: LlmClient) {
           new SystemMessage(REVIEW_SYSTEM_PROMPT),
           new HumanMessage(
             `Repository: ${target.repository}\n` +
-              `Issue #${target.number}: ${target.title}\n\n` +
-              `Body:\n${target.body}\n\n` +
-              `Existing comments:\n${renderComments(comments)}`,
+              `Issue #${target.number}\n\n` +
+              `Title:\n${fenceUntrusted("issue_title", target.title)}\n\n` +
+              `Body:\n${fenceUntrusted("issue_body", target.body)}\n\n` +
+              "Existing comments:\n" +
+              fenceUntrusted("issue_comments", renderComments(comments)),
           ),
         ];
         log.debug("reviewing issue", {
@@ -68,7 +72,7 @@ export function reviewIssues(client: LlmClient) {
         });
 
         const output = await client.completeStructured(messages, ISSUE_REVIEW_OUTPUT);
-        const body = renderIssueReview(output);
+        const body = finalizeReviewBody(renderIssueReview(output));
         logReviewProduced(log, {
           repository: target.repository,
           number: target.number,

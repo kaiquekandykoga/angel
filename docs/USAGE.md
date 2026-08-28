@@ -67,7 +67,18 @@ revoking access adds or drops a repo) and reviews open pull requests labeled `an
 - **The comment is rendered from validated schemas**, not pasted from the model: one summary
   line per lens, then `### Security` / `### Quality` / `### Performance` sections, each
   holding one bold entry per finding tagged `[blocker]` / `[major]` / `[minor]` / `[nit]` and
-  a file:line the diff supports.
+  a file:line the diff supports, and a `Automated review by angel — not a human approval.`
+  footer.
+- **The diff is filtered before it is sent**: lockfiles and other generated or vendored paths
+  (`dist/`, `node_modules/`, `*.min.js`), binaries, files over 20 KB, and everything past a
+  100 KB total budget are dropped whole — listed for the model rather than silently missing.
+  A `package-lock.json` touch no longer blows the context window.
+- **Untrusted text is fenced and the output is sanitised.** Titles, descriptions, comments,
+  and diffs are attacker-controlled, so they go to the model inside `<untrusted_…>` tags the
+  content cannot close, under a policy forbidding it from following instructions found there
+  or claiming approval authority; on the way back, links are stripped, HTML comments removed
+  so a forged `<!-- angel: sha=… -->` marker cannot mute future reviews, and the body capped
+  at 60 000 characters. Details in [`agents/README.md`](agents/README.md#untrusted-input).
 - **Any lens failing**, or a reply that doesn't fit the schema, fails the whole PR: nothing
   posts, and it's retried next run since no marker was written.
 - `temperature=0`, so repeat runs over an unchanged head usually match — though a hosted
@@ -81,8 +92,9 @@ revoking access adds or drops a repo) and reviews open pull requests labeled `an
 
 Same pass over open issues labeled `angel`. Reviewed when the bot has never commented, or
 the issue's `updatedAt` is newer than that last comment (covers an edited description and
-new comments alike). Label caveat above applies here too. Same rendered-from-schema shape,
-plus two extra sections: proposed acceptance criteria and a suggested approach.
+new comments alike). Label caveat above applies here too. Same rendered-from-schema shape —
+same fencing, sanitising, cap, and footer — plus two extra sections: proposed acceptance
+criteria and a suggested approach.
 
 ## Options
 
