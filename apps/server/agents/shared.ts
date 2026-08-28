@@ -435,7 +435,13 @@ export interface ReviewState {
 export function postReviewComments(github: GitHubClient) {
   return async (state: ReviewState): Promise<{ failures: ItemFailure[] }> => {
     const { reviews } = state;
-    logger.info(`posting ${reviews.length} review comments`);
+    const dryRun = github.dryRun === true;
+    logger.info(
+      dryRun
+        ? `dry run: skipping ${reviews.length} review comments`
+        : `posting ${reviews.length} review comments`,
+      dryRun ? { dry_run: true } : {},
+    );
     const failures: ItemFailure[] = [];
     for (const review of reviews) {
       const target = review.target;
@@ -454,7 +460,12 @@ export function postReviewComments(github: GitHubClient) {
         },
         async () => {
           await github.postComment(target, review.body);
-          logger.info(`posted ${target.repository}#${target.number}`);
+          logger.info(
+            dryRun
+              ? `dry run: would post ${target.repository}#${target.number}`
+              : `posted ${target.repository}#${target.number}`,
+            dryRun ? { dry_run: true } : {},
+          );
         },
       );
     }

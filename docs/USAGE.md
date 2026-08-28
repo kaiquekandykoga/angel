@@ -26,8 +26,10 @@ npm run angel pr_review -- --dry-run              # preview a review run, postin
 
 `npm run angel` runs the TypeScript sources through [`tsx`](https://tsx.is).
 
-> `npm run` swallows flags unless separated with `--`. `node dist/apps/cli/bin.js pr_review
-> --dry-run` or an installed `angel pr_review --dry-run` needs no separator.
+> `npm run` swallows flags unless separated with `--` — `npm run angel pr_review --dry-run`
+> is read as npm's own `--dry-run` and never reaches angel, so the run exits 1 with the
+> correct form to retype. `node dist/apps/cli/bin.js pr_review --dry-run` or an installed
+> `angel pr_review --dry-run` needs no separator.
 
 ## Commands
 
@@ -212,7 +214,7 @@ printed as `owner/repo`. Failures go to stderr, the three sections above to stdo
 | Exit code | Meaning |
 |---|---|
 | `0` | every item due for review was reviewed and posted (including the case where nothing was due) |
-| `1` | at least one repository or item failed, or the command was invalid, or credentials were missing |
+| `1` | at least one repository or item failed, or the command was invalid, or `npm run` swallowed `--dry-run`, or credentials were missing |
 
 The non-zero exit is what a scheduler notices. The same failures appear as `WARNING` records
 in the JSON log with structured `stage` / `error_type` fields — see [`LOGS.md`](LOGS.md).

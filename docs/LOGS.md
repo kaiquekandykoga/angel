@@ -136,14 +136,18 @@ Dollars are not logged — see the token and cost accounting item in [`TODO.md`]
 
 ## Dry-run records
 
-A `--dry-run` run logs each write it suppressed, at `INFO`, from `angel.external.github`.
-Both records carry `dry_run: true`, so one filter shows everything the run would have
-written. The review bodies themselves go to stdout, not the log.
+A `--dry-run` run logs each write it suppressed, at `INFO`, from `angel.external.github`,
+and `angel.agents.shared` phrases its own posting records as dry-run ones so no line
+claims a comment was posted. Every record carries `dry_run: true`, so one filter shows
+everything the run would have written. The review bodies themselves go to stdout, not the
+log.
 
-| Message | Context keys |
-|---|---|
-| `dry run: skipping ensure_label` | `dry_run`, `repository`, `label` |
-| `dry run: skipping post_comment` | `dry_run`, `repository`, `number`, `body_length` |
+| Message | Logger | Context keys |
+|---|---|---|
+| `dry run: skipping ensure_label` | `angel.external.github` | `dry_run`, `repository`, `label` |
+| `dry run: skipping post_comment` | `angel.external.github` | `dry_run`, `repository`, `number`, `body_length` |
+| `dry run: skipping <n> review comments` | `angel.agents.shared` | `dry_run` |
+| `dry run: would post <repository>#<number>` | `angel.agents.shared` | `dry_run` |
 
 ```bash
 jq 'select(.dry_run == true) | {message, repository, number}' log/angel-*.jsonl

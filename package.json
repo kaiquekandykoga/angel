@@ -29,6 +29,7 @@
   ],
   "scripts": {
     "angel": "tsx apps/cli/bin.ts",
+    "angel:debug": "node --inspect-brk --import tsx apps/cli/bin.ts",
     "build": "tsc --project tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "lint": "biome ci .",
@@ -36,7 +37,9 @@
     "test": "vitest run",
     "test:unit": "vitest run --exclude '**/*.integration.test.ts'",
     "test:integration": "vitest run integration.test.ts",
+    "test:debug": "vitest run --inspect-brk --no-file-parallelism",
     "eval": "tsx eval/bin.ts",
+    "eval:debug": "node --inspect-brk --import tsx eval/bin.ts",
     "coverage": "vitest run --coverage",
     "ci": "npm run lint && npm run typecheck && npm run test",
     "clean": "node --eval \"require('node:fs').rmSync('dist',{recursive:true,force:true})\""

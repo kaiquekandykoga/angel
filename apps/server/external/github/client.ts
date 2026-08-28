@@ -40,6 +40,7 @@ export interface Comment {
 export type ReviewTarget = PullRequest | Issue;
 
 export interface GitHubClient {
+  readonly dryRun?: boolean;
   listRepositories(): Promise<string[]>;
   ensureLabel(repository: string, label: string, color: string): Promise<void>;
   listOpenPullRequests(repository: string, label: string): Promise<PullRequest[]>;
@@ -293,6 +294,7 @@ export class HttpGitHubClient implements GitHubClient {
 
 export function dryRunClient(inner: GitHubClient): GitHubClient {
   return {
+    dryRun: true,
     listRepositories: () => inner.listRepositories(),
     listOpenPullRequests: (repository, label) =>
       inner.listOpenPullRequests(repository, label),

@@ -26,6 +26,7 @@ import type {
   GitHubClient,
   PullRequest,
 } from "../../../../apps/server/external/github/client.js";
+import { dryRunClient } from "../../../../apps/server/external/github/client.js";
 import { getLogger } from "../../../../packages/shared/logs.js";
 import { FakeGitHubClient } from "../../../helpers/github.js";
 import { useLogCapture } from "../../../helpers/logs.js";
@@ -432,6 +433,23 @@ describe("postReviewComments", () => {
       repository: "org/repo",
       number: 7,
       body_length: 10,
+    });
+  });
+
+  it("never claims a comment was posted under a dry-run client", async () => {
+    const github = dryRunClient(new FakeGitHubClient());
+
+    await postReviewComments(github)({
+      reviews: [{ target: PULL_REQUEST, body: "looks good" }],
+    });
+
+    expect(logs.withMessage("posted org/repo#7")).toEqual([]);
+    expect(logs.withMessage("posting 1 review comments")).toEqual([]);
+    expect(logs.contextOf("dry run: skipping 1 review comments")).toMatchObject({
+      dry_run: true,
+    });
+    expect(logs.contextOf("dry run: would post org/repo#7")).toMatchObject({
+      dry_run: true,
     });
   });
 });
