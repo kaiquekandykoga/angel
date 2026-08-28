@@ -62,7 +62,9 @@ restating something already in the comments, still gets posted under the App's i
 Give the model the diff plus the merged findings and have it return, per finding, keep/drop
 with a reason; drop anything unsupported. Cite-checking is mechanical first — a finding
 whose `file` is absent from the diff, or whose `line` falls outside the touched hunks, can
-be dropped without a model call, so do that pass before spending a call.
+be dropped without a model call, so do that pass before spending a call — `eval/scorers.ts`
+already parses a diff into per-file hunk ranges for exactly this check; move `parseDiff`
+into `apps/server/` and let the eval harness import it back.
 **Done when:** a fixture review carrying one finding that cites a file absent from the diff
 posts a body without it, and the drop is logged with the reason.
 
@@ -105,10 +107,17 @@ group/world-readable; load `.env` once at startup from a known location — `env
 *up* from the cwd, so running from a subdirectory of an unrelated project can pick up a
 stranger's `.env`.
 
-### Enable LangSmith tracing
-`langsmith` is already installed transitively; `LANGSMITH_TRACING` / `LANGSMITH_API_KEY` /
-`LANGSMITH_PROJECT` give full capture of every run, node, and prompt/response — today a bad
-review leaves only JSON logs of *lengths*. Highest value-per-effort item in the file.
+### Trace real runs, not just evals
+**Where:** `apps/cli/main.ts`, `eval/langfuse.ts`
+**Why:** `npm run eval` traces every node, prompt, and model call to Langfuse through
+`CallbackHandler`; a real `pr_review` run leaves only JSON logs of *lengths*. The setup that
+makes the difference is ~20 lines and already written, but it lives in `eval/` where the CLI
+cannot reach it.
+**Do:** lift the tracer provider and span processor into something both callers share, and
+attach a `CallbackHandler` to the graph invocations behind an opt-in variable or flag —
+tracing off by default, since the traces carry untrusted review text to a third party.
+**Done when:** `angel pr_review` with the Langfuse keys set produces one trace per reviewed
+item, and none without them.
 
 ### Log JSON to stdout by default
 **Where:** `logs.ts`
@@ -165,17 +174,21 @@ updates pinned SHAs too).
 
 ## P2
 
-### Build an eval harness for review quality
-**Why:** every test asserts plumbing; zero assert review quality — so the prompt, the
-component with the most influence on whether this is good, is the only one with no
-regression protection.
-**Do:** 10–20 fixture PRs/issues with known findings (planted bug, missing test, ambiguous
-requirement) and an LLM-as-judge rubric (found it? specific? hallucinated files?). Put them
-under `tests/eval/`, excluded from the default `vitest run` — they cost money and are
-nondeterministic. Hallucinated file/line citations are checkable mechanically, no judge
-needed. Sampling is pinned at `temperature=0` (`external/nvidia/settings.ts`), so run-to-run drift is now
-the prompt's, not the sampler's — the harness measures whether a prompt change helped rather
-than whether the dice fell differently.
+### Grow the eval harness past the mechanical checks
+**Where:** `eval/`, `docs/EVAL.md`
+**Done:** `npm run eval` drives both review graphs over a five-case fixture dataset and
+scores every review deterministically — citations against the diff, keyword recall, lens
+coverage, output shape — sending each run to Langfuse as an experiment with a trace per
+item.
+**Why:** the deterministic half only settles *did it cite something real* and *did it say
+the word*. Whether a finding is specific, correct, and worth posting is still unmeasured,
+and five cases is too few to notice a regression.
+**Do:** grow to 10–20 cases (planted bug, missing test, ambiguous requirement, a clean diff
+that should produce nothing); add an LLM-as-judge evaluator beside the code ones; push the
+datasets to Langfuse so runs link to dataset items and compare across prompt versions; fail
+the run on a score below a floor so CI can gate on it.
+**Done when:** a prompt change that loses a planted bug shows up as a dropped score instead
+of a subjective read.
 
 ### `Send` fan-out and concurrency
 Reviews run strictly sequentially — every `await` in the fetch and review loops is serial,

@@ -22,6 +22,8 @@ and issues labeled `angel` across the repositories the App is installed on.
   `jq`.
 - [`docs/TESTING.md`](docs/TESTING.md) — how the unit and integration suites split, why both
   exist, and how to add a recorded GitHub fixture.
+- [`docs/EVAL.md`](docs/EVAL.md) — `npm run eval`: scoring the review agents against a fixed
+  dataset with deterministic checks, and sending the run to Langfuse.
 - [`docs/TODO.md`](docs/TODO.md) — the living backlog between this and running unattended:
   retries, prompt-injection hardening, a deployment story. Open items only, grouped
   P0/P1/P2, conventions for new items at the top.

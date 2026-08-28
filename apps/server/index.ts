@@ -8,18 +8,34 @@ export {
   buildPrReviewGraph,
   type PrReviewGraphOptions,
 } from "./agents/pr-review/graph.js";
-export type { Finding, ItemFailure, Review, Severity } from "./agents/shared.js";
+export { REVIEW_LENSES, type ReviewLens } from "./agents/pr-review/prompts.js";
+export {
+  type Finding,
+  ISSUE_REVIEW_OUTPUT,
+  type IssueReviewOutput,
+  type ItemFailure,
+  PULL_REQUEST_REVIEW_OUTPUT,
+  type PullRequestReviewOutput,
+  type Review,
+  type Severity,
+} from "./agents/shared.js";
 export {
   buildGithubClient,
+  type Comment,
   DryRunGitHubClient,
   type GitHubClient,
+  type Issue,
   MissingGitHubCredentialsError,
+  type PullRequest,
+  type ReviewTarget,
 } from "./external/github/client.js";
 export {
   buildLlmClient,
   InvalidMaxCompletionTokensError,
   type LlmClient,
   MissingApiKeyError,
+  type ModelReply,
+  type NamedSchema,
   resetUsage,
   type UsageTotals,
   usageTotals,

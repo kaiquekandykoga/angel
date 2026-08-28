@@ -24,5 +24,11 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["apps/**/*.ts", "packages/**/*.ts", "tests/**/*.ts", "*.config.ts"]
+  "include": [
+    "apps/**/*.ts",
+    "packages/**/*.ts",
+    "eval/**/*.ts",
+    "tests/**/*.ts",
+    "*.config.ts"
+  ]
 }

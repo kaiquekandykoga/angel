@@ -8,7 +8,7 @@ exits — no daemon, nothing schedules them.
 - [Options](#options) — `--dry-run`, `--help`
 - [Output and exit codes](#output-and-exit-codes) — sections, `Usage` totals, color
 - [Configuration](#configuration)
-- [Testing](#testing)
+- [Testing](#testing) — the suites, and `npm run eval`
 - [Known gaps](#known-gaps)
 
 ## Quick start
@@ -134,7 +134,7 @@ The change looks correct, but one branch is untested.
 ### Findings
 
 **[major] New branch in `parse()` is untested** — `src/parse.ts:42`
-The early return added here is not covered by any case in `tests/unit/parse.test.ts`.
+The early return added here is not covered by any case in `tests/parse.test.ts`.
 ```
 
 Target line is bold; body prints unindented and unstyled, ready to paste as markdown.
@@ -251,6 +251,7 @@ Copy `.env.example` to `.env` and fill in these variables.
 | `ANGEL_GITHUB_APP_ID` | `pr_review`, `issue_review` | ID of the GitHub App to authenticate as. |
 | `ANGEL_GITHUB_PRIVATE_KEY_PATH` | `pr_review`, `issue_review` | Path to that App's private key (`.pem`). A leading `~/` is expanded. |
 | `ANGEL_NVIDIA_MAX_COMPLETION_TOKENS` | optional, all three commands | Output tokens per model call, default `32768`. Counts reasoning as well as the answer, so sizing to the review text alone truncates the reply mid-object and fails the item. Non-integer or non-positive exits `1` rather than falling back to default. |
+| `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_BASE_URL` | `npm run eval` only | Langfuse project keys and instance URL — see [`EVAL.md`](EVAL.md#configuration). The three commands never read them. |
 | `ANGEL_COLOR` | optional, all three commands | `auto` (default) colors only on a terminal; `always` keeps color when piping or redirecting; `never` disables it; unrecognised value = `auto`. Non-empty `NO_COLOR` disables color regardless. |
 
 A missing *required* variable exits `1` with `<NAME> environment variable is not set.`
@@ -284,6 +285,17 @@ npm run coverage           # the same tests, with a coverage report
 Neither suite touches the network. Split and fixture details in [`TESTING.md`](TESTING.md).
 Same three checks run in GitHub Actions (`.github/workflows/ci.yml`) on every push and pull
 request, Node 22 and 24.
+
+Review *quality* is measured separately, since it costs model calls and needs Langfuse
+credentials:
+
+```bash
+npm run eval               # both review agents over the fixture dataset
+npm run eval -- pr_review  # one agent
+```
+
+Deterministic checks only — hallucinated file and line citations, keyword recall, lens
+coverage. See [`EVAL.md`](EVAL.md).
 
 ## Known gaps
 
