@@ -6,14 +6,13 @@ import {
   buildIssueReviewGraph,
   buildLlmClient,
   buildPrReviewGraph,
-  DryRunGitHubClient,
+  dryRunClient,
   type GitHubClient,
   InvalidMaxCompletionTokensError,
   type ItemFailure,
   type LlmClient,
   MissingApiKeyError,
   MissingGitHubCredentialsError,
-  type Review,
   resetUsage,
   type Session,
   startSession,
@@ -62,33 +61,6 @@ function reportFailures(
   );
 }
 
-async function runChat(
-  client: LlmClient,
-  ui: Ui,
-  dependencies: MainDependencies,
-): Promise<void> {
-  const session = startSession(buildChatGraph(client));
-  await dependencies.runRepl(session);
-  ui.usage(usageTotals());
-}
-
-interface ReviewRun {
-  readonly reviews: readonly Review[];
-  readonly failures: readonly ItemFailure[];
-}
-
-async function runReview(
-  run: () => Promise<ReviewRun>,
-  ui: Ui,
-  dryRun: boolean,
-  nothingMessage: string,
-): Promise<void> {
-  const result = await run();
-  ui.reviews(result.reviews, dryRun, nothingMessage);
-  ui.usage(usageTotals());
-  reportFailures(ui, result.failures, result.reviews.length);
-}
-
 function buildClients(
   command: Command,
   dependencies: MainDependencies,
@@ -124,46 +96,30 @@ export async function main(
   const { command, dryRun } = parsed.arguments;
   const ui = terminalUi(dependencies.stdout, dependencies.stderr);
   const logPath = dependencies.configureLogging();
-  log.info(`running ${command}`, {
-    command,
-    log_path: logPath,
-    dry_run: dryRun,
-  });
+  log.info(`running ${command}`, { command, log_path: logPath, dry_run: dryRun });
   resetUsage();
   ui.run(command, dryRun, logPath);
 
   const { client, github } = buildClients(command, dependencies);
   if (github === undefined) {
-    await runChat(client, ui, dependencies);
+    await dependencies.runRepl(startSession(buildChatGraph(client)));
+    ui.usage(usageTotals());
     return;
   }
 
-  const target = dryRun ? new DryRunGitHubClient(github) : github;
-  if (command === "pr_review") {
-    await runReview(
-      () =>
-        buildPrReviewGraph(client, target).invoke({
-          pullRequests: [],
-          reviews: [],
-          failures: [],
-        }),
-      ui,
-      dryRun,
-      "No pull requests to review",
-    );
-    return;
-  }
-  await runReview(
-    () =>
-      buildIssueReviewGraph(client, target).invoke({
-        issues: [],
-        reviews: [],
-        failures: [],
-      }),
-    ui,
+  const target = dryRun ? dryRunClient(github) : github;
+  const isPullRequests = command === "pr_review";
+  const { reviews, failures } = isPullRequests
+    ? await buildPrReviewGraph(client, target).invoke({})
+    : await buildIssueReviewGraph(client, target).invoke({});
+
+  ui.reviews(
+    reviews,
     dryRun,
-    "No issues to review",
+    isPullRequests ? "No pull requests to review" : "No issues to review",
   );
+  ui.usage(usageTotals());
+  reportFailures(ui, failures, reviews.length);
 }
 
 export async function start(argv: readonly string[] = process.argv.slice(2)) {

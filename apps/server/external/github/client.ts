@@ -291,45 +291,28 @@ export class HttpGitHubClient implements GitHubClient {
   }
 }
 
-export class DryRunGitHubClient implements GitHubClient {
-  constructor(private readonly inner: GitHubClient) {}
+export function dryRunClient(inner: GitHubClient): GitHubClient {
+  return {
+    listRepositories: () => inner.listRepositories(),
+    listOpenPullRequests: (repository, label) =>
+      inner.listOpenPullRequests(repository, label),
+    fetchDiff: (pullRequest) => inner.fetchDiff(pullRequest),
+    listOpenIssues: (repository, label) => inner.listOpenIssues(repository, label),
+    listComments: (target) => inner.listComments(target),
 
-  listRepositories(): Promise<string[]> {
-    return this.inner.listRepositories();
-  }
+    async ensureLabel(repository, label): Promise<void> {
+      log.info("dry run: skipping ensure_label", { dry_run: true, repository, label });
+    },
 
-  async ensureLabel(repository: string, label: string, _color: string): Promise<void> {
-    log.info("dry run: skipping ensure_label", {
-      dry_run: true,
-      repository,
-      label,
-    });
-  }
-
-  listOpenPullRequests(repository: string, label: string): Promise<PullRequest[]> {
-    return this.inner.listOpenPullRequests(repository, label);
-  }
-
-  fetchDiff(pullRequest: PullRequest): Promise<string> {
-    return this.inner.fetchDiff(pullRequest);
-  }
-
-  listOpenIssues(repository: string, label: string): Promise<Issue[]> {
-    return this.inner.listOpenIssues(repository, label);
-  }
-
-  listComments(target: ReviewTarget): Promise<Comment[]> {
-    return this.inner.listComments(target);
-  }
-
-  async postComment(target: ReviewTarget, body: string): Promise<void> {
-    log.info("dry run: skipping post_comment", {
-      dry_run: true,
-      repository: target.repository,
-      number: target.number,
-      body_length: body.length,
-    });
-  }
+    async postComment(target, body): Promise<void> {
+      log.info("dry run: skipping post_comment", {
+        dry_run: true,
+        repository: target.repository,
+        number: target.number,
+        body_length: body.length,
+      });
+    },
+  };
 }
 
 function expandUser(path: string): string {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   type Comment,
-  DryRunGitHubClient,
+  dryRunClient,
   type GitHubClient,
   type Issue,
   type PullRequest,
@@ -65,12 +65,12 @@ class SpyGitHubClient implements GitHubClient {
   }
 }
 
-describe("DryRunGitHubClient", () => {
+describe("dryRunClient", () => {
   const logs = useLogCapture();
 
   it("forwards every read", async () => {
     const inner = new SpyGitHubClient();
-    const client = new DryRunGitHubClient(inner);
+    const client = dryRunClient(inner);
 
     await expect(client.listRepositories()).resolves.toEqual(["org/repo"]);
     await expect(client.listOpenPullRequests("org/repo", "review")).resolves.toEqual([
@@ -92,7 +92,7 @@ describe("DryRunGitHubClient", () => {
   it("skips ensureLabel and logs what it would have written", async () => {
     const inner = new SpyGitHubClient();
 
-    await new DryRunGitHubClient(inner).ensureLabel("org/repo", "bug", "ff0000");
+    await dryRunClient(inner).ensureLabel("org/repo", "bug", "ff0000");
 
     expect(inner.calls).toEqual([]);
     expect(logs.contextOf("dry run: skipping ensure_label")).toEqual({
@@ -105,7 +105,7 @@ describe("DryRunGitHubClient", () => {
   it("skips postComment and logs the body length", async () => {
     const inner = new SpyGitHubClient();
 
-    await new DryRunGitHubClient(inner).postComment(PULL_REQUEST, "hello world");
+    await dryRunClient(inner).postComment(PULL_REQUEST, "hello world");
 
     expect(inner.calls).toEqual([]);
     expect(logs.contextOf("dry run: skipping post_comment")).toEqual({

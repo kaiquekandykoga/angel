@@ -1,16 +1,21 @@
 # Logs
 
-Every run logs to two places at once, configured in `packages/shared/logs.ts` by `configureLogging()`,
-which `main()` calls before anything else happens.
+Every run logs to two places at once, configured in `packages/shared/logs.ts` by
+`configureLogging()`, which `main()` calls before anything else happens.
 
 | Destination | Level | Format |
 |---|---|---|
-| Console (stderr) | `INFO` | `LEVEL   message` — high-level progress, meant to be read while it runs. The console handler colors the level name only (`DEBUG` dim, `INFO` cyan, `WARNING` yellow, `ERROR` red, `CRITICAL` bold red); padding is computed on the plain name, so columns line up either way. Color follows the same `ANGEL_COLOR` / `NO_COLOR` rules as the rest of the console — see [`USAGE.md`](USAGE.md#color) |
+| Console (stderr) | `INFO` | `LEVEL   message` — high-level progress, meant to be read while it runs |
 | `log/angel-<timestamp>.jsonl` | `DEBUG` | one JSON object per line, carrying every structured field the nodes attach |
 
-The file is the detailed one: it keeps the `DEBUG` records the console drops — per-repository
-and per-item detail: what was scanned, what was selected for review and why, diff sizes,
-prompt message counts, and what each model call cost in tokens and milliseconds.
+The console handler colors the level name only (`DEBUG` dim, `INFO` cyan, `WARNING` yellow,
+`ERROR` red, `CRITICAL` bold red); padding is computed on the plain name, so columns line up
+either way. Color follows the same `ANGEL_COLOR` / `NO_COLOR` rules as the rest of the
+console — see [`USAGE.md`](USAGE.md#color).
+
+The file is the detailed one: it keeps the `DEBUG` records the console drops — what was
+scanned, what was selected for review and why, diff sizes, prompt message counts, and what
+each model call cost in tokens and milliseconds.
 
 ## Record shape
 
@@ -28,7 +33,6 @@ call site attaches is merged in at the top level alongside them:
 ```json
 {"time": "2026-08-15T09:24:43.602Z", "level": "INFO", "logger": "angel.main", "message": "running chat", "command": "chat", "log_path": "log/angel-20260815T092443Z.jsonl", "dry_run": false}
 {"time": "2026-08-15T09:24:43.604Z", "level": "DEBUG", "logger": "angel.agents.chat.graph", "message": "wiring call_llm node"}
-{"time": "2026-08-15T09:24:43.605Z", "level": "INFO", "logger": "angel.agents.chat.graph", "message": "chat graph ready"}
 ```
 
 ## How call sites log
@@ -37,16 +41,9 @@ call site attaches is merged in at the top level alongside them:
 `warning` / `error` take the message and an object of structured fields:
 
 ```ts
-import { getLogger } from "../../logs.js";
-
 const log = getLogger("angel.agents.pr-review.nodes");
 
-log.debug("evaluated pull request", {
-  repository: pullRequest.repository,
-  number: pullRequest.number,
-  selected,
-  reason,
-});
+log.debug("evaluated pull request", { repository, number, selected, reason });
 ```
 
 Context-object field names are `snake_case`, so a run's log reads the same whichever module
@@ -56,37 +53,6 @@ Handlers are module state: `configureLogging()` installs the console and file ha
 returns the file path; a process that never calls it drops records rather than failing.
 Tests install a capturing handler instead — see [`TESTING.md`](TESTING.md).
 
-### Failure records write themselves
-
-The five failure sites all log the same five keys and append a matching `ItemFailure` to
-graph state. `collectFailures()` in `apps/server/agents/shared.ts` does both, so the node body holds
-the work rather than the bookkeeping:
-
-```ts
-await collectFailures(
-  failures,
-  "failed to review pull request",
-  {
-    stage: "review_pull_requests",
-    repository: pullRequest.repository,
-    number: pullRequest.number,
-  },
-  async () => {
-    // ...
-    reviews.push({ target: pullRequest, body });
-  },
-);
-```
-
-It catches whatever the callback throws, logs the `WARNING` described under
-[Failure records](#failure-records), appends the `ItemFailure`, and swallows the error so the
-loop continues. Success-path work goes inside the callback; `collectFailures` returns `false`
-when it caught something, for a caller that needs to branch.
-
-`logReviewProduced()` in the same module owns the `review produced` record, including the
-`severity_counts` tally — why that arithmetic no longer appears in the review nodes. It takes
-the calling module's `log`, so the record still names the node that produced it.
-
 Because every line is self-contained JSON, `jq` is the natural way to read a run:
 
 ```bash
@@ -94,8 +60,20 @@ jq -r 'select(.level == "INFO") | .message' log/angel-*.jsonl
 jq 'select(.selected == false) | {repository, number, reason}' log/angel-*.jsonl
 ```
 
-The second answers "why didn't it review this PR?" — `fetch_pull_requests` and
-`fetch_issues` log a `selected` / `reason` pair for every labeled item they evaluate.
+The second answers "why didn't it review this PR?" — the fetch nodes log a `selected` /
+`reason` pair for every labeled item they evaluate.
+
+### Records that write themselves
+
+Three helpers in `apps/server/agents/shared.ts` own the repeated records, so node bodies hold
+the work rather than the bookkeeping. Each takes the calling module's `log`, so the record
+still names the node that produced it.
+
+| Helper | Owns |
+|---|---|
+| `collectFailures()` | the `WARNING` under [Failure records](#failure-records), plus the matching `ItemFailure` appended to graph state. Takes the work as a callback, swallows what it throws so the loop continues, and returns `false` when it caught something |
+| `scanTargets()` / `reviewTargets()` | the whole fetch and review loop for both review agents — `fetching …`, `scanning repository`, `evaluated …`, `… fetched`, `reviewing N …`, `reviewed owner/repo#n`, `… reviewed` — with the noun supplied by the caller |
+| `logReviewProduced()` | the `review produced` record below, including the `severity_counts` tally |
 
 ## Review records
 
@@ -118,8 +96,8 @@ failure below, with `error_type` naming the validation error.
 
 ## Model call records
 
-Every call into the model logs one `DEBUG` record from `angel.external.nvidia`, message `model
-call completed`, so a run's token spend and latency are recoverable after the fact:
+Every call into the model logs one `DEBUG` record from `angel.external.nvidia`, message
+`model call completed`, so a run's token spend and latency are recoverable after the fact:
 
 | Key | Meaning |
 |---|---|
@@ -142,8 +120,8 @@ jq 'select(.message == "model call completed") | {call, schema, total_tokens, du
 ### The run total on the console
 
 `logModelCallCompleted` also accumulates these four fields into a per-run tally in
-`external/nvidia/client.ts`, which `main` prints as the `Usage` section when the run ends — the same
-numbers the first `jq` above recovers, without needing the log:
+`external/nvidia/client.ts`, which `main` prints as the `Usage` section when the run ends —
+the same numbers the first `jq` above recovers, without needing the log:
 
 | Function | Purpose |
 |---|---|
@@ -158,8 +136,9 @@ Dollars are not logged — see the token and cost accounting item in [`TODO.md`]
 
 ## Dry-run records
 
-A `--dry-run` run logs each write it suppressed, at `INFO`, from `angel.external.github`. Both
-records carry `dry_run: true`, so one filter shows everything the run would have written:
+A `--dry-run` run logs each write it suppressed, at `INFO`, from `angel.external.github`.
+Both records carry `dry_run: true`, so one filter shows everything the run would have
+written. The review bodies themselves go to stdout, not the log.
 
 | Message | Context keys |
 |---|---|
@@ -169,8 +148,6 @@ records carry `dry_run: true`, so one filter shows everything the run would have
 ```bash
 jq 'select(.dry_run == true) | {message, repository, number}' log/angel-*.jsonl
 ```
-
-The review bodies themselves go to stdout, not the log — see [`USAGE.md`](USAGE.md).
 
 ## Failure records
 
@@ -211,9 +188,8 @@ Logging is not production-shaped yet — [`TODO.md`](TODO.md) tracks the specifi
   run's lines, and stack-trace capture — nothing currently logs one.
 - Under that same item — `logReviewProduced()` logs the **entire rendered review body** at
   `DEBUG`, so model output derived from untrusted input lands on disk unbounded. Both review
-  nodes now share that one helper, so capping the body is a change in a single place.
-  Combined with no retention, that's a slow disk-fill and a data-handling question.
+  nodes share that one helper, so capping the body is a change in a single place. Combined
+  with no retention, that's a slow disk-fill and a data-handling question.
 - Writes are synchronous `appendFileSync` calls, one per record — fine for a short CLI run,
   wrong for anything long-lived.
 - Nothing redacts secrets; the handler serialises whatever is in the context object.
-</content>

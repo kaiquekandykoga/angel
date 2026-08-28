@@ -1,13 +1,7 @@
 export { buildChatGraph, type ChatGraph } from "./agents/chat/graph.js";
 export { ChatSession, type Session, startSession } from "./agents/chat/session.js";
-export {
-  buildIssueReviewGraph,
-  type IssueReviewGraphOptions,
-} from "./agents/issue-review/graph.js";
-export {
-  buildPrReviewGraph,
-  type PrReviewGraphOptions,
-} from "./agents/pr-review/graph.js";
+export { buildIssueReviewGraph } from "./agents/issue-review/graph.js";
+export { buildPrReviewGraph } from "./agents/pr-review/graph.js";
 export { REVIEW_LENSES, type ReviewLens } from "./agents/pr-review/prompts.js";
 export {
   type Finding,
@@ -17,12 +11,13 @@ export {
   PULL_REQUEST_REVIEW_OUTPUT,
   type PullRequestReviewOutput,
   type Review,
+  type ReviewGraphOptions,
   type Severity,
 } from "./agents/shared.js";
 export {
   buildGithubClient,
   type Comment,
-  DryRunGitHubClient,
+  dryRunClient,
   type GitHubClient,
   type Issue,
   MissingGitHubCredentialsError,

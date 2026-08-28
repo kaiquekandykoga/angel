@@ -1,23 +1,12 @@
 import { Annotation } from "@langchain/langgraph";
-import type { Comment, Issue } from "../../external/github/client.js";
-import type { ItemFailure, Review } from "../shared.js";
+import type { Issue } from "../../external/github/client.js";
+import { contextChannel, type ReviewContext, reviewChannels } from "../shared.js";
 
-export interface IssueContext {
-  readonly issue: Issue;
-  readonly comments: Comment[];
-}
-
-function replace<T>(_current: T, next: T): T {
-  return next;
-}
+export type IssueContext = ReviewContext<Issue>;
 
 export const IssueReviewAnnotation = Annotation.Root({
-  issues: Annotation<IssueContext[]>({ reducer: replace, default: () => [] }),
-  reviews: Annotation<Review[]>({ reducer: replace, default: () => [] }),
-  failures: Annotation<ItemFailure[]>({
-    reducer: (current, next) => [...current, ...next],
-    default: () => [],
-  }),
+  issues: contextChannel<Issue>(),
+  ...reviewChannels(),
 });
 
 export type IssueReviewState = typeof IssueReviewAnnotation.State;

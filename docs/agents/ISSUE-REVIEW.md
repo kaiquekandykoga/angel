@@ -13,7 +13,7 @@ label is created on each repository if missing. Review-selection logic (never co
   | fetch_issues |  <--- GitHub: installation repositories,
   +--------------+       ensures the `angel` label exists,
     |                    then their open issues labeled `angel` + comments
-    |  IssueContext (issue + comments), only the ones due for review
+    |  IssueContext ({ target, comments }), only the ones due for review
     v
   +---------------+
   | review_issues |  <--- NVIDIA model: an IssueReviewOutput
@@ -30,7 +30,7 @@ label is created on each repository if missing. Review-selection logic (never co
 
 | Node | Does |
 |---|---|
-| `fetch_issues` | Ensures each repository has the `angel` label, lists issues carrying it and their comments, keeps the ones due for review, and emits `IssueContext` (the issue plus its comments) |
+| `fetch_issues` | Ensures each repository has the `angel` label, lists issues carrying it and their comments, keeps the ones due for review, and emits an `IssueContext` (the issue plus its comments) |
 | `review_issues` | Asks the model for an `IssueReviewOutput` (summary, findings, acceptance criteria, suggested approach) given the title, description, and existing comments, then renders it to the comment body |
 | `post_review_comments` | Shared with `pr_review` — posts each review as an issue comment |
 
