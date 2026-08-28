@@ -1,4 +1,5 @@
 import type { OutputStream } from "../../packages/shared/console.js";
+import { loadEnvVar } from "../../packages/shared/env.js";
 import { configureLogging, getLogger } from "../../packages/shared/logs.js";
 import {
   buildChatGraph,
@@ -94,6 +95,12 @@ export async function main(
   }
 
   const { command, dryRun } = parsed.arguments;
+  if (!dryRun && loadEnvVar("npm_config_dry_run") === "true") {
+    throw new ExitError(
+      1,
+      `npm consumed --dry-run before angel saw it. Put it after --: npm run angel -- ${command} --dry-run`,
+    );
+  }
   const ui = terminalUi(dependencies.stdout, dependencies.stderr);
   const logPath = dependencies.configureLogging();
   log.info(`running ${command}`, { command, log_path: logPath, dry_run: dryRun });

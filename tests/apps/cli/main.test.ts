@@ -232,6 +232,28 @@ describe("main pr_review", () => {
     expect(github.postedComments).toHaveLength(1);
   });
 
+  it("stops when npm swallowed --dry-run instead of forwarding it", async () => {
+    vi.stubEnv("npm_config_dry_run", "true");
+    const { github, dependencies } = harness();
+    labeledPullRequests(github, 1);
+
+    const error = await expectExit(main(["pr_review"], dependencies));
+
+    expect(error.code).toBe(1);
+    expect(error.message).toContain("npm run angel -- pr_review --dry-run");
+    expect(github.postedComments).toEqual([]);
+  });
+
+  it("runs normally when npm forwarded --dry-run", async () => {
+    vi.stubEnv("npm_config_dry_run", "true");
+    const { github, dependencies } = harness();
+    labeledPullRequests(github, 1);
+
+    await main(["pr_review", "--dry-run"], dependencies);
+
+    expect(github.postedComments).toEqual([]);
+  });
+
   it("says so when nothing is due", async () => {
     const { stdout, github, dependencies } = harness();
 
