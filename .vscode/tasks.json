@@ -1,0 +1,79 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "type": "shell",
+      "command": "npm run build",
+      "group": "build",
+      "problemMatcher": ["$tsc"],
+      "presentation": { "reveal": "silent", "clear": true }
+    },
+    {
+      "label": "typecheck",
+      "type": "shell",
+      "command": "npm run typecheck",
+      "problemMatcher": ["$tsc"],
+      "presentation": { "clear": true }
+    },
+    {
+      "label": "lint",
+      "type": "shell",
+      "command": "npm run lint",
+      "problemMatcher": [],
+      "presentation": { "clear": true }
+    },
+    {
+      "label": "format",
+      "type": "shell",
+      "command": "npm run format",
+      "problemMatcher": [],
+      "presentation": { "clear": true }
+    },
+    {
+      "label": "test",
+      "type": "shell",
+      "command": "npm test",
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": [],
+      "presentation": { "clear": true }
+    },
+    {
+      "label": "test:unit",
+      "type": "shell",
+      "command": "npm run test:unit",
+      "group": "test",
+      "problemMatcher": [],
+      "presentation": { "clear": true }
+    },
+    {
+      "label": "ci",
+      "type": "shell",
+      "command": "npm run ci",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": ["$tsc"],
+      "presentation": { "clear": true }
+    },
+    {
+      "label": "angel chat",
+      "type": "shell",
+      "command": "npm run angel chat",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "angel pr_review --dry-run",
+      "type": "shell",
+      "command": "npm run angel pr_review -- --dry-run",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "angel issue_review --dry-run",
+      "type": "shell",
+      "command": "npm run angel issue_review -- --dry-run",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    }
+  ]
+}

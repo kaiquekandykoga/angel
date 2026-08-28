@@ -16,7 +16,6 @@ coverage/
 !.env.example
 
 # Editors
-.vscode/
 .idea/
 *.swp
 

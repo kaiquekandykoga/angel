@@ -71,5 +71,9 @@
     "vitest": "^4.1.11"
   },
   "main": "dist/apps/server/index.js",
-  "types": "dist/apps/server/index.d.ts"
+  "types": "dist/apps/server/index.d.ts",
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "fsevents@2.3.3": true
+  }
 }

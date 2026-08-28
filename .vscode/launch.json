@@ -1,0 +1,105 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "angel chat",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--import", "tsx"],
+      "program": "${workspaceFolder}/apps/cli/bin.ts",
+      "args": ["chat"],
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**", "${workspaceFolder}/node_modules/**"]
+    },
+    {
+      "name": "angel pr_review --dry-run",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--import", "tsx"],
+      "program": "${workspaceFolder}/apps/cli/bin.ts",
+      "args": ["pr_review", "--dry-run"],
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**", "${workspaceFolder}/node_modules/**"]
+    },
+    {
+      "name": "angel issue_review --dry-run",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--import", "tsx"],
+      "program": "${workspaceFolder}/apps/cli/bin.ts",
+      "args": ["issue_review", "--dry-run"],
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**", "${workspaceFolder}/node_modules/**"]
+    },
+    {
+      "name": "angel (pick command)",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--import", "tsx"],
+      "program": "${workspaceFolder}/apps/cli/bin.ts",
+      "args": ["${input:angelCommand}"],
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**", "${workspaceFolder}/node_modules/**"]
+    },
+    {
+      "name": "angel (compiled dist)",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/dist/apps/cli/bin.js",
+      "args": ["${input:angelCommand}"],
+      "preLaunchTask": "build",
+      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**", "${workspaceFolder}/node_modules/**"]
+    },
+    {
+      "name": "eval",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--import", "tsx"],
+      "program": "${workspaceFolder}/eval/bin.ts",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**", "${workspaceFolder}/node_modules/**"]
+    },
+    {
+      "name": "vitest: current file",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/node_modules/vitest/vitest.mjs",
+      "args": ["run", "--no-file-parallelism", "${relativeFile}"],
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**", "${workspaceFolder}/node_modules/**"]
+    },
+    {
+      "name": "vitest: unit suite",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/node_modules/vitest/vitest.mjs",
+      "args": ["run", "--no-file-parallelism", "--exclude", "**/*.integration.test.ts"],
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**", "${workspaceFolder}/node_modules/**"]
+    }
+  ],
+  "inputs": [
+    {
+      "id": "angelCommand",
+      "type": "pickString",
+      "description": "angel command",
+      "options": ["chat", "pr_review", "issue_review"],
+      "default": "chat"
+    }
+  ]
+}
