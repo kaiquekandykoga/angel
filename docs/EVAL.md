@@ -86,13 +86,9 @@ the diff with real `@@` headers: `cited_lines_in_hunks` parses them.
 ## Configuration
 
 Two variables beyond the ones in [`USAGE.md`](USAGE.md#configuration), from a project at
-[cloud.langfuse.com](https://cloud.langfuse.com) or your own instance:
-
-| Variable | Description |
-|---|---|
-| `LANGFUSE_PUBLIC_KEY` | Project public key (`pk-lf-…`). |
-| `LANGFUSE_SECRET_KEY` | Project secret key (`sk-lf-…`). |
-| `LANGFUSE_BASE_URL` | Optional. Defaults to `https://cloud.langfuse.com`. |
+[cloud.langfuse.com](https://cloud.langfuse.com) or your own instance: `LANGFUSE_PUBLIC_KEY`
+(`pk-lf-…`), `LANGFUSE_SECRET_KEY` (`sk-lf-…`), and the optional `LANGFUSE_BASE_URL`
+(defaults to `https://cloud.langfuse.com`).
 
 Missing keys exit `1` with a one-line message before any model call is made. Spans are
 exported immediately rather than batched, so a short run cannot lose its trace on exit.

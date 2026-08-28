@@ -1,21 +1,6 @@
 # Testing
 
-`npm run ci` runs the whole gate — `biome ci`, then `tsc --noEmit`, then `vitest run`. See
-[`USAGE.md`](USAGE.md) for the commands. `tests/` mirrors the repository root, one directory
-per tree:
-
-| Tree | What lives there |
-|---|---|
-| `tests/apps/` | `cli/` and `server/` — graphs, nodes, the REPL, the clients. |
-| `tests/packages/` | `shared/` — env loading, logging, ANSI output. |
-| `tests/eval/` | The eval harness: scorers, datasets, and the tasks that drive a graph. Never calls a model or Langfuse. |
-
-Inside those trees the *kind* of test is in the filename, not the path:
-
-| Suite | What it covers | How it stubs the world |
-|---|---|---|
-| `*.test.ts` | Everything driven through a fake. | `FakeGitHubClient` / `FakeLlmClient` from `tests/helpers/`. No HTTP at all. |
-| `*.integration.test.ts` | `HttpGitHubClient` and `InstallationTokenProvider` — the code that actually speaks HTTP. | `FakeFetch` from `tests/helpers/fetch.ts`, serving recorded GitHub payloads from `tests/fixtures/`. Still no network. |
+`npm run ci` runs the whole gate — `biome ci`, then `tsc --noEmit`, then `vitest run`.
 
 ```bash
 npm run test:unit          # fakes only, fastest
@@ -23,8 +8,16 @@ npm run test:integration   # client code over recorded payloads
 npm run coverage           # the same tests, with a coverage report
 ```
 
-The suffix is the split, so `client.test.ts` and `client.integration.test.ts` sit next to
-each other and next to the `client.ts` they cover.
+`tests/` mirrors the repository root — `tests/apps/` (`cli/` and `server/`),
+`tests/packages/` (`shared/`), `tests/eval/` (the harness: scorers, datasets, and the tasks
+that drive a graph; never calls a model or Langfuse). Inside those trees the *kind* of test
+is in the filename, not the path, so `client.test.ts` and `client.integration.test.ts` sit
+next to each other and next to the `client.ts` they cover:
+
+| Suite | What it covers | How it stubs the world |
+|---|---|---|
+| `*.test.ts` | Everything driven through a fake. | `FakeGitHubClient` / `FakeLlmClient` from `tests/helpers/`. No HTTP at all. |
+| `*.integration.test.ts` | `HttpGitHubClient` and `InstallationTokenProvider` — the code that actually speaks HTTP. | `FakeFetch` from `tests/helpers/fetch.ts`, serving recorded GitHub payloads from `tests/fixtures/`. Still no network. |
 
 `tests/eval/` runs with the unit suite: the scorers are pure functions, and
 `tests/eval/tasks.test.ts` drives the real review graphs through `FakeLlmClient`, so the
@@ -55,15 +48,10 @@ implicit fixture injection:
 | `ansi.ts` | `stripAnsi(text)` — compare styled output as plain text |
 
 **Adding a fixture.** Drop the sanitized JSON (or raw text, for diffs) under
-`tests/fixtures/github/` and load it with `loadFixture`:
-
-```ts
-const payload = loadFixture("github/pulls_page1.json");
-```
-
-Keep the whole response shape rather than the handful of fields the client reads today — the
-extra fields are what makes the fixture useful when the client grows. Never commit a real
-token: the recorded installation token is a redacted placeholder.
+`tests/fixtures/github/` and load it with `loadFixture("github/pulls_page1.json")`. Keep the
+whole response shape rather than the handful of fields the client reads today — the extra
+fields are what makes the fixture useful when the client grows. Never commit a real token:
+the recorded installation token is a redacted placeholder.
 
 ## In CI
 
@@ -72,8 +60,7 @@ and typecheck and build once on Linux, then the test suite across a matrix of Li
 macOS on Node 22 and 24 — four jobs, none of which fail fast. Nothing there needs a secret,
 since neither suite touches the network.
 
-`.github/dependabot.yml` keeps the inputs to those jobs current: weekly npm and
-GitHub Actions checks, with updates grouped (`@langchain/*`, dev dependencies, production
+`.github/dependabot.yml` keeps the inputs to those jobs current: weekly npm and GitHub
+Actions checks, with updates grouped (`@langchain/*`, dev dependencies, production
 minor/patch, all actions) so a week's bumps arrive as a few pull requests instead of a dozen.
 Each one runs the full matrix above, so CI is what says whether a bump is safe.
-</content>

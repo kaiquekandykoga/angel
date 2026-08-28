@@ -19,27 +19,21 @@ Node 22 or newer.
 npm install              # install
 cp .env.example .env     # then fill in the three variables — see Configuration
 npm run angel chat       # talk to the model; no GitHub credentials needed
+
+npm run build && node dist/apps/cli/bin.js chat   # compiled build, same behavior
+npm run angel pr_review -- --dry-run              # preview a review run, posting nothing
 ```
 
-`npm run angel` runs the TypeScript sources through [`tsx`](https://tsx.is). Compiled build,
-same behavior:
-
-```bash
-npm run build
-node dist/apps/cli/bin.js chat
-```
-
-Preview what a review run would post, without posting anything (needs the GitHub App
-variables):
-
-```bash
-npm run angel pr_review -- --dry-run
-```
+`npm run angel` runs the TypeScript sources through [`tsx`](https://tsx.is).
 
 > `npm run` swallows flags unless separated with `--`. `node dist/apps/cli/bin.js pr_review
 > --dry-run` or an installed `angel pr_review --dry-run` needs no separator.
 
 ## Commands
+
+```bash
+angel <command> [--dry-run]
+```
 
 | Command | What it does | Needs |
 |---|---|---|
@@ -47,20 +41,11 @@ npm run angel pr_review -- --dry-run
 | [`pr_review`](#pr_review) | One pass over open PRs labeled `angel`; comments on the ones due for review | NVIDIA key + GitHub App |
 | [`issue_review`](#issue_review) | Same, over open issues labeled `angel` | NVIDIA key + GitHub App |
 
-```bash
-angel <command> [--dry-run]
-```
-
 Command may come before or after the flag. Anything else exits `1` with `Unknown command: …
-Valid commands: chat, pr_review, issue_review`. No `--version` yet.
-
-Node-by-node wiring of each command is in [`agents/`](agents/README.md).
+Valid commands: chat, pr_review, issue_review`. No `--version` yet. Node-by-node wiring is
+in [`agents/`](agents/README.md).
 
 ### `chat`
-
-```bash
-angel chat
-```
 
 Reads a line at a `>` prompt, prints the reply; blank lines ignored. Exit with `/exit` or
 Ctrl-D. Conversation lives in memory for the process's life only — nothing writes to
@@ -68,44 +53,31 @@ GitHub, and `--dry-run` is rejected here.
 
 ### `pr_review`
 
-```bash
-angel pr_review [--dry-run]
-```
-
 Scans every repository the GitHub App is installed on (discovered at run time — granting or
 revoking access adds or drops a repo) and reviews open pull requests labeled `angel`.
 
-A labeled PR is reviewed when `kandy-angel[bot]` has **never** commented on it, or its
-**head sha differs** from the one recorded in that last bot comment — re-reviewed exactly
-when the head moves, force-pushes included. Otherwise it's skipped as up to date.
-
-Each review posts as one issue comment ending with a `<!-- angel: sha=<head sha> -->`
-marker — the only state the bot keeps, recording which head was reviewed, on the PR itself.
-Deleting it makes the next run review that PR again.
-
-Each PR is read three times, by three specialised prompts — **security**, **quality**,
-**performance** — each told to stay in its lane and given the same title, description,
-comments, and diff: three times the tokens and roughly three times the wall clock of a
-single pass.
-
-The comment is rendered from validated schemas, not pasted from the model: one summary line
-per lens, then `### Security` / `### Quality` / `### Performance` sections, each holding one
-bold entry per finding tagged `[blocker]` / `[major]` / `[minor]` / `[nit]` and a file:line
-the diff supports. Any lens failing, or a reply that doesn't fit the schema, fails the whole
-PR: nothing posts, and it's retried next run since no marker was written.
-
-`temperature=0`, so repeat runs over an unchanged head usually match — though a hosted model
-guarantees nothing.
+- **Selected when** `kandy-angel[bot]` has never commented on the PR, or its head sha
+  differs from the one recorded in that last bot comment — re-reviewed exactly when the head
+  moves, force-pushes included. Otherwise skipped as up to date.
+- **State** is one `<!-- angel: sha=<head sha> -->` marker ending each posted comment, on the
+  PR itself and nowhere else. Deleting it makes the next run review that PR again.
+- **Three passes**, by three specialised prompts — **security**, **quality**, **performance**
+  — each told to stay in its lane and given the same title, description, comments, and diff:
+  three times the tokens and roughly three times the wall clock of a single pass.
+- **The comment is rendered from validated schemas**, not pasted from the model: one summary
+  line per lens, then `### Security` / `### Quality` / `### Performance` sections, each
+  holding one bold entry per finding tagged `[blocker]` / `[major]` / `[minor]` / `[nit]` and
+  a file:line the diff supports.
+- **Any lens failing**, or a reply that doesn't fit the schema, fails the whole PR: nothing
+  posts, and it's retried next run since no marker was written.
+- `temperature=0`, so repeat runs over an unchanged head usually match — though a hosted
+  model guarantees nothing.
 
 > **The label is created for you.** Every scanned repository gets a pink `angel` label if it
 > lacks one, including repositories you never meant to review. Install the App only where
 > you want that.
 
 ### `issue_review`
-
-```bash
-angel issue_review [--dry-run]
-```
 
 Same pass over open issues labeled `angel`. Reviewed when the bot has never commented, or
 the issue's `updatedAt` is newer than that last comment (covers an edited description and
@@ -122,8 +94,10 @@ plus two extra sections: proposed acceptance criteria and a suggested approach.
 ### `--dry-run`
 
 Identical up to the write: repositories discovered, items selected, diffs fetched, model
-called — same token cost. Only two writes are suppressed: creating the `angel` label,
-posting the comment. Each review body prints instead, under its target:
+called — same token cost. Only two writes are suppressed, creating the `angel` label and
+posting the comment, and both are logged (see [`LOGS.md`](LOGS.md)). Exit codes are
+unchanged — a fetch or model failure still exits `1`. Each review body prints instead, under
+a bold target line, unindented and unstyled, ready to paste as markdown:
 
 ```
 Reviews ────────────────────────────────────────────────────────────────
@@ -137,19 +111,10 @@ The change looks correct, but one branch is untested.
 The early return added here is not covered by any case in `tests/parse.test.ts`.
 ```
 
-Target line is bold; body prints unindented and unstyled, ready to paste as markdown.
-
-Every suppressed write is also logged; see [`LOGS.md`](LOGS.md). Exit codes unchanged — a
-fetch or model failure still exits `1`.
-
 ### `--help`
 
-Each command's options, printed either way — nothing runs, no credentials read:
-
-```bash
-angel pr_review --help
-angel help pr_review
-```
+`angel pr_review --help` and `angel help pr_review` both print the command's options and
+run nothing — no credentials read:
 
 ```
 usage: angel pr_review [options]
@@ -237,9 +202,8 @@ printed as `owner/repo`. Failures go to stderr, the three sections above to stdo
 | `0` | every item due for review was reviewed and posted (including the case where nothing was due) |
 | `1` | at least one repository or item failed, or the command was invalid, or credentials were missing |
 
-The non-zero exit is what a scheduler notices. Same failures appear as `WARNING` records in
-the JSON log with structured `stage` / `error_type` fields — see [`LOGS.md`](LOGS.md) for
-what every run writes to console and `log/`.
+The non-zero exit is what a scheduler notices. The same failures appear as `WARNING` records
+in the JSON log with structured `stage` / `error_type` fields — see [`LOGS.md`](LOGS.md).
 
 ## Configuration
 
@@ -273,29 +237,25 @@ permissions only, so it cannot approve, merge, or push:
 
 ## Testing
 
-`npm run ci` runs the whole gate — `biome ci`, then `tsc --noEmit`, then `vitest run`:
-
 ```bash
-npm run ci
+npm run ci                 # biome ci → tsc --noEmit → vitest run
 npm run test:unit          # fakes only, fastest
 npm run test:integration   # client code over recorded GitHub payloads
 npm run coverage           # the same tests, with a coverage report
 ```
 
 Neither suite touches the network. Split and fixture details in [`TESTING.md`](TESTING.md).
-Same three checks run in GitHub Actions (`.github/workflows/ci.yml`) on every push and pull
-request, Node 22 and 24.
+The same three checks run in GitHub Actions (`.github/workflows/ci.yml`) on every push and
+pull request, Node 22 and 24.
 
 Review *quality* is measured separately, since it costs model calls and needs Langfuse
-credentials:
+credentials. Deterministic checks only — hallucinated file and line citations, keyword
+recall, lens coverage. See [`EVAL.md`](EVAL.md).
 
 ```bash
 npm run eval               # both review agents over the fixture dataset
 npm run eval -- pr_review  # one agent
 ```
-
-Deterministic checks only — hallucinated file and line citations, keyword recall, lens
-coverage. See [`EVAL.md`](EVAL.md).
 
 ## Known gaps
 
@@ -307,4 +267,3 @@ coverage. See [`EVAL.md`](EVAL.md).
   an expired key, or Ctrl-C out of `chat`. See "Fail with a message, not a stack trace".
 - **No rate-limit or backoff handling.** A run that hits GitHub's secondary limit fails the
   affected items instead of waiting.
-</content>

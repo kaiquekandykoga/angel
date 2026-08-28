@@ -53,7 +53,7 @@ describe("fetchIssues", () => {
   it("selects an issue the bot never commented on", async () => {
     const result = await fetch(withLabeled(issue()))();
 
-    expect(result.issues.map((each) => each.issue.number)).toEqual([1]);
+    expect(result.issues.map((each) => each.target.number)).toEqual([1]);
     expect(logs.contextOf("evaluated issue")).toMatchObject({
       selected: true,
       reason: "never reviewed",
@@ -153,7 +153,7 @@ describe("fetchIssues", () => {
     const result = await fetch(github)();
 
     expect(result.failures).toMatchObject([{ number: 1, stage: "fetch_issues" }]);
-    expect(result.issues.map((each) => each.issue.number)).toEqual([2]);
+    expect(result.issues.map((each) => each.target.number)).toEqual([2]);
   });
 
   it("logs how much it scanned and how much is due", async () => {
@@ -171,7 +171,7 @@ describe("reviewIssues", () => {
   const logs = useLogCapture();
 
   function context(overrides: Partial<Issue> = {}): IssueContext {
-    return { issue: issue(overrides), comments: [] };
+    return { target: issue(overrides), comments: [] };
   }
 
   it("calls the model once per issue", async () => {
@@ -197,7 +197,7 @@ describe("reviewIssues", () => {
 
     await reviewIssues(client)({
       issues: [
-        { issue: issue(), comments: [comment({ author: "octocat", body: "hi" })] },
+        { target: issue(), comments: [comment({ author: "octocat", body: "hi" })] },
       ],
     });
 

@@ -59,7 +59,7 @@ describe("fetchPullRequests", () => {
 
     const result = await fetch(github)();
 
-    expect(result.pullRequests.map((each) => each.pullRequest.number)).toEqual([1]);
+    expect(result.pullRequests.map((each) => each.target.number)).toEqual([1]);
     expect(logs.contextOf("evaluated pull request")).toMatchObject({
       selected: true,
       reason: "never reviewed",
@@ -206,7 +206,7 @@ describe("fetchPullRequests", () => {
         error: "500",
       },
     ]);
-    expect(result.pullRequests.map((each) => each.pullRequest.number)).toEqual([2]);
+    expect(result.pullRequests.map((each) => each.target.number)).toEqual([2]);
   });
 
   it("logs how much it scanned and how much is due", async () => {
@@ -226,7 +226,7 @@ describe("reviewPullRequests", () => {
   const logs = useLogCapture();
 
   function context(overrides: Partial<PullRequest> = {}): PullRequestContext {
-    return { pullRequest: pullRequest(overrides), comments: [] };
+    return { target: pullRequest(overrides), comments: [] };
   }
 
   it("calls the model once per lens", async () => {
@@ -266,7 +266,7 @@ describe("reviewPullRequests", () => {
       client,
     )({
       pullRequests: [
-        { pullRequest: target, comments: [comment({ author: "octocat", body: "hi" })] },
+        { target, comments: [comment({ author: "octocat", body: "hi" })] },
       ],
     });
 
@@ -371,7 +371,7 @@ describe("reviewPullRequests", () => {
       github,
       client,
     )({
-      pullRequests: [{ pullRequest: target, comments: [] }],
+      pullRequests: [{ target, comments: [] }],
     });
 
     expect(logs.contextOf("reviewing pull request")).toMatchObject({

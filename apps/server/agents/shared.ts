@@ -1,6 +1,8 @@
+import { Annotation } from "@langchain/langgraph";
 import { z } from "zod";
 import { type ContextLogger, getLogger } from "../../../packages/shared/logs.js";
 import type { Comment, GitHubClient, ReviewTarget } from "../external/github/client.js";
+import { LABEL, LABEL_COLOR, REVIEWER_LOGIN } from "../external/github/settings.js";
 import { namedSchema } from "../external/nvidia/client.js";
 
 const logger = getLogger("angel.agents.shared");
@@ -28,12 +30,17 @@ export const findingSchema = z.strictObject({
 
 export type Finding = z.infer<typeof findingSchema>;
 
+const summaryOf = (what: string) =>
+  z.string().describe(`A short overall summary of the ${what}.`);
+
+const findingsField = z
+  .array(findingSchema)
+  .default([])
+  .describe("Specific findings from the review.");
+
 export const pullRequestReviewOutputSchema = z.strictObject({
-  summary: z.string().describe("A short overall summary of the pull request review."),
-  findings: z
-    .array(findingSchema)
-    .default([])
-    .describe("Specific findings from the review."),
+  summary: summaryOf("pull request review"),
+  findings: findingsField,
 });
 
 export type PullRequestReviewOutput = z.infer<typeof pullRequestReviewOutputSchema>;
@@ -44,11 +51,8 @@ export const PULL_REQUEST_REVIEW_OUTPUT = namedSchema(
 );
 
 export const issueReviewOutputSchema = z.strictObject({
-  summary: z.string().describe("A short overall summary of the issue review."),
-  findings: z
-    .array(findingSchema)
-    .default([])
-    .describe("Specific findings from the review."),
+  summary: summaryOf("issue review"),
+  findings: findingsField,
   acceptanceCriteria: z
     .array(z.string())
     .default([])
@@ -78,15 +82,19 @@ export function renderFinding(finding: Finding): string {
   return `**[${finding.severity}] ${finding.title}**${location}\n${finding.detail}`;
 }
 
-function renderFindingsSection(findings: readonly Finding[]): string {
+export function renderFindings(findings: readonly Finding[]): string {
   if (findings.length === 0) {
     return "No findings.";
   }
-  return `### Findings\n\n${findings.map(renderFinding).join("\n\n")}`;
+  return findings.map(renderFinding).join("\n\n");
 }
 
 export function renderIssueReview(output: IssueReviewOutput): string {
-  const sections = [output.summary, renderFindingsSection(output.findings)];
+  const findings =
+    output.findings.length === 0
+      ? "No findings."
+      : `### Findings\n\n${renderFindings(output.findings)}`;
+  const sections = [output.summary, findings];
   if (output.acceptanceCriteria.length > 0) {
     const criteria = output.acceptanceCriteria.map((item) => `- ${item}`).join("\n");
     sections.push(`### Acceptance criteria\n\n${criteria}`);
@@ -95,6 +103,13 @@ export function renderIssueReview(output: IssueReviewOutput): string {
     sections.push(`### Suggested approach\n\n${output.suggestedApproach}`);
   }
   return sections.join("\n\n");
+}
+
+export function renderComments(comments: readonly Comment[]): string {
+  if (comments.length === 0) {
+    return "(none)";
+  }
+  return comments.map((comment) => `@${comment.author}: ${comment.body}`).join("\n\n");
 }
 
 export interface Review {
@@ -213,11 +228,157 @@ export function reviewedSha(
   return latest?.sha;
 }
 
-export function renderComments(comments: readonly Comment[]): string {
-  if (comments.length === 0) {
-    return "(none)";
+export interface ReviewContext<T extends ReviewTarget> {
+  readonly target: T;
+  readonly comments: Comment[];
+}
+
+export interface Selection {
+  readonly selected: boolean;
+  readonly reason: string;
+}
+
+export interface ScanOptions<T extends ReviewTarget> {
+  readonly stage: string;
+  readonly noun: string;
+  readonly plural: string;
+  readonly label: string;
+  readonly labelColor: string;
+  readonly list: (repository: string) => Promise<T[]>;
+  readonly select: (target: T, comments: readonly Comment[]) => Selection;
+}
+
+export async function scanTargets<T extends ReviewTarget>(
+  log: ContextLogger,
+  github: GitHubClient,
+  options: ScanOptions<T>,
+): Promise<{ contexts: ReviewContext<T>[]; failures: ItemFailure[] }> {
+  const { stage, noun, plural } = options;
+  log.info(`fetching ${plural}`);
+  const contexts: ReviewContext<T>[] = [];
+  const failures: ItemFailure[] = [];
+  const repositories = await github.listRepositories();
+  let itemsScanned = 0;
+
+  for (const repository of repositories) {
+    await collectFailures(
+      failures,
+      `failed to fetch ${plural} for repository`,
+      { stage, repository, number: 0 },
+      async () => {
+        await github.ensureLabel(repository, options.label, options.labelColor);
+        const labeled = await options.list(repository);
+        log.debug("scanning repository", {
+          repository,
+          labeled_items_found: labeled.length,
+        });
+        for (const target of labeled) {
+          itemsScanned += 1;
+          await collectFailures(
+            failures,
+            `failed to fetch ${noun}`,
+            { stage, repository: target.repository, number: target.number },
+            async () => {
+              const comments = await github.listComments(target);
+              const { selected, reason } = options.select(target, comments);
+              log.debug(`evaluated ${noun}`, {
+                repository: target.repository,
+                number: target.number,
+                selected,
+                reason,
+              });
+              if (selected) {
+                contexts.push({ target, comments });
+              }
+            },
+          );
+        }
+      },
+    );
   }
-  return comments.map((comment) => `@${comment.author}: ${comment.body}`).join("\n\n");
+
+  log.info(`${plural} fetched`, {
+    repositories_scanned: repositories.length,
+    items_scanned: itemsScanned,
+    items_due_for_review: contexts.length,
+  });
+  return { contexts, failures };
+}
+
+export interface ReviewEachOptions<T extends ReviewTarget> {
+  readonly stage: string;
+  readonly noun: string;
+  readonly plural: string;
+  readonly body: (context: ReviewContext<T>) => Promise<string>;
+}
+
+export async function reviewTargets<T extends ReviewTarget>(
+  log: ContextLogger,
+  contexts: readonly ReviewContext<T>[],
+  options: ReviewEachOptions<T>,
+): Promise<{ reviews: Review[]; failures: ItemFailure[] }> {
+  const { stage, noun, plural } = options;
+  log.info(`reviewing ${contexts.length} ${plural}`);
+  const reviews: Review[] = [];
+  const failures: ItemFailure[] = [];
+
+  for (const context of contexts) {
+    const { target } = context;
+    await collectFailures(
+      failures,
+      `failed to review ${noun}`,
+      { stage, repository: target.repository, number: target.number },
+      async () => {
+        const body = await options.body(context);
+        log.info(`reviewed ${target.repository}#${target.number}`, {
+          repository: target.repository,
+          number: target.number,
+        });
+        reviews.push({ target, body });
+      },
+    );
+  }
+
+  log.info(`${plural} reviewed`, { count: reviews.length });
+  return { reviews, failures };
+}
+
+function replace<T>(_current: T, next: T): T {
+  return next;
+}
+
+export function contextChannel<T extends ReviewTarget>() {
+  return Annotation<ReviewContext<T>[]>({ reducer: replace, default: () => [] });
+}
+
+export function reviewChannels() {
+  return {
+    reviews: Annotation<Review[]>({ reducer: replace, default: () => [] }),
+    failures: Annotation<ItemFailure[]>({
+      reducer: (current: ItemFailure[], next: ItemFailure[]) => [...current, ...next],
+      default: () => [],
+    }),
+  };
+}
+
+export interface ReviewGraphOptions {
+  readonly reviewerLogin?: string;
+  readonly label?: string;
+  readonly labelColor?: string;
+}
+
+export const RETRY_POLICY = { maxAttempts: 3 };
+
+export function reviewSettings(options: ReviewGraphOptions): {
+  reviewerLogin: string;
+  label: string;
+  labelColor: string;
+} {
+  return {
+    reviewerLogin: options.reviewerLogin ?? REVIEWER_LOGIN,
+    label: options.label ?? LABEL,
+    labelColor: options.labelColor ?? LABEL_COLOR,
+  };
 }
 
 export interface ReviewState {
