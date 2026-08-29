@@ -1,8 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   LANGFUSE_BASE_URL_DEFAULT,
-  LANGFUSE_LOCAL_PUBLIC_KEY,
-  LANGFUSE_LOCAL_SECRET_KEY,
   resolveCredentials,
   startTracing,
 } from "../../eval/langfuse.js";
@@ -18,17 +16,17 @@ function stubKeys(
 }
 
 describe("resolveCredentials", () => {
-  it("falls back to the local docker compose stack when nothing is configured", () => {
-    stubKeys("", "", "");
+  it("defaults to a Langfuse on localhost when no base URL is set", () => {
+    stubKeys("pk-lf-local", "sk-lf-local", "");
 
     expect(resolveCredentials()).toEqual({
-      publicKey: LANGFUSE_LOCAL_PUBLIC_KEY,
-      secretKey: LANGFUSE_LOCAL_SECRET_KEY,
+      publicKey: "pk-lf-local",
+      secretKey: "sk-lf-local",
       baseUrl: LANGFUSE_BASE_URL_DEFAULT,
     });
   });
 
-  it("keeps explicit keys over the local ones", () => {
+  it("reports to the configured instance", () => {
     stubKeys("pk-lf-cloud", "sk-lf-cloud", "https://cloud.langfuse.com");
 
     expect(resolveCredentials()).toEqual({
@@ -38,13 +36,13 @@ describe("resolveCredentials", () => {
     });
   });
 
-  it("refuses to guess keys for a remote instance", () => {
+  it("refuses to guess keys, naming the instance it needs them for", () => {
     stubKeys("", "", "https://cloud.langfuse.com");
 
     expect(() => resolveCredentials()).toThrow(/https:\/\/cloud\.langfuse\.com/);
   });
 
-  it("refuses a half-configured local instance", () => {
+  it("refuses a half-configured instance", () => {
     stubKeys("pk-lf-test", "", LANGFUSE_BASE_URL_DEFAULT);
 
     expect(() => resolveCredentials()).toThrow(

@@ -5,9 +5,6 @@ import { loadEnvVar } from "../packages/shared/env.js";
 
 export const LANGFUSE_BASE_URL_DEFAULT = "http://localhost:3000";
 
-export const LANGFUSE_LOCAL_PUBLIC_KEY = "pk-lf-angel-local";
-export const LANGFUSE_LOCAL_SECRET_KEY = "sk-lf-angel-local";
-
 export class MissingLangfuseCredentialsError extends Error {
   override readonly name = "MissingLangfuseCredentialsError";
 }
@@ -28,16 +25,9 @@ export function resolveCredentials(): LangfuseCredentials {
   const baseUrl = loadEnvVar("LANGFUSE_BASE_URL") || LANGFUSE_BASE_URL_DEFAULT;
   const publicKey = loadEnvVar("LANGFUSE_PUBLIC_KEY") || "";
   const secretKey = loadEnvVar("LANGFUSE_SECRET_KEY") || "";
-  if (!publicKey && !secretKey && baseUrl === LANGFUSE_BASE_URL_DEFAULT) {
-    return {
-      publicKey: LANGFUSE_LOCAL_PUBLIC_KEY,
-      secretKey: LANGFUSE_LOCAL_SECRET_KEY,
-      baseUrl,
-    };
-  }
   if (!publicKey || !secretKey) {
     throw new MissingLangfuseCredentialsError(
-      `LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY environment variables are not set. Set both for ${baseUrl}, or unset all three to report to the local Langfuse started by \`npm run eval:up\`.`,
+      `LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY environment variables are not set. Set both to the project keys of the Langfuse at ${baseUrl}, or set LANGFUSE_BASE_URL to another instance.`,
     );
   }
   return { publicKey, secretKey, baseUrl };

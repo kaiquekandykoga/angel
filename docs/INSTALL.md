@@ -5,7 +5,7 @@
 - Node.js 22+, npm
 - [NVIDIA API key](https://build.nvidia.com) for model calls
 - GitHub App — only for `pr_review`/`issue_review`, see [`USAGE.md`](USAGE.md#the-github-app)
-- Docker with Compose v2 — only for `npm run eval`, which reports to a local Langfuse, see [`EVAL.md`](EVAL.md#the-local-langfuse)
+- A [Langfuse](https://langfuse.com) project — only for `npm run eval`, which reports to one you already run (or to Langfuse Cloud), see [`EVAL.md`](EVAL.md#configuration)
 
 ## From source
 
