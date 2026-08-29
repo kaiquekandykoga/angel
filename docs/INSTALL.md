@@ -5,6 +5,7 @@
 - Node.js 22+, npm
 - [NVIDIA API key](https://build.nvidia.com) for model calls
 - GitHub App — only for `pr_review`/`issue_review`, see [`USAGE.md`](USAGE.md#the-github-app)
+- A [Langfuse](https://langfuse.com) project — only for `npm run eval`, which reports to one you already run (or to Langfuse Cloud), see [`EVAL.md`](EVAL.md#configuration)
 
 ## From source
 

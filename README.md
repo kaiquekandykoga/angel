@@ -35,7 +35,7 @@ and capped on the way out. `--dry-run` does everything except write to GitHub.
 | [`docs/agents/`](docs/agents/README.md) | How each graph is wired, node by node, with a page and diagram per command: [`chat`](docs/agents/CHAT.md), [`pr_review`](docs/agents/PR-REVIEW.md), [`issue_review`](docs/agents/ISSUE-REVIEW.md) |
 | [`docs/LOGS.md`](docs/LOGS.md) | What a run writes to the console and to `log/angel-<timestamp>.jsonl`, the record shape, and how to read a run back with `jq` |
 | [`docs/TESTING.md`](docs/TESTING.md) | How the unit and integration suites split, why both exist, and how to add a recorded GitHub fixture |
-| [`docs/EVAL.md`](docs/EVAL.md) | `npm run eval` — scoring the review agents against a fixed dataset with deterministic checks, and sending the run to Langfuse |
+| [`docs/EVAL.md`](docs/EVAL.md) | `npm run eval` — scoring the review agents against a fixed dataset with deterministic checks, and sending the run to a Langfuse instance you point it at |
 | [`docs/TODO.md`](docs/TODO.md) | The living backlog between this and running unattended: retries, prompt-injection hardening, a deployment story. Open items only, grouped P0/P1/P2 |
 
 ## License

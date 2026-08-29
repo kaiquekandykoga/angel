@@ -9,6 +9,10 @@ npm run eval                     # both agents
 npm run eval -- pr_review        # one of pr_review, issue_review
 ```
 
+It reports to the Langfuse named by `LANGFUSE_BASE_URL` — by default one already running
+at `http://localhost:3000` — using the project keys in `LANGFUSE_PUBLIC_KEY` and
+`LANGFUSE_SECRET_KEY`. See [Configuration](#configuration).
+
 It costs real model calls: three per pull request case (one per lens) and one per issue
 case. Nothing is posted to GitHub — the graph's `post_review_comments` node writes into an
 in-memory repository.
@@ -85,13 +89,27 @@ the diff with real `@@` headers: `cited_lines_in_hunks` parses them.
 
 ## Configuration
 
-Two variables beyond the ones in [`USAGE.md`](USAGE.md#configuration), from a project at
-[cloud.langfuse.com](https://cloud.langfuse.com) or your own instance: `LANGFUSE_PUBLIC_KEY`
-(`pk-lf-…`), `LANGFUSE_SECRET_KEY` (`sk-lf-…`), and the optional `LANGFUSE_BASE_URL`
-(defaults to `https://cloud.langfuse.com`).
+Three variables beyond the ones in [`USAGE.md`](USAGE.md#configuration). The eval brings
+up no Langfuse of its own — point it at one you already run, or at a
+[cloud.langfuse.com](https://cloud.langfuse.com) project.
 
-Missing keys exit `1` with a one-line message before any model call is made. Spans are
-exported immediately rather than batched, so a short run cannot lose its trace on exit.
+| Variable | | What it is |
+|---|---|---|
+| `LANGFUSE_PUBLIC_KEY` | required | Project public key, `pk-lf-…`. |
+| `LANGFUSE_SECRET_KEY` | required | Project secret key, `sk-lf-…`. |
+| `LANGFUSE_BASE_URL` | optional | The instance the keys belong to. Default `http://localhost:3000`. |
+
+Both keys come from the project's settings page in whichever Langfuse you point at. With
+either key missing the run exits `1` with a one-line message naming the base URL, before
+any model call — no keys are ever guessed. The run prints the instance it reported to as
+its first line.
+
+Spans are exported immediately rather than batched, so a short run cannot lose its trace on
+exit.
+
+To run Langfuse locally, its own
+[docker-compose.yml](https://github.com/langfuse/langfuse/blob/main/docker-compose.yml)
+serves on `http://localhost:3000`; create a project there and copy its keys into `.env`.
 
 ## Files
 
@@ -104,7 +122,7 @@ exported immediately rather than batched, so a short run cannot lose its trace o
 | `eval/tasks.ts` | Runs a graph over one case and returns its body, findings, and structured output. |
 | `eval/github.ts` | `StaticGitHubClient` — one case as a `GitHubClient`. |
 | `eval/llm.ts` | `RecordingLlmClient` — an `LlmClient` that keeps every structured reply. |
-| `eval/langfuse.ts` | The OpenTelemetry provider, span processor, and client. |
+| `eval/langfuse.ts` | The OpenTelemetry provider, span processor, and client, and the credentials they read from the environment. |
 
 The datasets live in the repository rather than in Langfuse: a case is reviewed in a pull
 request like any other code, and a run needs no network to be reproducible. Pushing them up
