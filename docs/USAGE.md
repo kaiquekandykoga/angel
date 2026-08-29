@@ -229,7 +229,7 @@ Copy `.env.example` to `.env` and fill in these variables.
 | `ANGEL_GITHUB_APP_ID` | `pr_review`, `issue_review` | ID of the GitHub App to authenticate as. |
 | `ANGEL_GITHUB_PRIVATE_KEY_PATH` | `pr_review`, `issue_review` | Path to that App's private key (`.pem`). A leading `~/` is expanded. |
 | `ANGEL_NVIDIA_MAX_COMPLETION_TOKENS` | optional, all three commands | Output tokens per model call, default `32768`. Counts reasoning as well as the answer, so sizing to the review text alone truncates the reply mid-object and fails the item. Non-integer or non-positive exits `1` rather than falling back to default. |
-| `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_BASE_URL` | `npm run eval` only | Langfuse project keys and instance URL — see [`EVAL.md`](EVAL.md#configuration). The three commands never read them. |
+| `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_BASE_URL` | optional, `npm run eval` only | Langfuse project keys and instance URL. All unset reports to the local Langfuse from `npm run eval:up` at `http://localhost:3000` — see [`EVAL.md`](EVAL.md#the-local-langfuse). The three commands never read them. |
 | `ANGEL_COLOR` | optional, all three commands | `auto` (default) colors only on a terminal; `always` keeps color when piping or redirecting; `never` disables it; unrecognised value = `auto`. Non-empty `NO_COLOR` disables color regardless. |
 
 A missing *required* variable exits `1` with `<NAME> environment variable is not set.`

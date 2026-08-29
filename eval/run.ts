@@ -140,6 +140,7 @@ export async function main(argv: readonly string[]): Promise<number> {
   const agents = parseAgents(argv);
   const client = buildLlmClient();
   const tracing = startTracing();
+  process.stdout.write(`Reporting to ${tracing.baseUrl}\n`);
   resetUsage();
   try {
     let ok = true;

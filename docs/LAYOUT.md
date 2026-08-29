@@ -39,7 +39,8 @@ the logger writes.
 [Langfuse](https://langfuse.com). `bin.ts` is the entry point; `run.ts` wires each agent's
 dataset, task, and evaluators into one Langfuse experiment. `datasets.ts` holds the cases,
 `scorers.ts` the deterministic checks, `tasks.ts` runs the real graph against `github.ts`'s
-static repository, and `langfuse.ts` sets up tracing. It imports `apps/server/index.js` like
+static repository, and `langfuse.ts` sets up tracing against the Langfuse that
+`docker-compose.yml` runs locally. It imports `apps/server/index.js` like
 any other UI. See [`EVAL.md`](EVAL.md).
 
 ## `tests/`

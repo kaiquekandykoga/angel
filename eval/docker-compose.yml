@@ -1,0 +1,155 @@
+# Local Langfuse for `npm run eval` — `npm run eval:up` starts it, `npm run eval:down`
+# stops it. Trimmed from https://github.com/langfuse/langfuse/blob/main/docker-compose.yml:
+# only langfuse-web is published (127.0.0.1:3000), and the project, its API keys, and a
+# login are seeded on first boot so the eval needs no clicking through the UI.
+#
+# The credentials below are development defaults, deliberately public and hard-coded.
+# Never point this stack at anything but localhost, and never reuse these values.
+name: angel-langfuse
+
+services:
+  langfuse-web:
+    image: docker.langfuse.com/langfuse/langfuse:4
+    restart: unless-stopped
+    depends_on: &langfuse-depends-on
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    ports:
+      - 127.0.0.1:3000:3000
+    environment:
+      <<: &langfuse-env
+        DATABASE_URL: postgresql://postgres:postgres@postgres:5432/postgres
+        SALT: angel-local-salt
+        ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
+        TELEMETRY_ENABLED: "false"
+        CLICKHOUSE_MIGRATION_URL: clickhouse://clickhouse:9000
+        CLICKHOUSE_URL: http://clickhouse:8123
+        CLICKHOUSE_USER: clickhouse
+        CLICKHOUSE_PASSWORD: clickhouse
+        CLICKHOUSE_CLUSTER_ENABLED: "false"
+        LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
+        LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+        LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: minio
+        LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: miniosecret
+        LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://minio:9000
+        LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+        LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
+        LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: langfuse
+        LANGFUSE_S3_MEDIA_UPLOAD_REGION: auto
+        LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: minio
+        LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: miniosecret
+        LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://minio:9000
+        LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: "true"
+        LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: media/
+        REDIS_HOST: redis
+        REDIS_PORT: "6379"
+        REDIS_AUTH: myredissecret
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: angel-local-nextauth-secret
+      # Seeds the project the eval reports to, and a login for http://localhost:3000.
+      # Keep in step with eval/langfuse.ts and .env.example.
+      LANGFUSE_INIT_ORG_ID: angel
+      LANGFUSE_INIT_ORG_NAME: angel
+      LANGFUSE_INIT_PROJECT_ID: angel-eval
+      LANGFUSE_INIT_PROJECT_NAME: angel-eval
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: pk-lf-angel-local
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: sk-lf-angel-local
+      LANGFUSE_INIT_USER_EMAIL: dev@angel.local
+      LANGFUSE_INIT_USER_NAME: angel
+      LANGFUSE_INIT_USER_PASSWORD: angel-local-dev
+    healthcheck:
+      # `npm run eval:up` waits on this. Next.js binds the container's own hostname,
+      # not loopback, so $$HOSTNAME is the only address that answers from inside.
+      test:
+        - CMD-SHELL
+        - wget --no-verbose --tries=1 --spider http://$$HOSTNAME:3000/api/public/health || exit 1
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 10s
+
+  langfuse-worker:
+    image: docker.langfuse.com/langfuse/langfuse-worker:4
+    restart: unless-stopped
+    depends_on: *langfuse-depends-on
+    environment:
+      <<: *langfuse-env
+
+  clickhouse:
+    image: docker.io/clickhouse/clickhouse-server:25.12
+    restart: unless-stopped
+    user: "101:101"
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: clickhouse
+      CLICKHOUSE_PASSWORD: clickhouse
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - clickhouse_logs:/var/log/clickhouse-server
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 1s
+
+  minio:
+    image: cgr.dev/chainguard/minio
+    restart: unless-stopped
+    entrypoint: sh
+    command: -c 'mkdir -p /data/langfuse && minio server --address ":9000" --console-address ":9001" /data'
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: miniosecret
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 1s
+      timeout: 5s
+      retries: 5
+      start_period: 1s
+
+  redis:
+    image: docker.io/redis:7
+    restart: unless-stopped
+    command: >
+      --requirepass myredissecret
+      --maxmemory-policy noeviction
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 10s
+      retries: 10
+
+  postgres:
+    image: docker.io/postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      TZ: UTC
+      PGTZ: UTC
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres_data:
+  clickhouse_data:
+  clickhouse_logs:
+  minio_data:
+  redis_data:
