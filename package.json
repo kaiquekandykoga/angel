@@ -51,7 +51,7 @@
     "commander": "^15.0.0",
     "dotenv": "^17.4.2",
     "jsonwebtoken": "^9.0.3",
-    "zod": "^4.4.3"
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.10",
